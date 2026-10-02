@@ -1,0 +1,70 @@
+{
+  "schema_version": "1.0",
+  "snapshot_id": "s6-mvp-av-hook-crash",
+  "marked_at": "2026-10-08T19:30:00+09:00",
+  "trigger": {
+    "kind": "auto_app_crash",
+    "event_id": 1000
+  },
+  "host": {
+    "os": "Windows 10 22H2",
+    "sensor_support": false
+  },
+  "symptom": {
+    "type": "app_crash",
+    "target_process": "game.exe",
+    "scope": "single_app",
+    "started_at": "2026-10-08T19:00:00+09:00"
+  },
+  "modules": [
+    {
+      "process": "game.exe",
+      "name": "ntdll.dll",
+      "company": "Microsoft Corporation",
+      "signer": "Microsoft Windows",
+      "microsoft_signed": true
+    },
+    {
+      "process": "game.exe",
+      "name": "aswhook.dll",
+      "company": "AVAST Software s.r.o.",
+      "signer": "AVAST Software s.r.o."
+    },
+    {
+      "process": "game.exe",
+      "name": "DiscordHook64.dll",
+      "company": "Discord Inc.",
+      "signer": "Discord Inc."
+    }
+  ],
+  "device_filters": {
+    "keyboard_upper": [
+      "kbdclass"
+    ],
+    "mouse_upper": [
+      "mouclass"
+    ],
+    "ndis_filters": []
+  },
+  "events": [
+    {
+      "time": "2026-10-08T19:29:00+09:00",
+      "provider": "Application Error",
+      "id": 1000,
+      "subject": "game.exe",
+      "faulting_module": "aswhook.dll"
+    },
+    {
+      "time": "2026-10-08T19:10:00+09:00",
+      "provider": "Application Error",
+      "id": 1000,
+      "subject": "game.exe",
+      "faulting_module": "aswhook.dll"
+    }
+  ],
+  "ground_truth": {
+    "layer": "SW",
+    "category": "antivirus",
+    "subject": "aswhook.dll"
+  }
+}

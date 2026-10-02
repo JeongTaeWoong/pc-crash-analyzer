@@ -1,0 +1,80 @@
+{
+  "schema_version": "1.0",
+  "snapshot_id": "s3-av-launch-fail",
+  "marked_at": "2026-10-23T15:20:00+09:00",
+  "trigger": {
+    "kind": "hotkey"
+  },
+  "host": {
+    "os": "Windows 11 23H2",
+    "sensor_support": false
+  },
+  "symptom": {
+    "type": "launch_fail",
+    "target_process": "IndieGame.exe",
+    "scope": "single_app",
+    "started_at": "2026-10-23T15:00:00+09:00",
+    "faulting_modules": []
+  },
+  "processes": [
+    "V3Lite.exe",
+    "MsMpEng.exe",
+    "explorer.exe"
+  ],
+  "modules": [],
+  "drivers": [
+    {
+      "name": "ahnflt2k.sys",
+      "display": "AhnLab V3 Filter",
+      "type": "kernel_filter",
+      "company": "AhnLab, Inc.",
+      "started_at": "2026-09-01T09:00:00+09:00"
+    }
+  ],
+  "device_filters": {
+    "keyboard_upper": [
+      "kbdclass"
+    ],
+    "mouse_upper": [
+      "mouclass"
+    ],
+    "ndis_filters": []
+  },
+  "security": {
+    "realtime_av": [
+      "AhnLab V3",
+      "Microsoft Defender"
+    ],
+    "firewall_blocks": [],
+    "detections": [
+      {
+        "time": "2026-10-23T14:58:30+09:00",
+        "product": "AhnLab V3",
+        "target": "IndieGame.exe",
+        "action": "quarantine",
+        "threat": "Malware/Win.Generic.C5512345"
+      }
+    ]
+  },
+  "change_history": [
+    {
+      "time": "2026-10-23T14:50:00+09:00",
+      "kind": "update",
+      "subject": "IndieGame",
+      "version": "1.4.2"
+    }
+  ],
+  "events": [],
+  "baseline_diff": {
+    "added": [],
+    "removed": [],
+    "changed": [
+      "IndieGame"
+    ]
+  },
+  "ground_truth": {
+    "layer": "SW",
+    "category": "antivirus",
+    "subject": "AhnLab V3"
+  }
+}
