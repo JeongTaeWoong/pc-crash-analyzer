@@ -90,20 +90,26 @@ Python·CUDA 생태계에는 Env-Doctor, pipdeptree처럼 버전 충돌을 진�
 
 ## 빌드 · 실행
 
-> 개발 초기 단계입니다. 아래는 구조가 잡히는 대로 채워집니다.
+### 추론 엔진 (`engine/`)
+
+요구 사항: Windows 10/11 (x64), Visual Studio 2022(「C++를 사용한 데스크톱 개발」, CMake 포함). 외부 라이브러리 없음.
+
+"Developer Command Prompt for VS 2022"에서:
 
 ```
-# 요구 사항
-- Windows 10/11 (x64)
-- <런타임/SDK 버전>
-- 관리자 권한 (수집기 실행 시)
+cd engine
+cmake -S . -B build
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
 
-# 빌드
-<빌드 명령>
-
-# 실행
-<실행 명령>
+build\Release\crash_engine.exe diagnose data\samples\s1_anticheat_crash.json
 ```
+
+진단 세션(원인 확인 → 해결 안내 → 검증) 실행 방법은 [`engine/docs/scenario_walkthrough.md`](engine/docs/scenario_walkthrough.md) 참고.
+
+### 수집기 · UI
+
+> 구조가 잡히는 대로 채워집니다. (수집기 실행 시 관리자 권한 필요)
 
 ## 프라이버시
 
