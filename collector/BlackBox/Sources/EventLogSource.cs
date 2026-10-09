@@ -62,19 +62,9 @@ public sealed class EventLogSource : ISignalSource
         msg = msg.Replace("\r\n", " ").Replace("\n", " ");
         if (msg.Length > 1000) msg = msg[..1000] + "...";
 
-        OnSignal?.Invoke(SignalEvent.Create(Name, new
-        {
-            log = logName,
-            id = rec.Id,
-            provider = rec.ProviderName,
-            message = msg,
-        }));
-
-        string? kind = KindOf(logName, rec.Id, rec.ProviderName);
-        if (kind == null) return;
-
         // 이벤트 1000(Application Error)의 표준 속성: [0]=앱 이름, [3]=모듈 이름, [8]=프로세스 ID(16진수 문자열)
         string? pname = null;
+        string? faultingModule = null;
         int? pid = null;
         if (rec.Id == 1000)
         {
@@ -82,13 +72,27 @@ public sealed class EventLogSource : ISignalSource
             {
                 var props = rec.Properties;
                 if (props.Count > 0) pname = props[0].Value as string;
+                if (props.Count > 3) faultingModule = props[3].Value as string;
                 if (props.Count > 8) pid = ParsePid(props[8].Value);
             }
             catch { }
         }
 
+        OnSignal?.Invoke(SignalEvent.Create(Name, new
+        {
+            log = logName,
+            id = rec.Id,
+            provider = rec.ProviderName,
+            subject = pname,
+            faultingModule,
+            message = msg,
+        }));
+
+        string? kind = KindOf(logName, rec.Id, rec.ProviderName);
+        if (kind == null) return;
+
         OnTrigger?.Invoke(new EventLogTrigger(
-            receivedAt, logName, rec.Id, rec.ProviderName, rec.TimeCreated, msg, pname, pid, kind));
+            receivedAt, logName, rec.Id, rec.ProviderName, rec.TimeCreated, msg, pname, pid, faultingModule, kind));
     }
 
     private static string? KindOf(string log, int id, string? provider) => (log, id) switch

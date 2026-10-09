@@ -20,6 +20,7 @@ public sealed class DumpWriter
         DateTimeOffset to,
         IReadOnlyList<SignalEvent> events,
         object snapshot,
+        object engineSnapshot,
         (int Count, long ApproxBytes) bufferStats,
         IReadOnlyList<SourceStatus> sourceStatuses)
     {
@@ -51,6 +52,8 @@ public sealed class DumpWriter
         WriteJson(Path.Combine(dir, "meta.json"), Json.Serialize(meta, indented: true));
         WriteJson(Path.Combine(dir, "events.json"), BuildEventsJson(markTime, from, to, events));
         WriteJson(Path.Combine(dir, "snapshot.json"), Json.Serialize(snapshot, indented: true));
+        // 추론 엔진 입력 규격 (engine/docs/snapshot_schema.md) — crash_engine diagnose가 바로 읽는다
+        WriteJson(Path.Combine(dir, "engine-snapshot.json"), Json.Serialize(engineSnapshot, indented: true));
         return dir;
     }
 

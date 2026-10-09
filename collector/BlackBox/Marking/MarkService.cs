@@ -36,7 +36,7 @@ public sealed class MarkService
     }
 
     public void MarkManual(string via) =>
-        StartMark("manual", new { type = "manual", via }, null, null, null);
+        StartMark("manual", new { type = "manual", via }, null, null, null, null);
 
     public void OnAutoTrigger(EventLogTrigger t)
     {
@@ -55,10 +55,10 @@ public sealed class MarkService
         }
 
         Console.WriteLine($"[trigger] {Json.Serialize(new { receivedAt = t.ReceivedAt, kind = t.Kind, log = t.Log, id = t.EventId, processName = t.ProcessName, pid = t.Pid })}");
-        StartMark(t.Kind, t, t.Pid, t.ProcessName, merged);
+        StartMark(t.Kind, t, t, t.Pid, t.ProcessName, merged);
     }
 
-    private void StartMark(string kind, object trigger, int? crashPid, string? crashProcessName, List<EventLogTrigger>? mergedTriggers)
+    private void StartMark(string kind, object trigger, EventLogTrigger? autoTrigger, int? crashPid, string? crashProcessName, List<EventLogTrigger>? mergedTriggers)
     {
         var markTime = DateTimeOffset.Now;
         Console.WriteLine($"[mark] {markTime:HH:mm:ss.fff} kind={kind} — {_post.TotalSeconds:0}초 후 덤프 예정");
@@ -74,17 +74,24 @@ public sealed class MarkService
                 var from = markTime - _pre;
                 var to = markTime + _post;
                 var events = _buffer.Snapshot(from, to);
-                var snapshot = await snapshotTask;
+                var snapResult = await snapshotTask;
+                var snapshot = snapResult.Json;
                 snapshot["etwImageLoadTopPids"] = TopImageLoadPids(events);
 
+                List<string>? crashModulePaths = null;
                 if (crashPid.HasValue || crashProcessName != null)
-                    snapshot["crashProcessLastModules"] = FindLastModules(events, markTime, crashPid, crashProcessName);
+                {
+                    var found = FindLastModules(events, markTime, crashPid, crashProcessName);
+                    snapshot["crashProcessLastModules"] = found.Dump;
+                    crashModulePaths = found.Paths;
+                }
 
                 object triggerObj = mergedTriggers is { Count: > 0 }
                     ? new { primary = trigger, mergedWithinCooldown = mergedTriggers }
                     : trigger;
 
-                var dir = _writer.Write(markTime, kind, triggerObj, from, to, events, snapshot, _buffer.Stats, _statuses);
+                var engineSnapshot = EngineSnapshotBuilder.Build(markTime, kind, autoTrigger, events, snapResult.Facts, crashModulePaths);
+                var dir = _writer.Write(markTime, kind, triggerObj, from, to, events, snapshot, engineSnapshot, _buffer.Stats, _statuses);
                 Console.WriteLine($"[dump] {Json.Serialize(new { dir, completedAt = DateTimeOffset.Now, kind, events = events.Count })}");
             }
             catch (Exception ex)
@@ -101,7 +108,7 @@ public sealed class MarkService
     /// 1차: ETW ImageLoad 누적 (관리자 + 해당 PID의 로드가 버퍼에 있을 때) — 수명이 짧은 프로세스도 실시간으로 잡힘.
     /// 폴백: 주기 프로세스 스냅샷 (비관리자이거나, ETW 가동 전에 시작된 프로세스).
     /// </summary>
-    private static object FindLastModules(IReadOnlyList<SignalEvent> events, DateTimeOffset markTime, int? pid, string? processName)
+    private static (object Dump, List<string>? Paths) FindLastModules(IReadOnlyList<SignalEvent> events, DateTimeOffset markTime, int? pid, string? processName)
     {
         if (pid.HasValue && AccumulateEtwImageLoads(events, markTime, pid.Value) is { } etwMatch)
             return etwMatch;
@@ -114,7 +121,7 @@ public sealed class MarkService
     /// ETW 실시간 전달은 1~3초 늦게 도착하므로(수명 100ms급 크래시에서 실측),
     /// ImageLoad는 마킹 +5초까지 유예해 받아들인다 — PID 일치 조건이라 오염 위험 없음.
     /// </summary>
-    private static object? AccumulateEtwImageLoads(IReadOnlyList<SignalEvent> events, DateTimeOffset markTime, int pid)
+    private static (object Dump, List<string> Paths)? AccumulateEtwImageLoads(IReadOnlyList<SignalEvent> events, DateTimeOffset markTime, int pid)
     {
         var graceCap = markTime + TimeSpan.FromSeconds(5);
         DateTimeOffset? lastStart = null;
@@ -153,7 +160,8 @@ public sealed class MarkService
         }
 
         if (paths.Count == 0) return null;
-        return new
+        var capped = paths.Take(60).ToList();
+        return (new
         {
             matchedBy = "etw-pid",
             source = "etw-imageload-accumulated",
@@ -161,19 +169,19 @@ public sealed class MarkService
             name,
             firstLoadAt = first,
             lastLoadAt = last,
-            modules = paths.Take(60).ToList(),
-        };
+            modules = capped,
+        }, capped);
     }
 
     /// <summary>
     /// 주기 스냅샷 폴백: 최신부터 거슬러 PID 일치 우선, 프로세스명(확장자 제외) 일치는 차선.
     /// 마킹 시점 이후 스냅샷 제외 — 이름 폴백이 크래시 후 새로 뜬 동명 프로세스를 집어오는 오류 방지 (2026-10-08 확인).
     /// </summary>
-    private static object FindLastModulesFromSnapshots(IReadOnlyList<SignalEvent> events, DateTimeOffset markTime, int? pid, string? processName)
+    private static (object Dump, List<string>? Paths) FindLastModulesFromSnapshots(IReadOnlyList<SignalEvent> events, DateTimeOffset markTime, int? pid, string? processName)
     {
         string? bareName = processName?.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) == true
             ? processName[..^4] : processName;
-        object? nameMatch = null;
+        (object Dump, List<string>? Paths)? nameMatch = null;
 
         for (int i = events.Count - 1; i >= 0; i--)
         {
@@ -191,14 +199,16 @@ public sealed class MarkService
                     bool nameHit = bareName != null && string.Equals(mName, bareName, StringComparison.OrdinalIgnoreCase);
                     if (!pidHit && !nameHit) continue;
 
-                    var entry = new
+                    var mods = m.GetProperty("mods").EnumerateArray()
+                        .Select(x => x.GetString()).Where(x => !string.IsNullOrEmpty(x)).Cast<string>().ToList();
+                    (object Dump, List<string>? Paths) entry = (new
                     {
                         matchedBy = pidHit ? "pid" : "name",
                         snapshotAt = e.Timestamp,
                         pid = mPid,
                         name = mName,
-                        modules = m.GetProperty("mods").EnumerateArray().Select(x => x.GetString()).ToList(),
-                    };
+                        modules = mods,
+                    }, mods);
                     if (pidHit) return entry;       // 최신 스냅샷의 PID 일치 — 바로 확정
                     nameMatch ??= entry;            // 이름 일치는 폴백 후보로만
                 }
@@ -206,13 +216,13 @@ public sealed class MarkService
             catch { }
         }
 
-        return nameMatch ?? (object)new
+        return nameMatch ?? ((object)new
         {
             status = "unavailable",
             reason = "버퍼의 모듈 스냅샷에서 크래시 프로세스를 찾지 못함 (프로세스 수명이 스냅샷 주기보다 짧았거나 열거 대상에서 제외됨)",
             pid,
             processName,
-        };
+        }, null);
     }
 
     /// <summary>
