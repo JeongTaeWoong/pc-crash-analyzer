@@ -10,4 +10,5 @@ public sealed record EventLogTrigger(
     string Message,
     string? ProcessName,
     int? Pid,
+    string? FaultingModule,
     string Kind);

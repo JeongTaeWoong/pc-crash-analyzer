@@ -24,19 +24,36 @@ public sealed class StateSnapshotter
 
     public StateSnapshotter(SensorSource sensorSource) => _sensorSource = sensorSource;
 
-    public Dictionary<string, object?> Capture()
+    public SnapshotResult Capture()
     {
         var sw = Stopwatch.StartNew();
+        var facts = new EngineFacts();
         var snapshot = new Dictionary<string, object?>
         {
             ["capturedAt"] = DateTimeOffset.Now,
             ["processes"] = Guard(CaptureProcessModules),
-            ["filterDrivers"] = Guard(CaptureFilterDrivers),
+            ["filterDrivers"] = Guard(() => CaptureFilterDrivers(facts)),
             ["sensors"] = _sensorSource.Latest ?? new { status = "unavailable", reason = "센서 샘플 없음" },
-            ["recentInstalls30d"] = Guard(CaptureRecentInstalls),
+            ["recentInstalls30d"] = Guard(() => CaptureRecentInstalls(facts)),
+            ["securityProducts"] = Guard(() => CaptureSecurityProducts(facts)),
         };
         snapshot["captureDurationMs"] = sw.ElapsedMilliseconds;
-        return snapshot;
+        return new SnapshotResult(snapshot, facts);
+    }
+
+    /// <summary>SecurityCenter2에 등록된 실시간 보안 제품 (스파이크에서 비관리자 검증됨).</summary>
+    private static object CaptureSecurityProducts(EngineFacts facts)
+    {
+        using var searcher = new ManagementObjectSearcher(@"root\SecurityCenter2", "SELECT displayName FROM AntiVirusProduct");
+        foreach (ManagementObject mo in searcher.Get())
+        {
+            using (mo)
+            {
+                if (mo["displayName"] is string name && !string.IsNullOrWhiteSpace(name) && !facts.SecurityProducts.Contains(name))
+                    facts.SecurityProducts.Add(name);
+            }
+        }
+        return new { antivirus = facts.SecurityProducts };
     }
 
     private static object Guard(Func<object> capture)
@@ -70,7 +87,7 @@ public sealed class StateSnapshotter
         return new { total, accessDenied, withNonSystemModules = withNonSystem };
     }
 
-    private static object CaptureFilterDrivers()
+    private static object CaptureFilterDrivers(EngineFacts facts)
     {
         var result = new Dictionary<string, object?>();
 
@@ -85,7 +102,10 @@ public sealed class StateSnapshotter
             try
             {
                 using var key = Registry.LocalMachine.OpenSubKey($@"SYSTEM\CurrentControlSet\Control\Class\{guid}");
-                upper[name] = key?.GetValue("UpperFilters") as string[] ?? (object?)"(값 없음)";
+                var filters = key?.GetValue("UpperFilters") as string[];
+                upper[name] = filters ?? (object?)"(값 없음)";
+                if (filters != null)
+                    (name == "keyboard" ? facts.KeyboardUpper : facts.MouseUpper).AddRange(filters);
             }
             catch (Exception ex) { upper[name] = $"unavailable: {ex.GetType().Name}"; }
         }
@@ -100,16 +120,19 @@ public sealed class StateSnapshotter
             string stdout = p.StandardOutput.ReadToEnd();
             string stderr = p.StandardError.ReadToEnd();
             p.WaitForExit(5000);
-            result["minifilters"] = p.ExitCode == 0
-                ? new
-                {
-                    status = "ok",
-                    // 헤더 줄 수가 가변적이라 내용으로 거른다: 구분선(---)과 제목 줄 제외
-                    filters = stdout.Split('\n').Select(l => l.Trim())
-                        .Where(l => l.Length > 0 && !l.StartsWith("-") && !l.StartsWith("필터") && !l.StartsWith("Filter"))
-                        .Select(l => l.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0]).ToList(),
-                }
-                : (object)new { status = "unavailable", exitCode = p.ExitCode, reason = (stdout + stderr).Trim().Replace("\r\n", " ") };
+            if (p.ExitCode == 0)
+            {
+                // 헤더 줄 수가 가변적이라 내용으로 거른다: 구분선(---)과 제목 줄 제외
+                var filters = stdout.Split('\n').Select(l => l.Trim())
+                    .Where(l => l.Length > 0 && !l.StartsWith("-") && !l.StartsWith("필터") && !l.StartsWith("Filter"))
+                    .Select(l => l.Split(' ', StringSplitOptions.RemoveEmptyEntries)[0]).ToList();
+                facts.Minifilters.AddRange(filters);
+                result["minifilters"] = new { status = "ok", filters };
+            }
+            else
+            {
+                result["minifilters"] = new { status = "unavailable", exitCode = p.ExitCode, reason = (stdout + stderr).Trim().Replace("\r\n", " ") };
+            }
         }
         catch (Exception ex) { result["minifilters"] = new { status = "unavailable", reason = $"{ex.GetType().Name}: {ex.Message}" }; }
 
@@ -123,20 +146,18 @@ public sealed class StateSnapshotter
                 PathName = (d["PathName"] as string ?? "").ToLowerInvariant(),
             }).ToList();
         var running = drivers.Where(d => d.State == "Running").ToList();
-        result["kernelDrivers"] = new
-        {
-            total = drivers.Count,
-            running = running.Count,
-            nonStandardPathRunning = running
-                .Where(d => d.PathName.Length > 0
-                            && !d.PathName.Contains(@"\system32\drivers\")
-                            && !d.PathName.Contains(@"\system32\driverstore\"))
-                .Select(d => new { name = d.Name, path = d.PathName }).Take(50).ToList(),
-        };
+        var nonStandard = running
+            .Where(d => d.PathName.Length > 0
+                        && !d.PathName.Contains(@"\system32\drivers\")
+                        && !d.PathName.Contains(@"\system32\driverstore\"))
+            .Select(d => new { name = d.Name, path = d.PathName }).Take(50).ToList();
+        foreach (var d in nonStandard)
+            facts.NonStandardDrivers.Add((d.name, d.path));
+        result["kernelDrivers"] = new { total = drivers.Count, running = running.Count, nonStandardPathRunning = nonStandard };
         return result;
     }
 
-    private static object CaptureRecentInstalls()
+    private static object CaptureRecentInstalls(EngineFacts facts)
     {
         var cutoff = DateTime.Today.AddDays(-30);
         var entries = new List<(string Name, DateTime Date, string? Version, string Hive)>();
@@ -166,6 +187,9 @@ public sealed class StateSnapshotter
         ScanKey(RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)
             .OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"), "HKLM32");
         ScanKey(Registry.CurrentUser.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall"), "HKCU");
+
+        foreach (var e in entries.OrderByDescending(x => x.Date))
+            facts.RecentInstalls.Add((e.Name, e.Date.ToString("yyyy-MM-dd"), e.Version));
 
         return new
         {
