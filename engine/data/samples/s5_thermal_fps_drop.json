@@ -1,0 +1,244 @@
+{
+  "schema_version": "1.0",
+  "snapshot_id": "s5-thermal-fps-drop",
+  "marked_at": "2026-11-02T20:06:00+09:00",
+  "trigger": {
+    "kind": "auto_frametime"
+  },
+  "host": {
+    "os": "Windows 11 23H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "fps_drop",
+    "target_process": "game.exe",
+    "scope": "multiple_apps",
+    "started_at": "2026-11-02T20:05:30+09:00",
+    "faulting_modules": []
+  },
+  "modules": [
+    {
+      "process": "game.exe",
+      "name": "DiscordHook64.dll",
+      "company": "Discord Inc.",
+      "signer": "Discord Inc.",
+      "loaded_at": "2026-11-02T20:00:00+09:00"
+    },
+    {
+      "process": "game.exe",
+      "name": "RTSSHooks64.dll",
+      "company": "Guru3D",
+      "signer": "Unwinder",
+      "loaded_at": "2026-11-02T20:00:00+09:00"
+    }
+  ],
+  "drivers": [
+    {
+      "name": "nvlddmkm.sys",
+      "display": "NVIDIA Display Driver",
+      "type": "display",
+      "company": "NVIDIA",
+      "started_at": "2026-09-23T20:00:00+09:00"
+    }
+  ],
+  "device_filters": {
+    "keyboard_upper": [],
+    "mouse_upper": [],
+    "ndis_filters": []
+  },
+  "security": {
+    "realtime_av": [
+      "Microsoft Defender"
+    ],
+    "firewall_blocks": []
+  },
+  "change_history": [],
+  "events": [],
+  "sensors": {
+    "samples": [
+      {
+        "time": "2026-11-02T20:00:00+09:00",
+        "cpu_temp": 62,
+        "gpu_temp": 60,
+        "cpu_clock": 4700,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-02T20:00:30+09:00",
+        "cpu_temp": 65,
+        "gpu_temp": 62,
+        "cpu_clock": 4700,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-02T20:01:00+09:00",
+        "cpu_temp": 68,
+        "gpu_temp": 64,
+        "cpu_clock": 4700,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-02T20:01:30+09:00",
+        "cpu_temp": 71,
+        "gpu_temp": 66,
+        "cpu_clock": 4700,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-02T20:02:00+09:00",
+        "cpu_temp": 74,
+        "gpu_temp": 68,
+        "cpu_clock": 4700,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-02T20:02:30+09:00",
+        "cpu_temp": 77,
+        "gpu_temp": 70,
+        "cpu_clock": 4700,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-02T20:03:00+09:00",
+        "cpu_temp": 80,
+        "gpu_temp": 72,
+        "cpu_clock": 4700,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-02T20:03:30+09:00",
+        "cpu_temp": 83,
+        "gpu_temp": 74,
+        "cpu_clock": 4700,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-02T20:04:00+09:00",
+        "cpu_temp": 86,
+        "gpu_temp": 76,
+        "cpu_clock": 4700,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-02T20:04:30+09:00",
+        "cpu_temp": 89,
+        "gpu_temp": 78,
+        "cpu_clock": 4700,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-02T20:05:00+09:00",
+        "cpu_temp": 92,
+        "gpu_temp": 80,
+        "cpu_clock": 4700,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-02T20:05:30+09:00",
+        "cpu_temp": 95,
+        "gpu_temp": 82,
+        "cpu_clock": 3400,
+        "gpu_clock": 1500,
+        "throttling": true,
+        "gpu_power_limit_reason": "thermal"
+      },
+      {
+        "time": "2026-11-02T20:06:00+09:00",
+        "cpu_temp": 98,
+        "gpu_temp": 84,
+        "cpu_clock": 3400,
+        "gpu_clock": 1500,
+        "throttling": true,
+        "gpu_power_limit_reason": "thermal"
+      }
+    ]
+  },
+  "frametime": {
+    "samples": [
+      {
+        "time": "2026-11-02T20:00:00+09:00",
+        "ms": 8.3
+      },
+      {
+        "time": "2026-11-02T20:00:30+09:00",
+        "ms": 8.3
+      },
+      {
+        "time": "2026-11-02T20:01:00+09:00",
+        "ms": 8.3
+      },
+      {
+        "time": "2026-11-02T20:01:30+09:00",
+        "ms": 8.3
+      },
+      {
+        "time": "2026-11-02T20:02:00+09:00",
+        "ms": 8.3
+      },
+      {
+        "time": "2026-11-02T20:02:30+09:00",
+        "ms": 8.3
+      },
+      {
+        "time": "2026-11-02T20:03:00+09:00",
+        "ms": 8.3
+      },
+      {
+        "time": "2026-11-02T20:03:30+09:00",
+        "ms": 8.3
+      },
+      {
+        "time": "2026-11-02T20:04:00+09:00",
+        "ms": 8.3
+      },
+      {
+        "time": "2026-11-02T20:04:30+09:00",
+        "ms": 8.3
+      },
+      {
+        "time": "2026-11-02T20:05:00+09:00",
+        "ms": 8.3
+      },
+      {
+        "time": "2026-11-02T20:05:30+09:00",
+        "ms": 26.0
+      },
+      {
+        "time": "2026-11-02T20:06:00+09:00",
+        "ms": 26.0
+      }
+    ]
+  },
+  "baseline_diff": {
+    "added": [],
+    "removed": [],
+    "changed": []
+  },
+  "ground_truth": {
+    "layer": "HW",
+    "category": "thermal",
+    "subject": "thermal"
+  }
+}

@@ -1,0 +1,153 @@
+{
+  "schema_version": "1.0",
+  "snapshot_id": "s1-anticheat-crash",
+  "marked_at": "2026-10-14T21:30:00+09:00",
+  "trigger": {
+    "kind": "auto_app_crash",
+    "event_id": 1000
+  },
+  "host": {
+    "os": "Windows 11 23H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "app_crash",
+    "target_process": "othergame.exe",
+    "scope": "single_app",
+    "started_at": "2026-10-14T20:30:00+09:00",
+    "faulting_modules": [
+      "ntdll.dll"
+    ]
+  },
+  "processes": [
+    "othergame.exe",
+    "Discord.exe",
+    "steam.exe",
+    "vgtray.exe",
+    "explorer.exe"
+  ],
+  "modules": [
+    {
+      "process": "othergame.exe",
+      "name": "ntdll.dll",
+      "company": "Microsoft Corporation",
+      "signer": "Microsoft Windows",
+      "microsoft_signed": true
+    },
+    {
+      "process": "othergame.exe",
+      "name": "DiscordHook64.dll",
+      "company": "Discord Inc.",
+      "signer": "Discord Inc.",
+      "loaded_at": "2026-10-14T20:33:20+09:00"
+    },
+    {
+      "process": "othergame.exe",
+      "name": "GameOverlayRenderer64.dll",
+      "company": "Valve",
+      "signer": "Valve Corp.",
+      "loaded_at": "2026-10-14T20:33:30+09:00"
+    }
+  ],
+  "drivers": [
+    {
+      "name": "vgk.sys",
+      "display": "Riot Vanguard",
+      "type": "kernel_filter",
+      "company": "Riot Games",
+      "started_at": "2026-10-11T21:30:00+09:00"
+    },
+    {
+      "name": "nvlddmkm.sys",
+      "display": "NVIDIA Display Driver",
+      "type": "display",
+      "company": "NVIDIA",
+      "started_at": "2026-09-14T21:30:00+09:00"
+    }
+  ],
+  "device_filters": {
+    "keyboard_upper": [],
+    "mouse_upper": [],
+    "ndis_filters": []
+  },
+  "security": {
+    "realtime_av": [
+      "Microsoft Defender"
+    ],
+    "firewall_blocks": []
+  },
+  "change_history": [
+    {
+      "time": "2026-10-11T21:30:00+09:00",
+      "kind": "install",
+      "subject": "Riot Vanguard",
+      "version": "1.16"
+    }
+  ],
+  "events": [
+    {
+      "time": "2026-10-14T21:29:00+09:00",
+      "provider": "Application Error",
+      "id": 1000,
+      "subject": "othergame.exe",
+      "faulting_module": "ntdll.dll"
+    },
+    {
+      "time": "2026-10-14T21:00:00+09:00",
+      "provider": "Application Error",
+      "id": 1000,
+      "subject": "othergame.exe",
+      "faulting_module": "ntdll.dll"
+    }
+  ],
+  "sensors": {
+    "samples": [
+      {
+        "time": "2026-10-14T21:28:00+09:00",
+        "cpu_temp": 61,
+        "gpu_temp": 64,
+        "cpu_clock": 4500,
+        "gpu_clock": 1900,
+        "throttling": false
+      },
+      {
+        "time": "2026-10-14T21:29:00+09:00",
+        "cpu_temp": 63,
+        "gpu_temp": 66,
+        "cpu_clock": 4500,
+        "gpu_clock": 1890,
+        "throttling": false
+      },
+      {
+        "time": "2026-10-14T21:30:00+09:00",
+        "cpu_temp": 62,
+        "gpu_temp": 65,
+        "cpu_clock": 4480,
+        "gpu_clock": 1890,
+        "throttling": false
+      }
+    ]
+  },
+  "minidumps": [
+    {
+      "time": "2026-10-14T21:29:00+09:00",
+      "process": "othergame.exe",
+      "faulting_module": "ntdll.dll",
+      "stack_third_party": [
+        "vgk.sys"
+      ]
+    }
+  ],
+  "baseline_diff": {
+    "added": [
+      "Riot Vanguard"
+    ],
+    "removed": [],
+    "changed": []
+  },
+  "ground_truth": {
+    "layer": "SW",
+    "category": "anticheat",
+    "subject": "vgk.sys"
+  }
+}

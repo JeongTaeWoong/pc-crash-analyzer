@@ -1,0 +1,114 @@
+{
+  "schema_version": "1.0",
+  "snapshot_id": "s2-finsec-input-loss",
+  "marked_at": "2026-10-21T22:10:00+09:00",
+  "trigger": {
+    "kind": "hotkey"
+  },
+  "host": {
+    "os": "Windows 11 23H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "input_loss",
+    "target_process": "game.exe",
+    "scope": "single_app",
+    "started_at": "2026-10-21T20:00:00+09:00",
+    "faulting_modules": []
+  },
+  "processes": [
+    "game.exe",
+    "nxkey.exe",
+    "LGHUB.exe",
+    "explorer.exe"
+  ],
+  "modules": [
+    {
+      "process": "game.exe",
+      "name": "ntdll.dll",
+      "company": "Microsoft Corporation",
+      "signer": "Microsoft Windows",
+      "microsoft_signed": true
+    },
+    {
+      "process": "game.exe",
+      "name": "LogiOverlay.dll",
+      "company": "Logitech",
+      "signer": "Logitech Inc",
+      "loaded_at": "2026-10-21T21:40:00+09:00"
+    }
+  ],
+  "drivers": [
+    {
+      "name": "nxkeyfilt.sys",
+      "display": "TouchEn nxKey Keyboard Filter",
+      "type": "kernel_filter",
+      "company": "RaonSecure",
+      "started_at": "2026-10-21T19:20:00+09:00"
+    },
+    {
+      "name": "nvlddmkm.sys",
+      "display": "NVIDIA Display Driver",
+      "type": "display",
+      "company": "NVIDIA",
+      "started_at": "2026-10-01T10:00:00+09:00"
+    }
+  ],
+  "device_filters": {
+    "keyboard_upper": [
+      "kbdclass",
+      "nxkeyfilt",
+      "LogiKbdFilt"
+    ],
+    "mouse_upper": [
+      "mouclass"
+    ],
+    "ndis_filters": []
+  },
+  "security": {
+    "realtime_av": [
+      "AhnLab V3"
+    ],
+    "firewall_blocks": [],
+    "detections": []
+  },
+  "change_history": [
+    {
+      "time": "2026-10-21T19:15:00+09:00",
+      "kind": "install",
+      "subject": "TouchEn nxKey",
+      "version": "1.0.0.82"
+    },
+    {
+      "time": "2026-10-02T13:00:00+09:00",
+      "kind": "install",
+      "subject": "Logitech G HUB",
+      "version": "2026.8"
+    }
+  ],
+  "events": [],
+  "sensors": {
+    "samples": [
+      {
+        "time": "2026-10-21T22:09:00+09:00",
+        "cpu_temp": 58,
+        "gpu_temp": 61,
+        "cpu_clock": 4400,
+        "gpu_clock": 1850,
+        "throttling": false
+      }
+    ]
+  },
+  "baseline_diff": {
+    "added": [
+      "TouchEn nxKey"
+    ],
+    "removed": [],
+    "changed": []
+  },
+  "ground_truth": {
+    "layer": "SW",
+    "category": "fin_security",
+    "subject": "TouchEn nxKey"
+  }
+}
