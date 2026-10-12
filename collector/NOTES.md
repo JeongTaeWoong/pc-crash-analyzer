@@ -319,9 +319,18 @@ ImageLoad 총 174건/초(필터 통과 110건/초)를 유발 → 수동 마킹 �
 1. 센서 간격 2초 → **5초**: 센서 몫 1.82%→~0.73%, 전체 평상시 ~0.9% 예상. 버퍼 6분에 72샘플 — 과열 추세 판단에 충분
 2. 추가 후보: LHM Update를 GPU 하드웨어만 수행 (CPU/보드는 어차피 0값인데 Update 비용은 지불 중) — 틱당 87ms 단축 여지
 
+## 저장소 통합 (2026-10-10~12)
+
+- 작업 위치가 이 저장소(pc-crash-analyzer)로 이동. `E:\2026CAU\Capstone2\collector`는 이식 시점의 사본 — 이후 수정은 여기서만.
+- `integrate/collector-engine` = collector v0.4 + 어댑터 + engine(2·3차 범위, 테스트 144/144) + ui(Python 시안+에이전트).
+- 덤프마다 `engine-snapshot.json`(engine/docs/snapshot_schema.md v1.1) 생성 — `crash_engine diagnose`로 바로 진단.
+  E2E 검증: CrashDummy 크래시 → 자동 덤프 → 진단 출력 (docs/run-pipeline.md). UI 시안 [최근 덤프 열기]와 경로 호환 확인.
+- **최종 UI는 C# WPF — 중간발표(10/16) 후 우리 쪽에서 포팅 착수로 결정 (2026-10-12).** 발표 시연은 Python 시안.
+
 ## 다음 단계 후보
 
-1. PresentMon 연동(프레임타임) + NVML 직접 호출(스로틀 사유) — **중간발표 뒤**
-2. 센서 간격 2초→5초 조정 또는 LHM GPU-only Update 적용 (위 오버헤드 절 조정안)
-3. C를 보호 프로세스/타 세션 프로세스 대상으로 확장 테스트 (실패 양상 기록)
-4. F의 InstallDate 없는 127건 보완책 검토 (키 LastWriteTime은 Win32 API 필요 — 미확인)
+1. **(발표 후) C# WPF UI 포팅** — Python 시안(ui/prototype-python) 기능 동등 + 수집기 상주(트레이) 통합 방향
+2. PresentMon 연동(프레임타임) + NVML 직접 호출(스로틀 사유) — 중간발표 뒤
+3. 센서 간격 2초→5초 조정 또는 LHM GPU-only Update 적용 (위 오버헤드 절 조정안)
+4. C를 보호 프로세스/타 세션 프로세스 대상으로 확장 테스트 (실패 양상 기록)
+5. F의 InstallDate 없는 127건 보완책 검토 (키 LastWriteTime은 Win32 API 필요 — 미확인)

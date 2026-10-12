@@ -129,4 +129,15 @@ CrashDummy: (a) 즉시 unhandled exception — 수명 ~90ms, (b) 5초 후 FailFa
 5. Security 로그 구독(권한 필요·미확인), 보호 프로세스 모듈 열거 실패 양상 기록
 6. 1000↔1001 덤프 연결(ReportId), 설치 이력 InstallDate 누락 127건 보완
 
+---
+
+## 7. 엔진·UI 통합 현황 (2026-10-10~12 추가)
+
+- 수집기 덤프마다 추론 엔진 입력 규격(`engine/docs/snapshot_schema.md` v1.1)의 `engine-snapshot.json`을 생성.
+- **E2E 실측 검증**: CrashDummy 크래시 → 자동 덤프 → `crash_engine diagnose` 진단 출력 (층 판정 SW 74%·신뢰도 97%,
+  대상 프로세스 모듈 17개·설치 이력 상관 근거 생성). 실행 절차: `docs/run-pipeline.md`.
+- 통합 브랜치 `integrate/collector-engine`: 수집기 + 엔진(2차 드라이버·3차 HW 확장, 테스트 144/144 통과) + UI 시안(Python).
+- UI 시안의 [최근 덤프 열기]가 수집기 덤프를 자동 탐색하고, 수동 마킹의 미정 증상(symptom)을 사용자에게 받아 채움.
+- 최종 UI는 C# WPF로 포팅 예정(중간발표 후 착수, 10-12 결정) — 발표 시연은 Python 시안 사용.
+
 상세 근거·원자료: `collector/NOTES.md`, `collector/experiments/overhead.csv`, `collector/BlackBox/dumps/` (로컬).
