@@ -85,5 +85,8 @@ bool parseIso8601(const std::string& text, long long* epochSeconds, int* offsetM
 // epoch 초 -> ISO-8601. offsetMinutes 를 주면 그 시간대(예: 한국 +540)로 표기한다.
 std::string formatIso8601(long long epochSeconds, int offsetMinutes = 0);
 
+// 파일 전체를 읽는다. Windows 에서는 UTF-8 한글 경로도 연다(도구 인터페이스의 JSON 경로). 실패하면 false.
+bool readTextFile(const std::string& path, std::string* out);
+
 }  // namespace json
 }  // namespace ce

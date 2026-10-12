@@ -22,7 +22,11 @@ LangGraph 예시 (정태웅 담당 부분과 연결할 때):
 에이전트 쪽 실행기가 action.execution 값(auto / confirm / manual / guide)을 보고 수행한다.
 """
 import json
+import os
 import subprocess
+
+# Windows 에서 창 있는 프로그램(UI)이 엔진을 부를 때 검은 콘솔 창이 깜빡이지 않게 한다.
+NO_WINDOW = 0x08000000 if os.name == "nt" else 0
 
 
 class EngineError(RuntimeError):
@@ -41,6 +45,7 @@ class CrashEngine:
             input=json.dumps(args, ensure_ascii=False).encode("utf-8"),
             capture_output=True,
             timeout=self.timeout,
+            creationflags=NO_WINDOW,
         )
         text = proc.stdout.decode("utf-8", errors="replace")
         try:

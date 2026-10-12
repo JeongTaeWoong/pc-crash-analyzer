@@ -111,6 +111,10 @@ build\Release\crash_engine.exe diagnose data\samples\s1_anticheat_crash.json
 
 > 구조가 잡히는 대로 채워집니다. (수집기 실행 시 관리자 권한 필요)
 
+**안내 UI (`ui/`) — 2026-10-12 추가**: 최종 UI 는 수집기와 같은 C# WPF 로 만드는 중이고, 지금은 Python 시안으로 실행해 볼 수 있다.
+엔진을 위 방법으로 빌드한 뒤 `ui\prototype-python\run_ui.bat` 을 더블클릭한다(Python 3.10 이상, 콘솔 창 없이 실행).
+수집기 덤프는 [최근 덤프 열기]로 바로 연다. 자세한 내용은 [`ui/README.md`](ui/README.md).
+
 ## 프라이버시
 
 - 설치 및 첫 실행 시 **수집 항목과 보관 위치를 고지하고 명시적 동의**를 받은 뒤에만 수집을 시작한다.
@@ -224,6 +228,25 @@ docs/          제안서, 발표 자료, 멘토링 보고서, 회의록
 * 여전히 **정확도가 아니라 동작 확인**이고, 점검 비용·신뢰도·120분은 팀 추정치다.
 * 테스트 144건 통과(gcc·clang). Windows(Visual Studio 2022) 빌드는 다시 확인 예정
 * 시연 절차에 2차 GPU 드라이버 예시 추가: [`engine/docs/scenario_walkthrough.md`](engine/docs/scenario_walkthrough.md)
+
+### 안내 UI (`ui/`) · 에이전트 연결 — Python 시안 추가 (2026-10-12)
+
+엔진 결과를 진단 → 원인 확인 → 해결 안내 → 검증 순서로 보여 주는 Windows 데스크톱 화면과, 엔진을 도구로 부르는 LLM 에이전트 연결을 추가했다.
+UI·에이전트는 판단하지 않고 엔진이 돌려준 값만 보여 주고 설명한다(멘토링 1차 3.1 역할 분리).
+**최종 UI 는 수집기와 같은 C#(.NET 8) WPF 로 만들기로 했다.** 이번에 올린 Python 버전(`ui/prototype-python/`)은 C# 버전이 따라잡을 때까지 쓰는 시연·비교용 시안이다.
+
+| 추가한 항목 | 상태 |
+|---|---|
+| 데스크톱 UI 시안 (파이썬 표준 tkinter) — 진단 결과 / 원인 확인 / 해결·검증 탭 | 추가 (시안) |
+| 최종 UI: C# WPF (`ui/wpf/`) | 작업 예정 |
+| 상담 창: LLM 에이전트(Claude API tool use). API 키가 없으면 오프라인 대역(정해진 표현만 이해) | 추가 — 실제 API 호출은 미확인 |
+| 수집기 덤프 연동: [최근 덤프 열기], 증상이 비어 있으면 사용자에게 묻는 창 | 추가 (수집기 덤프 형식으로 확인) |
+| 자동 점검 모드 | 표시만 — 실제 조치 실행기는 미정 |
+
+![진단 결과](docs/images/ui_1_diagnosis.png)
+
+* 화면 캡처는 실험용 시나리오(s1·s7)로 만든 것이다. 나머지 화면: [`ui/prototype-python/README.md`](ui/prototype-python/README.md)
+* 리눅스에서 실행해 흐름(진단 → 점검 → 원인 확정 → 해결책 적용 → 사후 스냅샷 검증)을 확인했다. Windows 실행 확인 예정
 
 ## 팀
 
