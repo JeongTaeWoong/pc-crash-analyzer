@@ -9,6 +9,7 @@
 // [팀원용] 이 파일은 명령줄 인자를 읽어 각 기능을 부르기만 한다. 실제 로직은 engine.cpp / session.cpp 에 있다.
 //   session 명령은 내부에서 tool.cpp 의 runTool() 을 그대로 불러서, 사람이 쓰는 명령과 에이전트가 쓰는 도구가
 //   항상 같은 결과를 내도록 했다.
+#include <cstdio>
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -189,16 +190,20 @@ int cmdDiagnose(const Args& a) {
   if (a.compare) {
     const EngineVersion other = version == EngineVersion::V1 ? EngineVersion::V0 : EngineVersion::V1;
     const Diagnosis d2 = diagnose(snap, rules, other, policy, warn);
-    const Plan base = buildBaselinePlan(d.candidates, rules);
-    std::cout << "\n[순서 비교] 기대 누적 비용 (낮을수록 좋음)\n"
-              << "  커뮤니티 표준 순서 : " << durationText(base.expected_cost_seconds) << " / 기대 시도 "
-              << base.expected_trials << "회\n"
-              << "  엔진 " << toString(d2.plan.version) << "            : "
-              << durationText(d2.plan.expected_cost_seconds) << " / 기대 시도 "
-              << d2.plan.expected_trials << "회\n"
-              << "  엔진 " << toString(d.plan.version) << "            : "
-              << durationText(d.plan.expected_cost_seconds) << " / 기대 시도 "
-              << d.plan.expected_trials << "회\n";
+    const Plan base = buildBaselinePlan(d.candidates, rules, d.symptom);
+    // 기대 총비용 = 안내한 점검들의 기대 비용 + 원인을 못 찾을 확률 x 못 찾았을 때 비용
+    std::cout << "\n[순서 비교] 기대 총비용 (낮을수록 좋음, 원인을 못 찾는 경우는 "
+              << rules.unresolved_cost_minutes << "분으로 계산)\n";
+    const Plan* plans[3] = {&base, &d2.plan, &d.plan};
+    const std::string names[3] = {"커뮤니티 표준 순서", "엔진 " + toString(d2.plan.version) + "            ",
+                                  "엔진 " + toString(d.plan.version) + "            "};
+    for (int i = 0; i < 3; i++) {
+      char line[160];
+      std::snprintf(line, sizeof(line), " / 원인 찾을 확률 %.0f%% / 기대 시도 %.1f회",
+                    plans[i]->resolved_probability * 100.0, plans[i]->expected_trials);
+      std::cout << "  " << names[i] << " : " << durationText(plans[i]->expected_total_seconds) << line
+                << "\n";
+    }
   }
 
   if (!a.out_json.empty()) {
@@ -296,10 +301,10 @@ int cmdTool(const Args& a) {
   json::Value args = json::Value::makeObject();
   std::string text;
   if (!a.input_path.empty()) {
-    std::ifstream in(a.input_path.c_str(), std::ios::binary);
-    std::ostringstream ss;
-    ss << in.rdbuf();
-    text = ss.str();
+    if (!json::readTextFile(a.input_path, &text)) {
+      std::cerr << "입력 파일을 열 수 없습니다: " << a.input_path << "\n";
+      return 2;
+    }
   } else if (name != "list_tools") {
     std::istreambuf_iterator<char> begin(std::cin);
     std::istreambuf_iterator<char> end;

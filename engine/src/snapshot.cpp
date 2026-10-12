@@ -252,6 +252,7 @@ Snapshot parseSnapshot(const json::Value& v, std::vector<std::string>* warn) {
     ei.id = evs[i]["id"].asInt(0);
     ei.subject = evs[i]["subject"].asString("");
     ei.faulting_module = evs[i]["faulting_module"].asString("");
+    ei.component = evs[i]["component"].asString("");
     s.events.push_back(ei);
   }
   s.available.events = v.has("events");
@@ -284,12 +285,27 @@ Snapshot parseSnapshot(const json::Value& v, std::vector<std::string>* warn) {
   for (std::size_t i = 0; i < dumps.size(); i++) {
     MiniDumpInfo md;
     md.time = readTime(dumps[i]["time"], warn, "minidumps[].time");
+    md.kind = dumps[i]["kind"].asString("app");
     md.process = dumps[i]["process"].asString("");
+    md.bugcheck = dumps[i]["bugcheck"].asString("");
     md.faulting_module = dumps[i]["faulting_module"].asString("");
     md.third_party_in_stack = dumps[i]["stack_third_party"].asStringList();
     s.minidumps.push_back(md);
   }
   s.available.minidump = !s.minidumps.empty();
+
+  const json::Array& disks = v["storage"]["disks"].asArray();
+  for (std::size_t i = 0; i < disks.size(); i++) {
+    DiskHealth dh;
+    dh.name = disks[i]["name"].asString("");
+    dh.health = disks[i]["health"].asString("");
+    dh.reallocated_sectors = disks[i]["reallocated_sectors"].asInt(0);
+    dh.pending_sectors = disks[i]["pending_sectors"].asInt(0);
+    dh.uncorrectable = disks[i]["uncorrectable"].asInt(0);
+    dh.media_errors = disks[i]["media_errors"].asInt(0);
+    s.disks.push_back(dh);
+  }
+  s.available.storage = v["storage"].has("disks");
 
   const json::Value& bd = v["baseline_diff"];
   if (!bd.isNull()) {

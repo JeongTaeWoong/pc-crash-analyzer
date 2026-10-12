@@ -53,6 +53,27 @@ Diagnosis diagnoseFile(const std::string& name, const ExecutionPolicy& policy) {
 
 std::string topLabel(const Diagnosis& d) { return d.top() ? d.top()->label : "(없음)"; }
 
+// 확인 순서 첫 단계의 점검 템플릿 id (없으면 빈 문자열)
+std::string firstCheckTemplate(const Diagnosis& d) {
+  return d.plan.steps.empty() ? "" : d.plan.steps[0].check.template_id;
+}
+
+// 확인 순서에 이 점검 템플릿이 들어 있는가
+bool planUses(const Diagnosis& d, const std::string& templateId) {
+  for (std::size_t i = 0; i < d.plan.steps.size(); i++) {
+    if (d.plan.steps[i].check.template_id == templateId) return true;
+  }
+  return false;
+}
+
+// 후보 id 로 위치 찾기 (없으면 -1)
+int candidateIndex(const Diagnosis& d, const std::string& id) {
+  for (std::size_t i = 0; i < d.candidates.size(); i++) {
+    if (d.candidates[i].id == id) return static_cast<int>(i);
+  }
+  return -1;
+}
+
 // ---------------------------------------------------------------- 기초
 
 void testJson() {
@@ -86,8 +107,11 @@ void testRules() {
   std::cout << "[rules]\n";
   const Rules d = Rules::defaults();
   check(!d.actions.empty() && !d.checks.empty() && !d.remedies.empty(), "기본 규칙 로드");
-  check(d.focus_categories.size() == 4, "1차 범위 = 보안 4종");
-  check(d.inFocus("anticheat") && !d.inFocus("overlay"), "범위 판정");
+  check(d.scopes.size() == 3, "지원 범위 3단계 (보안 → 드라이버·시스템 → 하드웨어)");
+  check(d.stageOf("anticheat") == 1 && d.stageOf("gpu_driver") == 2 && d.stageOf("memory") == 3,
+        "카테고리별 단계");
+  check(d.stageOf("overlay") == 0 && !d.inFocus("overlay") && d.inFocus("anticheat"),
+        "일반 소프트웨어(오버레이)는 범위 밖");
 
   Rules fromFile;
   std::string err;
@@ -159,17 +183,20 @@ void testScenarios() {
     check(note, "대상 프로그램 자체 변경은 노트로 안내");
   }
   {
-    std::cout << "[s4] 모니터 유틸 + 깜빡임 (회귀, 범위 밖)\n";
+    std::cout << "[s4] 모니터 유틸 + 깜빡임 (2차 범위)\n";
     const Diagnosis d = diagnoseFile("s4_display_util_flicker.json", guide);
     check(d.layer.top == Layer::Driver, "층 판정 = DRIVER", toString(d.layer.top));
     check(d.top() && d.top()->category == "display_util", "1순위 = 모니터 유틸", topLabel(d));
-    check(d.top() && !d.top()->in_focus, "범위 밖으로 표시");
+    check(d.top() && d.top()->stage == 2, "2차 범위(드라이버·시스템)로 표시");
   }
   {
-    std::cout << "[s5] 과열 + 프레임 저하 (회귀, 범위 밖)\n";
+    std::cout << "[s5] 과열 + 프레임 저하 (3차 범위)\n";
     const Diagnosis d = diagnoseFile("s5_thermal_fps_drop.json", guide);
     check(d.layer.top == Layer::Hardware, "층 판정 = HW", toString(d.layer.top));
     check(d.top() && d.top()->category == "thermal", "1순위 = 냉각", topLabel(d));
+    check(d.top() && d.top()->stage == 3, "3차 범위(하드웨어)로 표시");
+    check(firstCheckTemplate(d) == "fan_curve_test", "첫 점검 = 팬 속도 올려 재현(5분)",
+          firstCheckTemplate(d));
   }
   {
     std::cout << "[s6] 수집기 MVP 신호만 있는 스냅샷 (모듈·이벤트·UpperFilters)\n";
@@ -184,6 +211,76 @@ void testScenarios() {
     }
     if (count != 1) merged = false;
     check(merged, "오류 모듈과 로드 모듈이 같은 후보로 합쳐짐", std::to_string(count) + "건");
+  }
+}
+
+// ---------------------------------------------------------------- 2차(드라이버)·3차(하드웨어) 시나리오
+
+void testDriverHardwareScenarios() {
+  ExecutionPolicy guide;
+  {
+    std::cout << "[s7] GPU 드라이버 블루스크린 0x116 (2차 범위)\n";
+    const Diagnosis d = diagnoseFile("s7_gpu_driver_bsod.json", guide);
+    check(d.layer.top == Layer::Driver, "층 판정 = DRIVER", toString(d.layer.top));
+    check(d.top() && d.top()->id == "gpu_driver:nvlddmkm.sys", "1순위 = NVIDIA 드라이버", topLabel(d));
+    check(d.top() && d.top()->stage == 2, "2차 범위로 표시");
+    check(firstCheckTemplate(d) == "rollback_gpu_driver_quick", "첫 점검 = GPU 드라이버 롤백(7분)",
+          firstCheckTemplate(d));
+    check(!planUses(d, "nic_power_saving_test"), "블루스크린 증상에 랜카드 절전 점검은 쓰지 않음");
+    const int power = candidateIndex(d, "power:power");
+    check(power < 0 || d.candidates[power].probability < 0.2,
+          "블루스크린 뒤의 Kernel-Power 41 은 전원 문제로 세지 않음");
+  }
+  {
+    std::cout << "[s8] 랜카드 드라이버 + 네트워크 끊김 (2차 범위)\n";
+    const Diagnosis d = diagnoseFile("s8_net_driver_drop.json", guide);
+    check(d.layer.top == Layer::Driver, "층 판정 = DRIVER", toString(d.layer.top));
+    check(d.top() && d.top()->category == "network_driver", "1순위 = 랜카드 드라이버", topLabel(d));
+    check(firstCheckTemplate(d) == "nic_power_saving_test", "첫 점검 = 랜카드 절전 끄고 재현",
+          firstCheckTemplate(d));
+  }
+  {
+    std::cout << "[s9] 전원 부족 + 예고 없는 재부팅 (3차 범위)\n";
+    const Diagnosis d = diagnoseFile("s9_power_reboot.json", guide);
+    check(d.layer.top == Layer::Hardware, "층 판정 = HW", toString(d.layer.top));
+    check(d.top() && d.top()->category == "power", "1순위 = 전원", topLabel(d));
+    check(firstCheckTemplate(d) == "gpu_power_limit_test", "첫 점검 = GPU 전력 제한 낮춰 재현",
+          firstCheckTemplate(d));
+  }
+  {
+    std::cout << "[s10] 메모리 WHEA 오류 (3차 범위)\n";
+    const Diagnosis d = diagnoseFile("s10_memory_whea.json", guide);
+    check(d.layer.top == Layer::Hardware, "층 판정 = HW", toString(d.layer.top));
+    check(d.top() && d.top()->category == "memory", "1순위 = 메모리", topLabel(d));
+    check(firstCheckTemplate(d) == "xmp_off_test", "첫 점검 = XMP 끄고 재현(10분)",
+          firstCheckTemplate(d));
+  }
+  {
+    std::cout << "[s11] 저장장치 SMART 경고 + 프리징 (3차 범위)\n";
+    const Diagnosis d = diagnoseFile("s11_storage_freeze.json", guide);
+    check(d.layer.top == Layer::Hardware, "층 판정 = HW", toString(d.layer.top));
+    check(d.top() && d.top()->category == "storage", "1순위 = 저장장치", topLabel(d));
+    check(planUses(d, "storage_check"), "저장장치 점검이 순서에 포함");
+  }
+  {
+    std::cout << "[신호] 전원 손실 판정\n";
+    std::vector<std::string> warn;
+    const Snapshot bsod = parseSnapshot(loadJson("s7_gpu_driver_bsod.json"), &warn);
+    int lost = 0;
+    for (std::size_t i = 0; i < bsod.events.size(); i++) {
+      if (signals::isPowerLossEvent(bsod, bsod.events[i])) lost++;
+    }
+    check(lost == 0, "블루스크린 직후 41 은 전원 손실 아님", std::to_string(lost) + "건");
+    const Snapshot power = parseSnapshot(loadJson("s9_power_reboot.json"), &warn);
+    lost = 0;
+    for (std::size_t i = 0; i < power.events.size(); i++) {
+      if (signals::isPowerLossEvent(power, power.events[i])) lost++;
+    }
+    check(lost == 3, "버그체크 없는 41 3건 = 전원 손실 3건", std::to_string(lost) + "건");
+    check(signals::hasNonZeroBugcheckCode("BugcheckCode 278") &&
+              !signals::hasNonZeroBugcheckCode("BugcheckCode 0") &&
+              !signals::hasNonZeroBugcheckCode(""),
+          "41 이벤트의 BugcheckCode 읽기 (덤프가 없어도 블루스크린 재부팅 구분)");
   }
 }
 
@@ -336,6 +433,71 @@ void testSessionRecurrence() {
   check(vr.outcome == "resolved" && s2.status() == SessionStatus::Resolved, "90분 재발 없음 → 해결");
 }
 
+// 2차·3차 범위도 1차와 같은 흐름(원인 확인 → 해결 안내 → 검증)으로 끝까지 가는지 확인한다.
+// 검증은 증상 종류가 아니라 '원인 신호'(드라이버 = 새 블루스크린·4101, 냉각 = 스로틀링)로 센다.
+void runFixFlow(const std::string& before, const std::string& checkId, const std::string& expectId,
+                const std::string& expectRemedy, const std::string& appliedAt,
+                const std::string& after) {
+  const Rules rules = Rules::defaults();
+  Session s;
+  std::string err;
+  check(Session::start(loadJson(before), rules, EngineVersion::V1, ExecutionPolicy(), "", &s, &err),
+        "세션 시작", err);
+  check(s.reportCheck(checkId, "solved", &err), "점검 '해결됨' 보고", err);
+  check(s.status() == SessionStatus::Confirmed && s.confirmedCandidateId() == expectId,
+        "원인 확정 = " + expectId, s.confirmedCandidateId());
+  const std::vector<RemedyOption> rem = s.remedies();
+  check(!rem.empty() && rem[0].remedy_id == expectRemedy,
+        "점검에서 효과를 본 조치가 1순위 해결책 = " + expectRemedy, rem.empty() ? "" : rem[0].remedy_id);
+  long long applied = 0;
+  json::parseIso8601(appliedAt, &applied);
+  check(s.applyFix("", applied, &err), "해결책 적용 기록", err);
+  VerifyResult vr;
+  check(s.verifyWithSnapshot(loadJson(after), nullptr, &vr, &err), "사후 스냅샷 검증", err);
+  check(vr.outcome == "resolved" && s.status() == SessionStatus::Resolved, "원인 신호 재발 없음 → 해결",
+        vr.outcome);
+
+  // 같은 사후 스냅샷에 원인 신호를 하나 넣으면 재발로 판단해야 한다
+  Session s2;
+  Session::start(loadJson(before), rules, EngineVersion::V1, ExecutionPolicy(), "", &s2, &err);
+  s2.reportCheck(checkId, "solved", &err);
+  s2.applyFix("", applied, &err);
+  json::Value bad = loadJson(after);
+  if (expectId.find("thermal") == 0) {
+    json::Value sensors = bad["sensors"];
+    json::Value samples = sensors["samples"];
+    json::Value hot = json::Value::makeObject();
+    hot.set("time", json::Value("2026-11-02T22:00:00+09:00"));
+    hot.set("cpu_temp", json::Value(98.0));
+    hot.set("gpu_temp", json::Value(91.0));
+    hot.set("throttling", json::Value(true));
+    samples.push(hot);
+    sensors.set("samples", samples);
+    bad.set("sensors", sensors);
+  } else {
+    json::Value events = bad["events"];
+    json::Value ev = json::Value::makeObject();
+    ev.set("time", json::Value("2026-11-07T21:00:00+09:00"));
+    ev.set("provider", json::Value("Display"));
+    ev.set("id", json::Value(4101));
+    ev.set("subject", json::Value("nvlddmkm"));
+    events.push(ev);
+    bad.set("events", events);
+  }
+  s2.verifyWithSnapshot(bad, nullptr, &vr, &err);
+  check(vr.outcome == "recurred", "원인 신호 1건 → 재발", vr.outcome);
+}
+
+void testDriverHardwareSessions() {
+  std::cout << "[세션] s7 GPU 드라이버: 롤백 점검 → 해결 → 이틀 관찰 검증\n";
+  runFixFlow("s7_gpu_driver_bsod.json", "rollback_gpu_driver_quick@gpu_driver:nvlddmkm.sys",
+             "gpu_driver:nvlddmkm.sys", "r_gpu_rollback", "2026-11-06T10:00:00+09:00",
+             "s7_gpu_driver_after_fix.json");
+  std::cout << "[세션] s5 과열: 팬 속도 점검 → 팬 곡선 조정 → 스로틀링 재발 검증\n";
+  runFixFlow("s5_thermal_fps_drop.json", "fan_curve_test@thermal:thermal", "thermal:thermal",
+             "r_fan_curve", "2026-11-02T20:55:00+09:00", "s5_thermal_after_fix.json");
+}
+
 void testSessionGuards() {
   std::cout << "[세션] 잘못된 호출 막기\n";
   const Rules rules = Rules::defaults();
@@ -436,14 +598,21 @@ void testTool() {
 void testBench() {
   std::cout << "[검증 지표]\n";
   std::vector<std::string> paths;
-  const char* names[] = {"s1_anticheat_crash.json",     "s2_finsec_input_loss.json",
-                         "s3_av_launch_fail.json",      "s4_display_util_flicker.json",
-                         "s5_thermal_fps_drop.json",    "s6_mvp_av_hook_crash.json"};
-  for (int i = 0; i < 6; i++) paths.push_back(g_data + "/samples/" + names[i]);
+  const char* names[] = {"s1_anticheat_crash.json",   "s2_finsec_input_loss.json",
+                         "s3_av_launch_fail.json",    "s4_display_util_flicker.json",
+                         "s5_thermal_fps_drop.json",  "s6_mvp_av_hook_crash.json",
+                         "s7_gpu_driver_bsod.json",   "s8_net_driver_drop.json",
+                         "s9_power_reboot.json",      "s10_memory_whea.json",
+                         "s11_storage_freeze.json"};
+  for (int i = 0; i < 11; i++) paths.push_back(g_data + "/samples/" + names[i]);
   const BenchSummary sum = runBench(paths, Rules::defaults());
-  check(sum.n == 6 && sum.n_focus == 4, "시나리오 6건(1차 범위 4건)");
-  check(sum.layer_accuracy >= 0.99, "층 판정 6/6", percentText(sum.layer_accuracy));
-  check(sum.top1 >= 0.99, "Top-1 6/6", percentText(sum.top1));
+  check(sum.n == 11, "시나리오 11건", std::to_string(sum.n));
+  check(sum.n_stage[1] == 4 && sum.n_stage[2] == 3 && sum.n_stage[3] == 4,
+        "단계별 1차 4 / 2차 3 / 3차 4건");
+  check(sum.top1_stage[1] == 4 && sum.top1_stage[2] == 3 && sum.top1_stage[3] == 4,
+        "단계별 1순위 정답 수");
+  check(sum.layer_accuracy >= 0.99, "층 판정 11/11", percentText(sum.layer_accuracy));
+  check(sum.top1 >= 0.99, "Top-1 11/11", percentText(sum.top1));
   check(sum.avg_cost_v1 < sum.avg_cost_base, "v1 누적 비용 < 커뮤니티 표준 순서");
   check(sum.avg_exp_v1 <= sum.avg_exp_v0 + 1e-6, "v1 기대 비용 <= v0 기대 비용");
 }
@@ -455,9 +624,11 @@ int main(int argc, char** argv) {
   testJson();
   testRules();
   testScenarios();
+  testDriverHardwareScenarios();
   testExecutionPolicy();
   testSessionEndToEnd();
   testSessionRecurrence();
+  testDriverHardwareSessions();
   testSessionGuards();
   testBayes();
   testFeedback();

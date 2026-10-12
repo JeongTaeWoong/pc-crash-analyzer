@@ -114,9 +114,46 @@ LayerResult classifyLayer(const Snapshot& s, const Rules& r) {
   if (faulting.size() >= 2) {
     a.add(Layer::Hardware, r.layerWeight("faulting_module_varied_hw", 0), "event",
           "크래시마다 오류 모듈이 다릅니다 (" + std::to_string(faulting.size()) + "종).", 0);
-  } else if (faulting.size() == 1 && !signals::isMicrosoftModule(s, faulting[0])) {
+  } else if (faulting.size() == 1 && !signals::isMicrosoftModule(s, faulting[0]) &&
+             !signals::isDriverModuleName(faulting[0])) {
     a.add(Layer::Software, r.layerWeight("faulting_module_thirdparty_sw", 0), "event",
           "오류 모듈이 서드파티 모듈(" + faulting[0] + ")로 일정합니다.", 0);
+  }
+
+  // (2-1) 블루스크린 커널 덤프: 하드웨어 버그체크면 HW, 특정 드라이버가 원인이면 DRIVER
+  bool sawHwBugcheck = false;
+  bool sawDriverBugcheck = false;
+  for (std::size_t i = 0; i < s.minidumps.size(); i++) {
+    const MiniDumpInfo& d = s.minidumps[i];
+    if (!signals::isKernelDump(d)) continue;
+    if (!sawHwBugcheck && signals::isHardwareBugcheck(d.bugcheck)) {
+      sawHwBugcheck = true;
+      a.add(Layer::Hardware, r.layerWeight("hw_bugcheck_hw", 0), "event",
+            "하드웨어 오류로 인한 블루스크린(" + d.bugcheck + ")이 기록되었습니다.", d.time);
+    } else if (!sawDriverBugcheck && signals::isDriverModuleName(d.faulting_module) &&
+               !signals::isMicrosoftModule(s, d.faulting_module)) {
+      sawDriverBugcheck = true;
+      a.add(Layer::Driver, r.layerWeight("kernel_crash_driver_driver", 0), "event",
+            "블루스크린(" + d.bugcheck + ")의 원인 드라이버가 " + d.faulting_module + "(으)로 기록되었습니다.",
+            d.time);
+    }
+  }
+
+  // (2-2) 저장장치 SMART 경고
+  const int warnDisks = signals::disksWithWarning(s);
+  if (warnDisks > 0) {
+    a.add(Layer::Hardware, r.layerWeight("smart_warning_hw", 0), "sensor",
+          "SMART 경고가 있는 저장장치가 " + std::to_string(warnDisks) + "개 있습니다.", 0);
+  }
+
+  // (2-3) 네트워크 링크 끊김이 반복되면 랜카드 드라이버 쪽 근거
+  int linkDrops = 0;
+  for (std::size_t i = 0; i < s.events.size(); i++) {
+    if (signals::isNetworkLinkEvent(s.events[i])) linkDrops++;
+  }
+  if (linkDrops >= 2) {
+    a.add(Layer::Driver, r.layerWeight("network_link_drop_driver", 0), "event",
+          "네트워크 어댑터 링크 끊김이 " + std::to_string(linkDrops) + "번 기록되었습니다.", 0);
   }
 
   // (3) 대상 프로세스에 주입된 서드파티 모듈
@@ -192,7 +229,7 @@ LayerResult classifyLayer(const Snapshot& s, const Rules& r) {
             "디스플레이 드라이버 응답 중지·복구 이벤트(" + std::to_string(e.id) + ")가 있습니다.",
             e.time);
     }
-    if (!sawPower && signals::isKernelPower41(e)) {
+    if (!sawPower && signals::isPowerLossEvent(s, e)) {  // 블루스크린 뒤 재부팅은 제외
       sawPower = true;
       a.add(Layer::Hardware, r.layerWeight("kernel_power_41_hw", 0), "event",
             "예고 없는 종료(Kernel-Power 41) 기록이 있습니다.", e.time);

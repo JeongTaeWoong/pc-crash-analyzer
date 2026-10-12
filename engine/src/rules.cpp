@@ -83,6 +83,10 @@ bool CheckTemplate::appliesTo(const std::string& category, Layer layer) const {
   return false;
 }
 
+bool CheckTemplate::usableFor(const std::string& symptom) const {
+  return symptoms.empty() || listHas(symptoms, symptom);
+}
+
 bool RemedyTemplate::appliesTo(const std::string& category, const std::string& subject,
                                const std::string& symptom) const {
   if (!listHas(categories, category)) return false;
@@ -139,9 +143,23 @@ const ActionTemplate* Rules::findAction(const std::string& id) const {
   return nullptr;
 }
 
+int Rules::stageOf(const std::string& category) const {
+  for (std::size_t i = 0; i < scopes.size(); i++) {
+    if (listHas(scopes[i].categories, category)) return scopes[i].stage;
+  }
+  return 0;
+}
+
+std::string Rules::stageName(int stage) const {
+  for (std::size_t i = 0; i < scopes.size(); i++) {
+    if (scopes[i].stage == stage) return scopes[i].name;
+  }
+  return "지원 범위 밖";
+}
+
 bool Rules::inFocus(const std::string& category) const {
-  if (focus_categories.empty()) return true;  // 범위를 정하지 않았으면 전부 범위 안
-  return listHas(focus_categories, category);
+  if (scopes.empty()) return true;  // 범위를 정하지 않았으면 전부 범위 안
+  return stageOf(category) > 0;
 }
 
 void Rules::classifyName(const std::string& haystack, const std::string& display,
@@ -191,15 +209,28 @@ Rules Rules::fromJson(const json::Value& v) {
   r.time_window_minutes = c["time_window_minutes"].asNumber(r.time_window_minutes);
   r.time_full_credit_minutes = c["time_full_credit_minutes"].asNumber(r.time_full_credit_minutes);
 
-  const json::Value& focus = v["focus"];
-  r.focus_name = focus["name"].asString("");
-  r.focus_categories = focus["categories"].asStringList();
+  const json::Array& sc = v["scopes"].asArray();
+  for (std::size_t i = 0; i < sc.size(); i++) {
+    ScopeStage st;
+    st.stage = sc[i]["stage"].asInt(static_cast<int>(i) + 1);
+    st.name = sc[i]["name"].asString("");
+    st.categories = sc[i]["categories"].asStringList();
+    r.scopes.push_back(st);
+  }
+  if (r.scopes.empty() && v["focus"].isObject()) {  // 예전 형식("focus" 하나)도 읽는다
+    ScopeStage st;
+    st.stage = 1;
+    st.name = v["focus"]["name"].asString("");
+    st.categories = v["focus"]["categories"].asStringList();
+    r.scopes.push_back(st);
+  }
 
   const json::Value& ses = v["session"];
   r.skip_layer_threshold = ses["skip_layer_threshold"].asNumber(r.skip_layer_threshold);
   r.confirm_threshold = ses["confirm_threshold"].asNumber(r.confirm_threshold);
   r.verify_min_observe_minutes =
       ses["verify_min_observe_minutes"].asNumber(r.verify_min_observe_minutes);
+  r.unresolved_cost_minutes = ses["unresolved_cost_minutes"].asNumber(r.unresolved_cost_minutes);
 
   const json::Value& pr = v["priors"];
   std::vector<std::string> symKeys = pr.keys();
@@ -250,6 +281,7 @@ Rules Rules::fromJson(const json::Value& v) {
     t.group = k["group"].asBool(false);
     t.categories = k["categories"].asStringList();
     t.layers = k["layers"].asStringList();
+    t.symptoms = k["symptoms"].asStringList();
     if (!t.id.empty()) r.checks.push_back(t);
   }
 
@@ -305,15 +337,21 @@ json::Value Rules::toJson() const {
   corr.set("time_full_credit_minutes", json::Value(time_full_credit_minutes));
   out.set("correlation", corr);
 
-  json::Value focus = json::Value::makeObject();
-  focus.set("name", json::Value(focus_name));
-  focus.set("categories", stringListToJson(focus_categories));
-  out.set("focus", focus);
+  json::Value sc = json::Value::makeArray();
+  for (std::size_t i = 0; i < scopes.size(); i++) {
+    json::Value o = json::Value::makeObject();
+    o.set("stage", json::Value(scopes[i].stage));
+    o.set("name", json::Value(scopes[i].name));
+    o.set("categories", stringListToJson(scopes[i].categories));
+    sc.push(o);
+  }
+  out.set("scopes", sc);
 
   json::Value ses = json::Value::makeObject();
   ses.set("skip_layer_threshold", json::Value(skip_layer_threshold));
   ses.set("confirm_threshold", json::Value(confirm_threshold));
   ses.set("verify_min_observe_minutes", json::Value(verify_min_observe_minutes));
+  ses.set("unresolved_cost_minutes", json::Value(unresolved_cost_minutes));
   out.set("session", ses);
 
   json::Value pr = json::Value::makeObject();
@@ -369,6 +407,7 @@ json::Value Rules::toJson() const {
     if (t.group) o.set("group", json::Value(true));
     if (!t.categories.empty()) o.set("categories", stringListToJson(t.categories));
     if (!t.layers.empty()) o.set("layers", stringListToJson(t.layers));
+    if (!t.symptoms.empty()) o.set("symptoms", stringListToJson(t.symptoms));
     cs.push(o);
   }
   out.set("checks", cs);

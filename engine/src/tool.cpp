@@ -239,6 +239,7 @@ bool toolExplain(const json::Value& args, json::Value* result, std::string* erro
   o.set("probability", json::Value(c.probability));
   o.set("confidence", json::Value(c.confidence));
   o.set("in_focus", json::Value(c.in_focus));
+  o.set("stage", json::Value(c.stage));
   o.set("layer", json::Value(toString(d.layer.top)));
   o.set("layer_probability", json::Value(d.layer.probabilityOf(c.layer)));
   json::Value reasons = json::Value::makeArray();

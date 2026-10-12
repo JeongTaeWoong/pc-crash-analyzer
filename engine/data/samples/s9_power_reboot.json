@@ -1,0 +1,166 @@
+{
+  "schema_version": "1.2",
+  "snapshot_id": "s9-power-reboot",
+  "marked_at": "2026-11-12T21:30:00+09:00",
+  "trigger": {
+    "kind": "auto_system",
+    "event_id": 41
+  },
+  "host": {
+    "os": "Windows 11 23H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "unexpected_reboot",
+    "target_process": "game.exe",
+    "scope": "system_wide",
+    "started_at": "2026-11-10T20:00:00+09:00"
+  },
+  "processes": [
+    "game.exe",
+    "explorer.exe"
+  ],
+  "modules": [
+    {
+      "process": "game.exe",
+      "name": "ntdll.dll",
+      "company": "Microsoft Corporation",
+      "signer": "Microsoft Windows",
+      "microsoft_signed": true
+    }
+  ],
+  "drivers": [
+    {
+      "name": "nvlddmkm.sys",
+      "display": "NVIDIA Display Driver",
+      "type": "display",
+      "company": "NVIDIA",
+      "version": "565.90",
+      "started_at": "2026-10-20T09:00:00+09:00"
+    }
+  ],
+  "device_filters": {
+    "keyboard_upper": [
+      "kbdclass"
+    ],
+    "mouse_upper": [
+      "mouclass"
+    ],
+    "ndis_filters": []
+  },
+  "security": {
+    "realtime_av": [
+      "Microsoft Defender"
+    ],
+    "firewall_blocks": [],
+    "detections": []
+  },
+  "change_history": [],
+  "events": [
+    {
+      "time": "2026-11-10T20:31:00+09:00",
+      "provider": "Microsoft-Windows-Kernel-Power",
+      "id": 41,
+      "subject": "BugcheckCode 0"
+    },
+    {
+      "time": "2026-11-11T21:05:00+09:00",
+      "provider": "Microsoft-Windows-Kernel-Power",
+      "id": 41,
+      "subject": "BugcheckCode 0"
+    },
+    {
+      "time": "2026-11-12T21:17:30+09:00",
+      "provider": "Microsoft-Windows-Kernel-Power",
+      "id": 41,
+      "subject": "BugcheckCode 0"
+    }
+  ],
+  "sensors": {
+    "samples": [
+      {
+        "time": "2026-11-12T21:10:00+09:00",
+        "cpu_temp": 76,
+        "gpu_temp": 75,
+        "cpu_clock": 4600,
+        "gpu_clock": 1950,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-12T21:11:00+09:00",
+        "cpu_temp": 77,
+        "gpu_temp": 76,
+        "cpu_clock": 4600,
+        "gpu_clock": 1950,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-12T21:12:00+09:00",
+        "cpu_temp": 78,
+        "gpu_temp": 75,
+        "cpu_clock": 4600,
+        "gpu_clock": 1950,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-12T21:13:00+09:00",
+        "cpu_temp": 76,
+        "gpu_temp": 76,
+        "cpu_clock": 4600,
+        "gpu_clock": 1950,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-12T21:14:00+09:00",
+        "cpu_temp": 77,
+        "gpu_temp": 75,
+        "cpu_clock": 4600,
+        "gpu_clock": 1950,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-12T21:15:00+09:00",
+        "cpu_temp": 78,
+        "gpu_temp": 76,
+        "cpu_clock": 4600,
+        "gpu_clock": 1950,
+        "throttling": false,
+        "gpu_power_limit_reason": "power"
+      },
+      {
+        "time": "2026-11-12T21:16:00+09:00",
+        "cpu_temp": 76,
+        "gpu_temp": 75,
+        "cpu_clock": 4600,
+        "gpu_clock": 1950,
+        "throttling": false,
+        "gpu_power_limit_reason": "power"
+      },
+      {
+        "time": "2026-11-12T21:17:00+09:00",
+        "cpu_temp": 77,
+        "gpu_temp": 76,
+        "cpu_clock": 4600,
+        "gpu_clock": 1950,
+        "throttling": false,
+        "gpu_power_limit_reason": "power"
+      }
+    ]
+  },
+  "minidumps": [],
+  "baseline_diff": {
+    "added": [],
+    "removed": [],
+    "changed": []
+  },
+  "ground_truth": {
+    "layer": "HW",
+    "category": "power",
+    "subject": "power"
+  }
+}

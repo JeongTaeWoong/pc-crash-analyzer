@@ -43,15 +43,18 @@ struct PlanStep {
 struct Plan {
   EngineVersion version = EngineVersion::V1;
   std::vector<PlanStep> steps;
-  double expected_cost_seconds = 0;  // 원인에 도달할 때까지의 기대 누적 비용
+  double expected_cost_seconds = 0;  // 안내한 점검들에 드는 기대 누적 비용
+  // 위 비용 + (원인을 못 찾을 확률 x 못 찾았을 때 비용). 순서끼리 비교할 때 쓰는 값
+  double expected_total_seconds = 0;
   double expected_trials = 0;        // 기대 시도 횟수
   double resolved_probability = 0;   // 이 순서로 원인에 도달할 확률
   json::Value toJson() const;
 };
 
 // 후보에 적용 가능한 점검 인스턴스를 만든다(그룹 점검 포함).
+// symptom 에 맞지 않는 점검(예: 블루스크린인데 랜카드 절전 점검)은 만들지 않는다.
 std::vector<CheckInstance> buildCheckInstances(const std::vector<Candidate>& candidates,
-                                               const Rules& r);
+                                               const Rules& r, const std::string& symptom);
 
 // 순서 계산에서 제외할 후보(생략 권고 층, 확률이 지나치게 낮은 후보)를 걸러내고 확률을 재정규화한다.
 std::vector<Candidate> selectPlanningCandidates(const std::vector<Candidate>& all,
@@ -63,23 +66,33 @@ std::vector<Candidate> selectPlanningCandidates(const std::vector<Candidate>& al
 std::vector<double> bayesUpdate(const std::vector<double>& belief, const std::vector<char>& inSet,
                                 double reliability, bool positive);
 
+// 계획(순서 미리 짜기)용 갱신: 점검이 '아님'이면 대상 안의 후보만 x (1-r).
+// 원인이 아닌 것을 원인으로 착각하는 경우는 계획에서 세지 않는다(검증 단계의 재발 확인이 잡는다).
+std::vector<double> missUpdate(const std::vector<double>& belief, const std::vector<char>& inSet,
+                               double reliability);
+
 // 커버 집합을 belief 인덱스 기준 0/1 배열로 바꾼다.
 std::vector<char> coverMask(const CheckInstance& inst, const std::map<std::string, int>& index,
                             std::size_t n);
 
 // v1의 한 단계: 아직 쓰지 않은 점검 중 '이 점검 비용 + 결과별 이후 기대 비용'이 가장 작은 것.
-// 고를 점검이 없으면 -1.
+// unresolvedCost = 원인을 끝내 못 찾았을 때 비용(초). 고를 점검이 없으면 -1.
+// totalOut 이 있으면 고른 점검의 기대 총비용(초)을 적어 준다.
 int chooseNextCheck(const std::vector<double>& belief, const std::vector<CheckInstance>& instances,
-                    const std::map<std::string, int>& index, const std::vector<char>& used);
+                    const std::map<std::string, int>& index, const std::vector<char>& used,
+                    double unresolvedCost, double* totalOut);
 
 // 주어진 순서대로 점검할 때의 기대 비용·시도 횟수를 계산한다.
 // 누적 해결 확률이 stopResolved 를 넘거나 maxSteps 에 도달하면 안내를 끊는다.
 Plan evaluateOrder(const std::vector<CheckInstance>& order, const std::vector<Candidate>& candidates,
-                   EngineVersion version, std::size_t maxSteps, double stopResolved);
+                   EngineVersion version, std::size_t maxSteps, double stopResolved,
+                   double unresolvedCost);
 
-Plan buildPlan(const std::vector<Candidate>& candidates, const Rules& r, EngineVersion version);
+Plan buildPlan(const std::vector<Candidate>& candidates, const Rules& r, EngineVersion version,
+               const std::string& symptom);
 
 // 비교 기준: 커뮤니티 표준 트러블슈팅 체크리스트 순서 (제안서 4.2)
-Plan buildBaselinePlan(const std::vector<Candidate>& candidates, const Rules& r);
+Plan buildBaselinePlan(const std::vector<Candidate>& candidates, const Rules& r,
+                       const std::string& symptom);
 
 }  // namespace ce

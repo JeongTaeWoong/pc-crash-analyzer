@@ -10,6 +10,16 @@
 #include <fstream>
 #include <sstream>
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
+
 namespace ce {
 namespace json {
 
@@ -467,20 +477,68 @@ Value Value::parse(const std::string& text, std::string* error) {
   return v;
 }
 
+// [설명] 파일 경로의 한글 처리 (Windows)
+//   도구 인터페이스(crash_engine tool ...)로 들어오는 경로는 JSON 이라 UTF-8 이다.
+//   그런데 Windows 의 std::ifstream(char*) 은 경로를 ANSI(CP949)로 해석해서
+//   "바탕 화면" 같은 한글 경로를 열지 못한다. 그래서 Windows 에서는
+//   ① 경로를 UTF-8 로 보고 와이드 문자열로 바꿔 먼저 열어 보고
+//   ② 안 되면(명령줄에서 CP949 로 들어온 경로 등) 원래 방식으로 연다.
+//   영문 경로는 두 방식 결과가 같다.
+#ifdef _WIN32
+namespace {
+bool utf8ToWide(const std::string& s, std::wstring* out) {
+  if (s.empty()) return false;
+  const int n = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, s.c_str(), static_cast<int>(s.size()),
+                                    nullptr, 0);
+  if (n <= 0) return false;  // UTF-8 이 아니다 (CP949 등)
+  out->assign(static_cast<std::size_t>(n), L'\0');
+  MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, s.c_str(), static_cast<int>(s.size()), &(*out)[0], n);
+  return true;
+}
+}  // namespace
+#endif
+
+bool readTextFile(const std::string& path, std::string* out) {
+  std::ifstream in;
+#ifdef _WIN32
+  std::wstring wide;
+  if (utf8ToWide(path, &wide)) {
+    in.open(wide.c_str(), std::ios::binary);
+  }
+#endif
+  if (!in.is_open()) {
+    in.clear();
+    in.open(path.c_str(), std::ios::binary);
+  }
+  if (!in.is_open()) return false;
+  std::ostringstream ss;
+  ss << in.rdbuf();
+  *out = ss.str();
+  return true;
+}
+
 Value Value::parseFile(const std::string& path, std::string* error) {
-  std::ifstream in(path.c_str(), std::ios::binary);
-  if (!in) {
+  std::string text;
+  if (!readTextFile(path, &text)) {
     if (error) *error = "파일을 열 수 없습니다: " + path;
     return Value();
   }
-  std::ostringstream ss;
-  ss << in.rdbuf();
-  return parse(ss.str(), error);
+  return parse(text, error);
 }
 
 bool Value::writeFile(const std::string& path, const Value& v, std::string* error) {
-  std::ofstream out(path.c_str(), std::ios::binary);
-  if (!out) {
+  std::ofstream out;
+#ifdef _WIN32
+  std::wstring wide;
+  if (utf8ToWide(path, &wide)) {
+    out.open(wide.c_str(), std::ios::binary);
+  }
+#endif
+  if (!out.is_open()) {
+    out.clear();
+    out.open(path.c_str(), std::ios::binary);
+  }
+  if (!out.is_open()) {
     if (error) *error = "파일을 쓸 수 없습니다: " + path;
     return false;
   }
