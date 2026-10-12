@@ -301,10 +301,10 @@ int cmdTool(const Args& a) {
   json::Value args = json::Value::makeObject();
   std::string text;
   if (!a.input_path.empty()) {
-    std::ifstream in(a.input_path.c_str(), std::ios::binary);
-    std::ostringstream ss;
-    ss << in.rdbuf();
-    text = ss.str();
+    if (!json::readTextFile(a.input_path, &text)) {
+      std::cerr << "입력 파일을 열 수 없습니다: " << a.input_path << "\n";
+      return 2;
+    }
   } else if (name != "list_tools") {
     std::istreambuf_iterator<char> begin(std::cin);
     std::istreambuf_iterator<char> end;
