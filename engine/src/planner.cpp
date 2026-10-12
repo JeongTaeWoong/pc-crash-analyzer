@@ -20,7 +20,7 @@ namespace ce {
 //
 // 결과를 받으면 bayesUpdate 로 확률을 고친다(베이즈 갱신).
 //   '아님'이면 그 점검이 다룬 후보의 확률이 내려가고 나머지가 올라간다.
-//   s1 예) 오버레이 2개와 Defender 가 '아님' → Vanguard 43% → 79%
+//   s1 예) 오버레이 2개가 '아님' → Vanguard 43% → 69%
 // ─────────────────────────────────────────────────────────────────────────────
 
 std::string toString(EngineVersion v) { return v == EngineVersion::V0 ? "v0" : "v1"; }
@@ -35,55 +35,60 @@ EngineVersion engineVersionFromString(const std::string& s, bool* ok) {
 
 namespace {
 
-// 기준 정책에서 쓰는 후보별 '가장 싼 개별 점검' 정보
-struct BaseItem {
-  double p;
-  double cost;
-  double rel;
-};
-
-bool baseItemBetter(const BaseItem& a, const BaseItem& b) {
-  const double ca = a.cost < 1.0 ? 1.0 : a.cost;
-  const double cb = b.cost < 1.0 ? 1.0 : b.cost;
-  return a.p * a.rel / ca > b.p * b.rel / cb;
-}
-
-// 기준 정책의 기대 비용: 후보별 가장 싼 개별 점검을 '확률x신뢰도/비용' 순으로 수행할 때
-// 원인에 도달할 때까지의 기대 누적 비용.
+// [설명] basePolicyCost : '남은 기대 비용'을 빠르게 어림하는 기준 정책
+//   남은 개별 점검을 하나씩 고르되, 매번 '그 후보의 남은 확률 x 신뢰도 / 비용' 이 가장 큰 점검을 한다.
+//   점검이 '아님'으로 끝나면 그 후보의 남은 확률은 (1 - 신뢰도) 배로 줄어든다.
+//   한 후보에 점검이 여러 개면(예: 메모리 = XMP 끄기 10분 → 메모리 검사 90분) 모두 차례로 쓸 수 있다.
+//   기대 비용 = Σ (그 단계까지 원인이 아직 안 드러났을 확률) x (그 점검 비용)
+//   (예전에는 후보마다 가장 싼 점검 하나만 셌는데, 그러면 비싼 후속 점검이 빠져
+//    '싼 점검을 뒤로 미루는' 쪽이 실제보다 싸게 계산되는 문제가 있었다)
+//   점검 비용이 '찾을 확률 x 못 찾았을 때 비용'보다 크면 그 점검은 하지 않고 포기 비용으로 센다.
 double basePolicyCost(const std::vector<double>& belief, const std::vector<CheckInstance>& instances,
-                      const std::map<std::string, int>& index, const std::vector<char>& used) {
-  std::vector<BaseItem> best(belief.size());
-  std::vector<char> hasTest(belief.size(), 0);
-
+                      const std::map<std::string, int>& index, const std::vector<char>& used,
+                      double unresolvedCost) {
+  // 쓸 수 있는 개별 점검 목록 (후보 번호, 비용, 신뢰도)
+  std::vector<int> who;
+  std::vector<double> cost;
+  std::vector<double> rel;
   for (std::size_t k = 0; k < instances.size(); k++) {
     if (used[k]) continue;
     const CheckInstance& inst = instances[k];
     if (inst.covers.size() != 1) continue;  // 기준 정책은 개별 점검만 쓴다
     std::map<std::string, int>::const_iterator it = index.find(inst.covers[0]);
     if (it == index.end()) continue;
-    const int i = it->second;
-    if (!hasTest[i] || inst.cost_seconds < best[i].cost) {
-      hasTest[i] = 1;
-      best[i].p = belief[i];
-      best[i].cost = inst.cost_seconds;
-      best[i].rel = inst.reliability;
-    }
+    who.push_back(it->second);
+    cost.push_back(inst.cost_seconds < 1.0 ? 1.0 : inst.cost_seconds);
+    rel.push_back(inst.reliability);
   }
 
-  std::vector<BaseItem> list;
-  for (std::size_t i = 0; i < belief.size(); i++) {
-    if (hasTest[i] && belief[i] > 1e-6) list.push_back(best[i]);
-  }
-  std::sort(list.begin(), list.end(), baseItemBetter);
-
+  std::vector<double> remain = belief;  // 후보별 '아직 드러나지 않은' 확률
+  std::vector<char> done(who.size(), 0);
   double expected = 0;
-  double survive = 1.0;
-  for (std::size_t i = 0; i < list.size(); i++) {
-    expected += survive * list[i].cost;
-    survive *= (1.0 - list[i].p * list[i].rel);
-    if (survive < 1e-4) break;
+  for (std::size_t step = 0; step < who.size(); step++) {
+    double alive = 0;
+    for (std::size_t i = 0; i < remain.size(); i++) alive += remain[i];
+    if (alive < 1e-4) break;
+
+    int pick = -1;
+    double bestScore = 0;
+    for (std::size_t t = 0; t < who.size(); t++) {
+      if (done[t]) continue;
+      const double score = remain[who[t]] * rel[t] / cost[t];
+      if (pick < 0 || score > bestScore) {
+        pick = static_cast<int>(t);
+        bestScore = score;
+      }
+    }
+    if (pick < 0 || remain[who[pick]] <= 1e-6) break;  // 남은 점검이 남은 후보를 못 다룬다
+    // 이 점검으로 원인을 찾을 확률 x 포기 비용 < 점검 비용 → 더 해 봐야 손해
+    if (remain[who[pick]] * rel[pick] * unresolvedCost < alive * cost[pick]) break;
+    done[pick] = 1;
+    expected += alive * cost[pick];
+    remain[who[pick]] *= (1.0 - rel[pick]);
   }
-  return expected;
+  double left = 0;  // 끝까지 못 찾은 확률
+  for (std::size_t i = 0; i < remain.size(); i++) left += remain[i];
+  return expected + left * unresolvedCost;
 }
 
 std::string coversLabel(const CheckInstance& inst, const std::vector<Candidate>& cands) {
@@ -141,6 +146,7 @@ json::Value Plan::toJson() const {
   o.set("engine", json::Value(toString(version)));
   o.set("expected_cost_seconds", json::Value(expected_cost_seconds));
   o.set("expected_cost_minutes", json::Value(expected_cost_seconds / 60.0));
+  o.set("expected_total_seconds", json::Value(expected_total_seconds));
   o.set("expected_trials", json::Value(expected_trials));
   o.set("resolved_probability", json::Value(resolved_probability));
   json::Value arr = json::Value::makeArray();
@@ -150,12 +156,13 @@ json::Value Plan::toJson() const {
 }
 
 std::vector<CheckInstance> buildCheckInstances(const std::vector<Candidate>& candidates,
-                                               const Rules& r) {
+                                               const Rules& r, const std::string& symptom) {
   std::vector<CheckInstance> out;
   std::set<std::string> covered;
 
   for (std::size_t t = 0; t < r.checks.size(); t++) {
     const CheckTemplate& tpl = r.checks[t];
+    if (!tpl.usableFor(symptom)) continue;
     std::vector<std::string> matched;
     for (std::size_t i = 0; i < candidates.size(); i++) {
       if (tpl.appliesTo(candidates[i].category, candidates[i].layer)) {
@@ -258,21 +265,40 @@ std::vector<char> coverMask(const CheckInstance& inst, const std::map<std::strin
   return mask;
 }
 
+// [설명] 계획용 확률 모델
+//   순서를 '미리' 짤 때는 이렇게 본다: 점검은 원인을 놓칠 수는 있지만(신뢰도 r),
+//   원인이 아닌 것을 원인으로 착각하지는 않는다. (착각은 해결 후 검증 단계에서 '재발'로 잡힌다)
+//   그래서 '아님'이 나오면 점검 대상 안의 후보만 x (1-r) 로 줄고, 대상 밖은 그대로다.
+//   evaluateOrder(기대 비용 계산)와 chooseNextCheck(다음 점검 고르기)가 같은 모델을 써야
+//   v1 이 계산하는 값과 우리가 비교하는 값이 일치한다.
+//   (실제 결과를 받은 뒤의 갱신은 더 보수적인 bayesUpdate 를 쓴다 — 세션 쪽)
+std::vector<double> missUpdate(const std::vector<double>& belief, const std::vector<char>& inSet,
+                               double reliability) {
+  std::vector<double> out(belief.size(), 0.0);
+  double sum = 0;
+  for (std::size_t i = 0; i < belief.size(); i++) {
+    out[i] = inSet[i] ? belief[i] * (1 - reliability) : belief[i];
+    sum += out[i];
+  }
+  if (sum <= 1e-12) return belief;
+  for (std::size_t i = 0; i < out.size(); i++) out[i] /= sum;
+  return out;
+}
+
 // [설명] chooseNextCheck : 다음 점검 하나 고르기 (1단계 앞을 내다보기)
 //   for 모든 점검 k:
-//     pPos = 이 점검에서 '해결됨'이 나올 확률, pNeg = 1 - pPos
-//     afterPos = '해결됨'이 나온 뒤 남은 기대 비용  (개별 점검이면 범인이 바로 정해지므로 0)
+//     pPos = 이 점검에서 원인이 드러날 확률 = r x (대상 후보들의 확률 합)
+//     afterPos = 드러난 뒤 남은 기대 비용  (개별 점검이면 원인이 바로 정해지므로 0,
+//                그룹 점검이면 묶음 안에서 다시 골라야 하므로 그 비용)
 //     afterNeg = '아님'이 나온 뒤 남은 기대 비용
-//     total = 이 점검 비용 + pPos × afterPos + pNeg × afterNeg
+//     total = 이 점검 비용 + pPos × afterPos + (1 - pPos) × afterNeg
 //   total 이 가장 작은 점검을 고른다.
 //   '남은 기대 비용'은 basePolicyCost(확률×신뢰도/비용 이 큰 순서로 하나씩 점검하는 간단한 방법)로 어림한다.
 int chooseNextCheck(const std::vector<double>& belief, const std::vector<CheckInstance>& instances,
-                    const std::map<std::string, int>& index, const std::vector<char>& used) {
-  // 기준 정책(base policy): 후보별 개별 점검을 '확률 x 신뢰도 / 비용' 내림차순으로 수행.
-  // 실제 선택: 각 점검을 한 번 해 보고, 그 결과(해결/아님)에 대해 기준 정책으로 끝까지 갔을 때의
-  //   기대 비용을 계산해(1단계 전방 탐색) 총 기대 비용이 가장 작은 점검을 고른다.
-  //   그룹 점검(예: 클린 부트)은 한 번에 여러 후보를 걷어내 이후 비용을 줄이므로,
-  //   그 이득이 자기 비용보다 클 때만 앞으로 나온다.
+                    const std::map<std::string, int>& index, const std::vector<char>& used,
+                    double unresolvedCost, double* totalOut) {
+  // 그룹 점검(예: 클린 부트)은 한 번에 여러 후보를 걷어내 이후 비용을 줄이므로,
+  // 그 이득이 자기 비용보다 클 때만 앞으로 나온다.
   std::vector<char> work = used;
   double bestTotal = 0;
   int bestIdx = -1;
@@ -288,29 +314,35 @@ int chooseNextCheck(const std::vector<double>& belief, const std::vector<CheckIn
     if (mass < 1e-4) continue;
 
     const double rel = inst.reliability;
-    const double pPos = rel * mass + (1 - rel) * (1 - mass);
-    const double pNeg = 1 - pPos;
+    const double pPos = rel * mass;
 
     work[k] = 1;  // 전방 탐색 동안에는 이 점검을 이미 쓴 것으로 본다
     double afterPos = 0.0;
-    if (inst.covers.size() != 1) {  // 개별 점검이 '해결'이면 원인이 바로 특정된다
-      afterPos = basePolicyCost(bayesUpdate(belief, inSet, rel, true), instances, index, work);
+    if (inst.covers.size() != 1) {
+      // 그룹 점검이 '해결'이면 원인은 묶음 안에 있다 → 묶음 안 후보만 남겨 이어서 점검
+      std::vector<double> inside(belief.size(), 0.0);
+      for (std::size_t i = 0; i < belief.size(); i++) {
+        if (inSet[i]) inside[i] = belief[i] / mass;
+      }
+      afterPos = basePolicyCost(inside, instances, index, work, unresolvedCost);
     }
     const double afterNeg =
-        basePolicyCost(bayesUpdate(belief, inSet, rel, false), instances, index, work);
+        basePolicyCost(missUpdate(belief, inSet, rel), instances, index, work, unresolvedCost);
     work[k] = 0;
 
-    const double total = inst.cost_seconds + pPos * afterPos + pNeg * afterNeg;
+    const double total = inst.cost_seconds + pPos * afterPos + (1 - pPos) * afterNeg;
     if (bestIdx < 0 || total < bestTotal) {
       bestTotal = total;
       bestIdx = static_cast<int>(k);
     }
   }
+  if (totalOut) *totalOut = bestTotal;
   return bestIdx;
 }
 
 Plan evaluateOrder(const std::vector<CheckInstance>& order, const std::vector<Candidate>& candidates,
-                   EngineVersion version, std::size_t maxSteps, double stopResolved) {
+                   EngineVersion version, std::size_t maxSteps, double stopResolved,
+                   double unresolvedCost) {
   Plan plan;
   plan.version = version;
   if (candidates.empty()) return plan;
@@ -350,17 +382,22 @@ Plan evaluateOrder(const std::vector<CheckInstance>& order, const std::vector<Ca
     plan.expected_trials += reach;
     plan.resolved_probability += success;
 
+    // 계획용 모델: 대상 안의 후보만 '놓칠 확률(1-r)'만큼 남는다 (missUpdate 와 같은 가정)
     for (std::size_t i = 0; i < p.size(); i++) {
-      path[i] *= inSet[i] ? (1 - inst.reliability) : inst.reliability;
+      if (inSet[i]) path[i] *= (1 - inst.reliability);
     }
 
     if (plan.steps.size() >= maxSteps || plan.resolved_probability >= stopResolved) break;
   }
+  double left = 1.0 - plan.resolved_probability;
+  if (left < 0) left = 0;
+  plan.expected_total_seconds = plan.expected_cost_seconds + left * unresolvedCost;
   return plan;
 }
 
-Plan buildPlan(const std::vector<Candidate>& candidates, const Rules& r, EngineVersion version) {
-  const std::vector<CheckInstance> instances = buildCheckInstances(candidates, r);
+Plan buildPlan(const std::vector<Candidate>& candidates, const Rules& r, EngineVersion version,
+               const std::string& symptom) {
+  const std::vector<CheckInstance> instances = buildCheckInstances(candidates, r, symptom);
   if (candidates.empty() || instances.empty()) {
     Plan empty;
     empty.version = version;
@@ -382,7 +419,7 @@ Plan buildPlan(const std::vector<Candidate>& candidates, const Rules& r, EngineV
       }
       if (best >= 0) order.push_back(instances[best]);
     }
-    return evaluateOrder(order, candidates, version, 8, 0.92);
+    return evaluateOrder(order, candidates, version, 8, 0.92, r.unresolved_cost_minutes * 60.0);
   }
 
   // v1: 비용 가중 적응형 그룹 테스팅. 각 단계는 '앞 점검이 아님으로 끝난' 상황을 가정해 고른다.
@@ -400,19 +437,26 @@ Plan buildPlan(const std::vector<Candidate>& candidates, const Rules& r, EngineV
   std::vector<char> used(instances.size(), 0);
   const std::size_t maxSteps = instances.size() < 8 ? instances.size() : 8;
 
+  const double giveUp = r.unresolved_cost_minutes * 60.0;
   for (std::size_t step = 0; step < maxSteps; step++) {
-    const int pick = chooseNextCheck(belief, instances, index, used);
+    double total = 0;
+    const int pick = chooseNextCheck(belief, instances, index, used, giveUp, &total);
     if (pick < 0) break;
+    // 여기까지 와서 남은 점검을 하는 기대 비용이 '포기(수리점 등)' 비용보다 크면 더 안내하지 않는다.
+    // (첫 단계는 항상 안내한다)
+    if (step > 0 && total >= giveUp) break;
     used[pick] = 1;
     order.push_back(instances[pick]);
     const std::vector<char> inSet = coverMask(instances[pick], index, belief.size());
-    belief = bayesUpdate(belief, inSet, instances[pick].reliability, false);
+    belief = missUpdate(belief, inSet, instances[pick].reliability);
   }
 
-  return evaluateOrder(order, candidates, version, 8, 0.92);
+  return evaluateOrder(order, candidates, version, 8, 0.92, giveUp);
 }
 
-Plan buildBaselinePlan(const std::vector<Candidate>& candidates, const Rules& r) {
+Plan buildBaselinePlan(const std::vector<Candidate>& candidates, const Rules& r,
+                       const std::string& symptom) {
+  (void)symptom;  // 커뮤니티 표준 순서는 증상과 상관없이 같은 순서다
   // 커뮤니티 표준 순서: 후보 확률과 무관하게 정해진 순서로, 해당 층·카테고리를 통째로 점검한다.
   std::vector<CheckInstance> order;
   for (std::size_t k = 0; k < r.baseline_checklist.size(); k++) {
@@ -429,7 +473,8 @@ Plan buildBaselinePlan(const std::vector<Candidate>& candidates, const Rules& r)
     inst.covers_label = coversLabel(inst, candidates);
     order.push_back(inst);
   }
-  return evaluateOrder(order, candidates, EngineVersion::V0, 8, 0.92);
+  return evaluateOrder(order, candidates, EngineVersion::V0, 8, 0.92,
+                       r.unresolved_cost_minutes * 60.0);
 }
 
 }  // namespace ce

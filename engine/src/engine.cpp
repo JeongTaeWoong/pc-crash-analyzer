@@ -97,7 +97,7 @@ Diagnosis diagnose(const Snapshot& s, const Rules& r, EngineVersion version,
   }
 
   d.planning = selectPlanningCandidates(d.candidates, d.skipped_layers, 0.02);
-  d.plan = buildPlan(d.planning, r, version);
+  d.plan = buildPlan(d.planning, r, version, d.symptom);
 
   // 점검 단계마다 '자동으로 해도 되는가'를 결정한다.
   for (std::size_t i = 0; i < d.plan.steps.size(); i++) {
@@ -113,13 +113,14 @@ Diagnosis diagnose(const Snapshot& s, const Rules& r, EngineVersion version,
     d.step_actions.push_back(decideAction(r, inst.action_id, policy, target));
   }
 
-  // 1차 핀포인트 범위 안내
-  if (!r.focus_name.empty() && d.top() != nullptr) {
-    if (d.top()->in_focus) {
-      d.notes.push_back("1순위 후보가 1차 지원 범위(" + r.focus_name + ") 안에 있습니다.");
+  // 지원 범위 안내 (1차 보안 → 2차 드라이버·시스템 → 3차 하드웨어)
+  if (!r.scopes.empty() && d.top() != nullptr) {
+    if (d.top()->stage > 0) {
+      d.notes.push_back("1순위 후보는 " + std::to_string(d.top()->stage) + "차 지원 범위(" +
+                        r.stageName(d.top()->stage) + ")입니다.");
     } else {
-      d.notes.push_back("1순위 후보가 1차 지원 범위(" + r.focus_name +
-                        ") 밖입니다. 원인 판정은 그대로 제공하지만 해결 안내는 일반 안내 수준입니다.");
+      d.notes.push_back("1순위 후보는 지원 범위 밖(일반 소프트웨어)입니다. 원인 판정은 그대로 제공하지만 "
+                        "해결 안내는 일반 안내 수준입니다.");
     }
   }
 
@@ -195,7 +196,11 @@ std::string Diagnosis::toText() const {
     const Candidate& c = candidates[i];
     os << " " << (i + 1) << ". " << c.label << "  [" << toString(c.layer) << "] "
        << percentText(c.probability) << "  신뢰도 " << percentText(c.confidence);
-    if (!c.in_focus) os << "  (1차 범위 밖)";
+    if (c.stage > 0) {
+      os << "  (" << c.stage << "차 범위)";
+    } else {
+      os << "  (범위 밖)";
+    }
     os << "\n";
     for (std::size_t k = 0; k < c.evidence.size(); k++) {
       const Evidence& e = c.evidence[k];
@@ -207,7 +212,8 @@ std::string Diagnosis::toText() const {
 
   os << "\n[3] 원인 확인 순서 (" << toString(plan.version) << ", 기대 시도 "
      << (std::lround(plan.expected_trials * 10) / 10.0) << "회 · 기대 비용 "
-     << durationText(plan.expected_cost_seconds) << ")\n";
+     << durationText(plan.expected_cost_seconds) << " · 원인 찾을 확률 "
+     << percentText(plan.resolved_probability) << ")\n";
   for (std::size_t i = 0; i < plan.steps.size(); i++) {
     const PlanStep& s = plan.steps[i];
     os << " " << (i + 1) << ") " << s.check.label << " → " << s.check.covers_label << "  ("

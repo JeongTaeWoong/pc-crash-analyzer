@@ -1,0 +1,109 @@
+{
+  "schema_version": "1.2",
+  "snapshot_id": "s11-storage-freeze",
+  "marked_at": "2026-11-16T15:30:00+09:00",
+  "trigger": {
+    "kind": "hotkey"
+  },
+  "host": {
+    "os": "Windows 10 22H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "freeze",
+    "target_process": "",
+    "scope": "multiple_apps",
+    "started_at": "2026-11-15T10:00:00+09:00"
+  },
+  "processes": [
+    "explorer.exe",
+    "chrome.exe",
+    "hwp.exe"
+  ],
+  "modules": [],
+  "drivers": [],
+  "device_filters": {
+    "keyboard_upper": [
+      "kbdclass"
+    ],
+    "mouse_upper": [
+      "mouclass"
+    ],
+    "ndis_filters": []
+  },
+  "security": {
+    "realtime_av": [
+      "AhnLab V3"
+    ],
+    "firewall_blocks": [],
+    "detections": []
+  },
+  "change_history": [],
+  "events": [
+    {
+      "time": "2026-11-15T10:02:00+09:00",
+      "provider": "disk",
+      "id": 153,
+      "subject": "IO operation retried"
+    },
+    {
+      "time": "2026-11-15T14:30:00+09:00",
+      "provider": "disk",
+      "id": 153,
+      "subject": "IO operation retried"
+    },
+    {
+      "time": "2026-11-16T09:10:00+09:00",
+      "provider": "disk",
+      "id": 153,
+      "subject": "IO operation retried"
+    },
+    {
+      "time": "2026-11-16T15:25:00+09:00",
+      "provider": "disk",
+      "id": 153,
+      "subject": "IO operation retried"
+    },
+    {
+      "time": "2026-11-16T15:26:00+09:00",
+      "provider": "Application Hang",
+      "id": 1002,
+      "subject": "hwp.exe"
+    }
+  ],
+  "storage": {
+    "disks": [
+      {
+        "name": "Samsung SSD 860 EVO 500GB",
+        "health": "warning",
+        "reallocated_sectors": 12,
+        "pending_sectors": 24,
+        "uncorrectable": 3,
+        "media_errors": 0
+      }
+    ]
+  },
+  "sensors": {
+    "samples": [
+      {
+        "time": "2026-11-16T15:29:00+09:00",
+        "cpu_temp": 52,
+        "gpu_temp": 45,
+        "cpu_clock": 4500,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      }
+    ]
+  },
+  "baseline_diff": {
+    "added": [],
+    "removed": [],
+    "changed": []
+  },
+  "ground_truth": {
+    "layer": "HW",
+    "category": "storage",
+    "subject": "storage"
+  }
+}

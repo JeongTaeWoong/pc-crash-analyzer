@@ -1,0 +1,50 @@
+{
+  "schema_version": "1.2",
+  "snapshot_id": "s7-gpu-driver-after-fix",
+  "marked_at": "2026-11-08T10:00:00+09:00",
+  "observed_from": "2026-11-06T10:10:00+09:00",
+  "trigger": {
+    "kind": "verify"
+  },
+  "host": {
+    "os": "Windows 11 23H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "unexpected_reboot",
+    "target_process": "",
+    "scope": "system_wide"
+  },
+  "processes": [
+    "explorer.exe",
+    "game.exe"
+  ],
+  "drivers": [
+    {
+      "name": "nvlddmkm.sys",
+      "display": "NVIDIA Display Driver",
+      "type": "display",
+      "company": "NVIDIA",
+      "version": "565.90",
+      "started_at": "2026-11-06T10:05:00+09:00"
+    }
+  ],
+  "change_history": [
+    {
+      "time": "2026-11-06T10:00:00+09:00",
+      "kind": "driver_update",
+      "subject": "NVIDIA Display Driver",
+      "version": "566.14 → 565.90 (롤백)"
+    }
+  ],
+  "events": [
+    {
+      "time": "2026-11-05T22:16:05+09:00",
+      "provider": "Microsoft-Windows-WER-SystemErrorReporting",
+      "id": 1001,
+      "subject": "0x116",
+      "faulting_module": "nvlddmkm.sys"
+    }
+  ],
+  "minidumps": []
+}

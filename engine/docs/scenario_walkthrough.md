@@ -28,8 +28,8 @@
  4. Microsoft Defender  9%
  5. NVIDIA 디스플레이 드라이버 (NVIDIA Display Driver)  6%
 
-[다음 점검] 오버레이 종료 → Discord 오버레이 (DiscordHook64.dll)
-  id: pause_overlay@overlay:discordhook64.dll
+[다음 점검] 오버레이 종료 → Steam 오버레이 (GameOverlayRenderer64.dll)
+  id: pause_overlay@overlay:gameoverlayrenderer64.dll
   원인이 드러날 확률 19%, 예상 20초
 ```
 
@@ -39,20 +39,20 @@
 ## 2. 원인 확인 — 점검 결과를 하나씩 알려 준다
 
 ```bash
-./build/crash_engine session report --session s1_session.json --check pause_overlay@overlay:discordhook64.dll --result not_solved
 ./build/crash_engine session report --session s1_session.json --check pause_overlay@overlay:gameoverlayrenderer64.dll --result not_solved
-./build/crash_engine session report --session s1_session.json --check av_pause@antivirus:microsoft_defender --result not_solved
+./build/crash_engine session report --session s1_session.json --check pause_overlay@overlay:discordhook64.dll --result not_solved
 ```
 
-결과가 '아님'일 때마다 베이즈 갱신으로 확률이 바뀐다. 세 번째 뒤:
+결과가 '아님'일 때마다 베이즈 갱신으로 확률이 바뀐다. 두 번째 뒤:
 
 ```
 [현재 원인 후보 확률]
- 1. Riot Vanguard (커널 안티치트)  79%
+ 1. Riot Vanguard (커널 안티치트)  69%
+ 2. Microsoft Defender  15%
  ...
 [다음 점검] 안티치트 서비스 중지 후 재부팅 → Riot Vanguard (커널 안티치트)
   id: pause_anticheat@anticheat:vgk.sys
-  원인이 드러날 확률 63%, 예상 5분
+  원인이 드러날 확률 55%, 예상 5분
    1) 안티치트 서비스의 시작 유형을 '사용 안 함'으로 바꾸고 재부팅합니다.
    2) 안티치트를 쓰는 게임은 실행하지 않은 상태로 대상 프로그램을 실행해 봅니다.
    되돌리기: 서비스 시작 유형을 원래대로 되돌리고 재부팅합니다.
@@ -109,6 +109,68 @@
 재발하면 다음 해결책(2번)으로 넘어가고, 모두 실패하면 '해결책 모두 실패' 상태가 된다.
 사례 DB를 파일에 남기려면 `export-rules my_rules.json` 으로 사본을 만들고, 세션 시작 때 `--rules my_rules.json`,
 검증 때 `--save-rules` 를 붙인다(원본 `data/rules.json` 은 사람이 근거를 남기고 고치는 파일이라 직접 덮어쓰지 않는다).
+
+## 2차 범위 예시: GPU 드라이버 블루스크린 (s7)
+
+같은 흐름이 드라이버·하드웨어에서도 그대로 동작한다. 파일: `s7_gpu_driver_bsod.json` (증상),
+`s7_gpu_driver_after_fix.json` (해결 후 이틀 관찰).
+
+* 11/5 아침 NVIDIA 드라이버가 565.90 → 566.14 로 자동 업데이트됐다.
+* 그날 저녁 게임 중 화면이 멈췄다가(4101) 블루스크린 0x116 VIDEO_TDR_FAILURE 로 두 번 재부팅됐다.
+* Kernel-Power 41 도 남았지만 BugcheckCode 가 278(=0x116)이라 **전원 문제로 세지 않는다**.
+
+```bash
+./build/crash_engine session start data/samples/s7_gpu_driver_bsod.json --session s7_session.json
+```
+
+```
+[현재 원인 후보 확률]
+ 1. NVIDIA 디스플레이 드라이버 (NVIDIA Display Driver)  66%
+ 2. Realtek 네트워크 드라이버 (Realtek PCIe GbE Family Controller)  17%
+ 3. 전원·전력 공급 문제  11%
+ ...
+[다음 점검] GPU 드라이버 롤백(장치 관리자) → NVIDIA 디스플레이 드라이버 (NVIDIA Display Driver)
+  id: rollback_gpu_driver_quick@gpu_driver:nvlddmkm.sys
+  원인이 드러날 확률 49%, 예상 7분
+```
+
+DDU 재설치(30분)보다 장치 관리자 롤백(7분)을 먼저 시킨다. 증상이 블루스크린이라 '랜카드 절전 끄기'
+같은 네트워크 점검은 순서에 넣지 않는다(점검의 `symptoms` 제한).
+
+```bash
+./build/crash_engine session report --session s7_session.json --check rollback_gpu_driver_quick@gpu_driver:nvlddmkm.sys --result solved
+```
+
+```
+[확인된 원인] NVIDIA 디스플레이 드라이버 (NVIDIA Display Driver) (2차 범위)
+  · 증상 시작 직전에 변경되었습니다 (2026-11-05T08:50:00+09:00, 565.90 → 566.14).
+  · 블루스크린(0x116 VIDEO_TDR_FAILURE)의 원인 드라이버로 기록되었습니다.
+  · 디스플레이 드라이버 응답 중지·복구(4101)가 3번 있습니다.
+
+[해결 안내]
+ ▶ 1. GPU 드라이버 이전 버전 유지  (id r_gpu_rollback, 기대 해결률 60%)
+      - 장치 드라이버 이전 버전으로 되돌리기   ← 점검에서 이미 한 조치라 그대로 두면 된다
+      - 이 드라이버의 자동 업데이트 일시 보류  ← Windows 업데이트가 566.14 를 다시 깔지 않게
+   2. GPU 드라이버 완전 삭제 후 클린 설치  (기대 해결률 50%)
+```
+
+```bash
+./build/crash_engine session apply-fix --session s7_session.json --at 2026-11-06T10:00:00+09:00
+./build/crash_engine session verify --session s7_session.json --after data/samples/s7_gpu_driver_after_fix.json
+```
+
+```
+[최근 검증] resolved (관찰 2870분, 재발 0건)
+  · 해결책 적용 이후 2870분 동안 PC를 사용했고 재발이 없었습니다.
+  · 원인 드라이버(NVIDIA 디스플레이 드라이버 (NVIDIA Display Driver))는 버전 565.90(으)로 설치되어 있습니다.
+    드라이버는 지우지 않고 버전을 바꾸는 것이라 정상입니다.
+```
+
+검증은 증상 신호(41·블루스크린)와 **원인 신호**(4101·커널 덤프)를 함께 센다. 적용 전(11/5)의 기록은 세지 않는다.
+
+3차 범위(하드웨어)는 s5 과열로 같은 흐름을 볼 수 있다. '팬 속도 높여 재현'(5분)으로 확인 →
+'팬 속도 높게 유지' 해결책 → 사후 스냅샷 `s5_thermal_after_fix.json` 의 센서 샘플에 스로틀링이 없으면 해결.
+프레임 저하는 로그로 셀 수 없지만 원인 신호(스로틀링)로 검증한다.
 
 ## 자동 점검 모드로 같은 흐름 보기
 

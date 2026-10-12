@@ -72,6 +72,7 @@ class CandidateBag {
     c.label = label.empty() ? subject : label;
     c.product = productOf(c.label);
     c.layer = layerOfCategory(category);
+    c.stage = rules_.stageOf(category);
     c.in_focus = rules_.inFocus(category);
     items_.push_back(c);
     const int idx = static_cast<int>(items_.size()) - 1;
@@ -107,6 +108,16 @@ class CandidateBag {
   std::vector<Candidate> items_;
   std::map<std::string, int> index_;
 };
+
+// 하드웨어 후보의 표시 이름 (카테고리마다 한 후보만 둔다)
+std::string hardwareLabel(const std::string& category) {
+  if (category == "thermal") return "냉각·온도 문제(스로틀링)";
+  if (category == "power") return "전원·전력 공급 문제";
+  if (category == "connection") return "케이블·장착 접촉 불량";
+  if (category == "storage") return "저장장치 이상";
+  if (category == "memory") return "메모리 이상";
+  return category;
+}
 
 void addFromModules(const Snapshot& s, const Rules& r, CandidateBag& bag) {
   for (std::size_t i = 0; i < s.modules.size(); i++) {
@@ -237,7 +248,13 @@ void addFromChanges(const Snapshot& s, const Rules& r, CandidateBag& bag) {
     std::string cat;
     std::string label;
     r.classifyName(ch.subject, ch.subject, fallback, &cat, &label);
-    const int idx = bag.get(cat, ch.subject, label);
+    // 하드웨어 설정 변경(예: 메모리 XMP)은 그 하드웨어 후보 하나로 합친다.
+    std::string subject = ch.subject;
+    if (layerOfCategory(cat) == Layer::Hardware) {
+      subject = cat;
+      label = hardwareLabel(cat);
+    }
+    const int idx = bag.get(cat, subject, label);
     const std::string when =
         ch.time != 0 ? json::formatIso8601(ch.time, s.tz_offset_minutes) : "시각 미상";
     const std::string verb = ch.kind == "install" ? "설치" : "변경";
@@ -267,8 +284,13 @@ std::string companyOfModule(const Snapshot& s, const std::string& name) {
 }
 
 void addFromCrashModules(const Snapshot& s, const Rules& r, CandidateBag& bag) {
-  // (1) 오류 모듈: 매번 다르면 특정 모듈을 지목할 수 없으므로 1종일 때만 후보로 올린다.
-  const std::vector<std::string> faulting = signals::distinctFaultingModules(s);
+  // (1) 앱 크래시의 오류 모듈: 매번 다르면 특정 모듈을 지목할 수 없으므로 1종일 때만 후보로 올린다.
+  //     .sys(커널 드라이버)는 아래 (3) 블루스크린 쪽에서 따로 다룬다.
+  const std::vector<std::string> all = signals::distinctFaultingModules(s);
+  std::vector<std::string> faulting;
+  for (std::size_t i = 0; i < all.size(); i++) {
+    if (!signals::isDriverModuleName(all[i])) faulting.push_back(all[i]);
+  }
   if (faulting.size() == 1 && !signals::isMicrosoftModule(s, faulting[0])) {
     std::string cat;
     std::string label;
@@ -293,19 +315,45 @@ void addFromCrashModules(const Snapshot& s, const Rules& r, CandidateBag& bag) {
                       0.75, d.time);
     }
   }
-}
 
-int firstEvent(const Snapshot& s, bool (*pred)(const EventItem&)) {
-  for (std::size_t i = 0; i < s.events.size(); i++) {
-    if (pred(s.events[i])) return static_cast<int>(i);
+  // (3) 블루스크린 커널 덤프의 원인 드라이버. 하드웨어 버그체크(0x124 등)는 드라이버 탓이 아니므로
+  //     여기서 제외하고 하드웨어 후보 쪽 근거로 쓴다.
+  for (std::size_t i = 0; i < s.minidumps.size(); i++) {
+    const MiniDumpInfo& d = s.minidumps[i];
+    if (!signals::isKernelDump(d) || signals::isHardwareBugcheck(d.bugcheck)) continue;
+    if (d.faulting_module.empty() || signals::isMicrosoftModule(s, d.faulting_module)) continue;
+    std::string display = d.faulting_module;
+    std::string company;
+    for (std::size_t k = 0; k < s.drivers.size(); k++) {
+      if (equalsNoCase(s.drivers[k].name, d.faulting_module)) {
+        display = s.drivers[k].display.empty() ? s.drivers[k].name : s.drivers[k].display;
+        company = s.drivers[k].company;
+      }
+    }
+    std::string cat;
+    std::string label;
+    r.classifyName(d.faulting_module + " " + display + " " + company, display, "other_driver", &cat, &label);
+    const int idx = bag.get(cat, d.faulting_module, label);
+    bag.addEvidence(idx, "event", "블루스크린(" + d.bugcheck + ")의 원인 드라이버로 기록되었습니다.", 0.95,
+                    d.time);
   }
-  return -1;
 }
 
-bool isWheaOrMemory(const EventItem& e) {
-  return signals::isWheaEvent(e) || signals::isMemoryEvent(e);
+// 조건(pred)에 맞는 이벤트 수. firstTime 이 있으면 처음 나온 이벤트 시각을 적어 준다.
+int countEvents(const Snapshot& s, bool (*pred)(const EventItem&), long long* firstTime) {
+  int n = 0;
+  for (std::size_t i = 0; i < s.events.size(); i++) {
+    if (!pred(s.events[i])) continue;
+    if (n == 0 && firstTime) *firstTime = s.events[i].time;
+    n++;
+  }
+  return n;
 }
 
+// [설명] 하드웨어 후보 5종(냉각·전원·연결·저장장치·메모리)
+//   카테고리마다 후보를 하나씩 두고, 스냅샷에 그 부품을 가리키는 신호가 있을 때만 공존 근거를 붙인다.
+//   신호가 없으면 근거 없이 사전 가중치(priors)만 남아 확률이 낮게 나온다.
+//   근거 값(0.4~0.95)은 '얼마나 그 부품을 직접 가리키는가' 순서다. 예) 메모리 WHEA 0.9 > 매번 다른 오류 모듈 0.4
 void addHardwareCandidates(const Snapshot& s, CandidateBag& bag) {
   const bool sensorsOk = s.available.sensors;
   const double cpu = signals::maxCpuTemp(s);
@@ -313,7 +361,7 @@ void addHardwareCandidates(const Snapshot& s, CandidateBag& bag) {
 
   // 온도
   {
-    const int idx = bag.get("thermal", "thermal", "냉각·온도 문제(스로틀링)");
+    const int idx = bag.get("thermal", "thermal", hardwareLabel("thermal"));
     if (sensorsOk && signals::throttlingSeen(s)) {
       bag.addEvidence(idx, "sensor", "스로틀링(온도·전력 제한) 구간이 관측되었습니다.", 0.9, 0);
     }
@@ -331,46 +379,123 @@ void addHardwareCandidates(const Snapshot& s, CandidateBag& bag) {
       bag.addEvidence(idx, "sensor", "센서 값을 읽을 수 없어 온도는 확인 불가입니다.", 0.0, 0);
     }
   }
-  // 전원
+  // 전원: 블루스크린 뒤 재부팅이 아닌 '진짜' 갑작스러운 전원 끊김만 센다.
   {
-    const int idx = bag.get("power", "power", "전원·전력 공급 문제");
-    const int e = firstEvent(s, signals::isKernelPower41);
-    if (e >= 0) {
-      bag.addEvidence(idx, "event", "예고 없는 종료(Kernel-Power 41)가 기록되었습니다.", 0.85,
-                      s.events[e].time);
+    const int idx = bag.get("power", "power", hardwareLabel("power"));
+    int losses = 0;
+    long long first = 0;
+    for (std::size_t i = 0; i < s.events.size(); i++) {
+      if (!signals::isPowerLossEvent(s, s.events[i])) continue;
+      if (losses == 0) first = s.events[i].time;
+      losses++;
+    }
+    if (losses > 0) {
+      bag.addEvidence(idx, "event",
+                      "블루스크린 없이 갑자기 꺼진 기록(Kernel-Power 41)이 " + std::to_string(losses) +
+                          "번 있습니다.",
+                      losses >= 2 ? 0.95 : 0.85, first);
     }
     for (std::size_t i = 0; i < s.sensors.size(); i++) {
       if (equalsNoCase(s.sensors[i].gpu_power_limit_reason, "power")) {
-        bag.addEvidence(idx, "sensor", "GPU가 전력 제한에 걸린 구간이 있습니다.", 0.6,
-                        s.sensors[i].time);
+        bag.addEvidence(idx, "sensor", "GPU가 전력 제한에 걸린 구간이 있습니다.", 0.6, s.sensors[i].time);
         break;
       }
     }
   }
-  // 연결·장착
+  // 연결·장착: 장치 연결 해제, PCIe 버스 WHEA 오류
   {
-    const int idx = bag.get("connection", "connection", "케이블·장착 접촉 불량");
-    const int e = firstEvent(s, signals::isDisconnectEvent);
-    if (e >= 0) {
-      bag.addEvidence(idx, "event", "장치 연결 해제·재연결이 기록되었습니다.", 0.8,
-                      s.events[e].time);
+    const int idx = bag.get("connection", "connection", hardwareLabel("connection"));
+    long long first = 0;
+    const int n = countEvents(s, signals::isDisconnectEvent, &first);
+    if (n > 0) {
+      bag.addEvidence(idx, "event", "장치 연결 해제·재연결이 " + std::to_string(n) + "번 기록되었습니다.",
+                      0.8, first);
+    }
+    for (std::size_t i = 0; i < s.events.size(); i++) {
+      if (signals::wheaComponent(s.events[i]) == "pcie") {
+        bag.addEvidence(idx, "event", "PCIe 버스 WHEA 오류가 기록되었습니다(그래픽카드 장착·라이저 케이블 의심).",
+                        0.6, s.events[i].time);
+        break;
+      }
     }
   }
-  // 저장장치
+  // 저장장치: SMART 경고, 디스크 I/O 오류
   {
-    const int idx = bag.get("storage", "storage", "저장장치 이상");
-    const int e = firstEvent(s, signals::isDiskEvent);
-    if (e >= 0) {
-      bag.addEvidence(idx, "event", "저장장치 I/O 오류가 기록되었습니다.", 0.8, s.events[e].time);
+    const int idx = bag.get("storage", "storage", hardwareLabel("storage"));
+    for (std::size_t i = 0; i < s.disks.size(); i++) {
+      const DiskHealth& d = s.disks[i];
+      if (!signals::diskHasWarning(d)) continue;
+      bag.addEvidence(idx, "sensor",
+                      "SMART 경고: " + d.name + " (재할당 " + std::to_string(d.reallocated_sectors) +
+                          ", 대기 " + std::to_string(d.pending_sectors) + ", 복구 불가 " +
+                          std::to_string(d.uncorrectable) + ").",
+                      0.9, 0);
+    }
+    long long first = 0;
+    const int n = countEvents(s, signals::isDiskEvent, &first);
+    if (n > 0) {
+      bag.addEvidence(idx, "event", "저장장치 I/O 오류가 " + std::to_string(n) + "번 기록되었습니다.",
+                      n >= 3 ? 0.9 : 0.8, first);
     }
   }
-  // 메모리
+  // 메모리: 메모리 WHEA, 하드웨어 버그체크, 여러 프로그램에서 오류 모듈이 매번 다름
   {
-    const int idx = bag.get("memory", "memory", "메모리 이상");
-    const int e = firstEvent(s, isWheaOrMemory);
-    if (e >= 0) {
-      bag.addEvidence(idx, "event", "하드웨어·메모리 오류 이벤트가 기록되었습니다.", 0.7,
-                      s.events[e].time);
+    const int idx = bag.get("memory", "memory", hardwareLabel("memory"));
+    long long first = 0;
+    const int memWhea = countEvents(s, signals::isMemoryEvent, &first);
+    if (memWhea > 0) {
+      bag.addEvidence(idx, "event", "메모리 영역 WHEA 오류가 " + std::to_string(memWhea) + "번 기록되었습니다.",
+                      0.9, first);
+    } else {
+      for (std::size_t i = 0; i < s.events.size(); i++) {
+        const std::string comp = signals::wheaComponent(s.events[i]);
+        if (signals::isWheaEvent(s.events[i]) && comp != "pcie") {
+          bag.addEvidence(idx, "event", "부품을 특정하지 못한 WHEA 하드웨어 오류가 기록되었습니다.", 0.5,
+                          s.events[i].time);
+          break;
+        }
+      }
+    }
+    for (std::size_t i = 0; i < s.minidumps.size(); i++) {
+      if (signals::isKernelDump(s.minidumps[i]) && signals::isHardwareBugcheck(s.minidumps[i].bugcheck)) {
+        bag.addEvidence(idx, "event", "하드웨어 오류 블루스크린(" + s.minidumps[i].bugcheck + ")이 있습니다.",
+                        0.6, s.minidumps[i].time);
+        break;
+      }
+    }
+    const std::vector<std::string> faulting = signals::distinctFaultingModules(s);
+    if (faulting.size() >= 3 && s.scope != SymptomScope::SingleApp) {
+      bag.addEvidence(idx, "event",
+                      "여러 프로그램에서 오류 모듈이 매번 다릅니다(" + std::to_string(faulting.size()) + "종).",
+                      0.4, 0);
+    }
+  }
+}
+
+// 드라이버 관련 이벤트를 해당 드라이버 후보에 붙인다 (디스플레이 복구, 네트워크 링크 끊김).
+void addDriverEventEvidence(const Snapshot& s, const Rules& r, CandidateBag& bag) {
+  long long firstDisplay = 0;
+  const int display = countEvents(s, signals::isDisplayEvent, &firstDisplay);
+  long long firstLink = 0;
+  const int link = countEvents(s, signals::isNetworkLinkEvent, &firstLink);
+  if (display == 0 && link == 0) return;
+  for (std::size_t i = 0; i < s.drivers.size(); i++) {
+    const DriverInfo& d = s.drivers[i];
+    const bool isDisplay = containsNoCase(d.type, "display");
+    const bool isNet = containsNoCase(d.type, "network");
+    if (!(isDisplay && display > 0) && !(isNet && link > 0)) continue;
+    std::string cat;
+    std::string label;
+    r.classifyName(d.name + " " + d.display + " " + d.company, d.display.empty() ? d.name : d.display,
+                   isDisplay ? "gpu_driver" : "network_driver", &cat, &label);
+    const int idx = bag.get(cat, d.name, label);
+    if (isDisplay) {
+      bag.addEvidence(idx, "event",
+                      "디스플레이 드라이버 응답 중지·복구(4101)가 " + std::to_string(display) + "번 있습니다.",
+                      display >= 2 ? 0.7 : 0.5, firstDisplay);
+    } else {
+      bag.addEvidence(idx, "event", "네트워크 링크 끊김이 " + std::to_string(link) + "번 있습니다.",
+                      link >= 2 ? 0.6 : 0.4, firstLink);
     }
   }
 }
@@ -398,6 +523,7 @@ json::Value Candidate::toJson(int tzOffsetMinutes) const {
   o.set("category", json::Value(category));
   o.set("layer", json::Value(toString(layer)));
   o.set("in_focus", json::Value(in_focus));
+  o.set("stage", json::Value(stage));
   o.set("score", json::Value(score));
   o.set("probability", json::Value(probability));
   o.set("confidence", json::Value(confidence));
@@ -421,6 +547,7 @@ std::vector<Candidate> buildCandidates(const Snapshot& s, const Rules& r,
   addFromSecurity(s, r, bag);
   addFromChanges(s, r, bag);
   addFromCrashModules(s, r, bag);
+  addDriverEventEvidence(s, r, bag);
   addHardwareCandidates(s, bag);
 
   const std::string symptom = toString(s.symptom);

@@ -18,7 +18,8 @@ struct Candidate {
   std::string product;   // 제품 이름 (Riot Vanguard / AhnLab V3). 실행기 명령에 쓴다
   std::string category;  // anticheat / thermal / ...
   Layer layer = Layer::Unknown;
-  bool in_focus = true;  // 1차 핀포인트 범위(보안 프로그램 충돌) 안의 후보인가
+  int stage = 0;         // 지원 범위 단계: 1 보안 프로그램, 2 드라이버·시스템, 3 하드웨어, 0 범위 밖
+  bool in_focus = true;  // stage > 0
 
   double s_prior = 0, s_time = 0, s_coexist = 0, s_case = 0;  // 성분별 원점수
   double layer_gate = 1;   // 층 판정 보정 계수

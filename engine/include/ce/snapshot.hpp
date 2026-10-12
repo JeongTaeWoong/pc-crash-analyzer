@@ -72,8 +72,9 @@ struct EventItem {  // Windows 이벤트 로그 항목
   long long time = 0;
   std::string provider;  // Application Error, Display, Kernel-Power, WHEA-Logger ...
   int id = 0;            // 1000, 1001, 4101, 41 ...
-  std::string subject;   // 대상 프로세스/장치
+  std::string subject;   // 대상 프로세스/장치 (BugCheck 이벤트면 버그체크 코드)
   std::string faulting_module;
+  std::string component;  // WHEA 오류가 난 부품: memory | cpu | pcie | cache (WHEA 이벤트만)
 };
 
 struct SensorSample {
@@ -110,9 +111,21 @@ struct SecurityDetection {
 
 struct MiniDumpInfo {
   long long time = 0;
+  std::string kind;      // app(앱 크래시 덤프) | kernel(블루스크린 커널 덤프)
   std::string process;
   std::string faulting_module;
+  std::string bugcheck;  // 커널 덤프의 버그체크 코드와 이름 (예: "0x116 VIDEO_TDR_FAILURE")
   std::vector<std::string> third_party_in_stack;
+};
+
+// 저장장치 SMART 상태 (드라이브 1개)
+struct DiskHealth {
+  std::string name;              // Samsung SSD 970 EVO ...
+  std::string health;            // good | warning | bad (도구가 판정한 값, 없으면 빈 값)
+  int reallocated_sectors = 0;   // 재할당된 섹터 수
+  int pending_sectors = 0;       // 재할당 대기 섹터 수
+  int uncorrectable = 0;         // 고칠 수 없는 오류 수
+  int media_errors = 0;          // NVMe 미디어 오류 수
 };
 
 struct DeviceFilters {
@@ -142,6 +155,7 @@ struct Availability {
   bool firewall = false;
   bool detections = false;
   bool processes = false;
+  bool storage = false;
 
   int countCore() const;  // 신뢰도 계산에 쓰는 핵심 7항목 중 받은 개수
 };
@@ -173,6 +187,7 @@ struct Snapshot {
   std::vector<SensorSample> sensors;
   std::vector<FrameSample> frames;
   std::vector<MiniDumpInfo> minidumps;
+  std::vector<DiskHealth> disks;
   BaselineDiff baseline;
   Availability available;
 

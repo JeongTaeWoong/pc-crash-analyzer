@@ -40,7 +40,7 @@ crash_engine tool list                            # 도구 목록 + 입력 스�
 {
   "status": "checking | confirmed | fixing | resolved | exhausted | failed",
   "status_text": "원인 확인 중",
-  "belief": [ {"id":"anticheat:vgk.sys","label":"Riot Vanguard (커널 안티치트)","probability":0.79,"in_focus":true} ],
+  "belief": [ {"id":"anticheat:vgk.sys","label":"Riot Vanguard (커널 안티치트)","probability":0.69,"in_focus":true,"stage":1} ],
   "next_check": {                       // checking 일 때만
     "check_id": "pause_anticheat@anticheat:vgk.sys",
     "label": "안티치트 서비스 중지 후 재부팅",

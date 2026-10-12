@@ -31,7 +31,12 @@ double timeCorrelation(long long changeTime, long long symptomTime, const Rules&
   return std::pow(1.0 - x, 1.5);  // 멀어질수록 완만하게 감소
 }
 
+bool isBugcheckEvent(const EventItem& e) {
+  return containsNoCase(e.provider, "bugcheck") || containsNoCase(e.provider, "systemerrorreporting");
+}
+
 bool isAppCrashEvent(const EventItem& e) {
+  if (isBugcheckEvent(e)) return false;  // 1001 이라도 블루스크린 기록이면 앱 크래시가 아니다
   return e.id == 1000 || e.id == 1001 || containsNoCase(e.provider, "application error");
 }
 
@@ -55,12 +60,97 @@ bool isDiskEvent(const EventItem& e) {
 }
 
 bool isDisconnectEvent(const EventItem& e) {
+  if (isNetworkLinkEvent(e)) return false;  // 랜 링크 끊김은 장치 연결 해제가 아니라 네트워크 쪽 신호
   return containsNoCase(e.provider, "usb") || containsNoCase(e.provider, "monitor") ||
          containsNoCase(e.provider, "pnp") || containsNoCase(e.subject, "disconnect");
 }
 
 bool isMemoryEvent(const EventItem& e) {
-  return containsNoCase(e.provider, "memory") || containsNoCase(e.provider, "bugcheck");
+  if (isWheaEvent(e)) return wheaComponent(e) == "memory";
+  return containsNoCase(e.provider, "memorydiagnostics") || containsNoCase(e.provider, "memory-diagnostic");
+}
+
+bool isNetworkLinkEvent(const EventItem& e) {
+  if (containsNoCase(e.provider, "ndis") || containsNoCase(e.provider, "rt640") ||
+      containsNoCase(e.provider, "netwtw") || containsNoCase(e.provider, "e1d") ||
+      containsNoCase(e.provider, "e1r")) {
+    return true;
+  }
+  return containsNoCase(e.subject, "link is disconnected") || containsNoCase(e.subject, "link down");
+}
+
+std::string wheaComponent(const EventItem& e) {
+  if (!isWheaEvent(e)) return "";
+  if (!e.component.empty()) return toLower(e.component);
+  if (containsNoCase(e.subject, "memory")) return "memory";
+  if (containsNoCase(e.subject, "pci")) return "pcie";
+  if (containsNoCase(e.subject, "cache") || containsNoCase(e.subject, "processor")) return "cpu";
+  return "";
+}
+
+bool isKernelDump(const MiniDumpInfo& d) {
+  return equalsNoCase(d.kind, "kernel") || equalsNoCase(d.process, "system") || !d.bugcheck.empty();
+}
+
+int kernelDumpCount(const Snapshot& s) {
+  int n = 0;
+  for (std::size_t i = 0; i < s.minidumps.size(); i++) {
+    if (isKernelDump(s.minidumps[i])) n++;
+  }
+  return n;
+}
+
+bool isHardwareBugcheck(const std::string& bugcheck) {
+  return containsNoCase(bugcheck, "0x124") || containsNoCase(bugcheck, "whea") ||
+         containsNoCase(bugcheck, "machine_check");
+}
+
+// 41 이벤트의 subject 에 "BugcheckCode 278" 처럼 0이 아닌 코드가 있으면 블루스크린 뒤 재부팅이다.
+bool hasNonZeroBugcheckCode(const std::string& subject) {
+  const std::string key = "bugcheckcode";
+  const std::string low = toLower(subject);
+  const std::size_t at = low.find(key);
+  if (at == std::string::npos) return false;
+  for (std::size_t i = at + key.size(); i < low.size(); i++) {
+    const char c = low[i];
+    if (c == ' ' || c == ':' || c == '=') continue;
+    return c >= '1' && c <= '9';  // 첫 숫자가 0 이면 코드 0 (전원 손실)
+  }
+  return false;
+}
+
+bool isPowerLossEvent(const Snapshot& s, const EventItem& e) {
+  if (!isKernelPower41(e)) return false;
+  if (hasNonZeroBugcheckCode(e.subject)) return false;
+  if (e.time == 0) return true;  // 시각이 없으면 앞뒤 비교를 할 수 없어 코드만 본다
+  const long long window = 600;  // 10분
+  for (std::size_t i = 0; i < s.events.size(); i++) {
+    const EventItem& o = s.events[i];
+    if (!isBugcheckEvent(o) || o.time == 0) continue;
+    long long diff = o.time - e.time;
+    if (diff < 0) diff = -diff;
+    if (diff <= window) return false;
+  }
+  for (std::size_t i = 0; i < s.minidumps.size(); i++) {
+    if (!isKernelDump(s.minidumps[i]) || s.minidumps[i].time == 0) continue;
+    long long diff = s.minidumps[i].time - e.time;
+    if (diff < 0) diff = -diff;
+    if (diff <= window) return false;
+  }
+  return true;
+}
+
+bool diskHasWarning(const DiskHealth& d) {
+  if (equalsNoCase(d.health, "warning") || equalsNoCase(d.health, "bad")) return true;
+  return d.reallocated_sectors > 0 || d.pending_sectors > 0 || d.uncorrectable > 0 || d.media_errors > 0;
+}
+
+int disksWithWarning(const Snapshot& s) {
+  int n = 0;
+  for (std::size_t i = 0; i < s.disks.size(); i++) {
+    if (diskHasWarning(s.disks[i])) n++;
+  }
+  return n;
 }
 
 namespace {
@@ -162,6 +252,11 @@ bool isMicrosoftModule(const Snapshot& s, const std::string& moduleName) {
   return false;
 }
 
+bool isDriverModuleName(const std::string& moduleName) {
+  const std::string n = toLower(moduleName);
+  return n.size() > 4 && n.compare(n.size() - 4, 4, ".sys") == 0;
+}
+
 bool isWindowsClassFilter(const std::string& name) {
   const std::string n = normalizeName(name);
   return n == "kbdclass" || n == "mouclass";
@@ -188,6 +283,72 @@ std::vector<int> detectionsOnTarget(const Snapshot& s) {
     }
   }
   return out;
+}
+
+int causeSignalsSince(const Snapshot& s, const std::string& category, long long since) {
+  int n = 0;
+  if (category == "thermal") {
+    if (!s.available.sensors) return -1;
+    for (std::size_t i = 0; i < s.sensors.size(); i++) {
+      const SensorSample& x = s.sensors[i];
+      if (x.time != 0 && x.time < since) continue;
+      if (x.throttling || equalsNoCase(x.gpu_power_limit_reason, "thermal") || x.cpu_temp >= 95 ||
+          x.gpu_temp >= 87) {
+        n++;
+      }
+    }
+    return n;
+  }
+  if (category == "power") {
+    if (!s.available.events) return -1;
+    for (std::size_t i = 0; i < s.events.size(); i++) {
+      if (s.events[i].time >= since && isPowerLossEvent(s, s.events[i])) n++;
+    }
+    return n;
+  }
+  if (category == "memory") {
+    if (!s.available.events) return -1;
+    for (std::size_t i = 0; i < s.events.size(); i++) {
+      if (s.events[i].time >= since && isMemoryEvent(s.events[i])) n++;
+    }
+    return n;
+  }
+  if (category == "storage") {
+    if (!s.available.events) return -1;
+    for (std::size_t i = 0; i < s.events.size(); i++) {
+      if (s.events[i].time >= since && isDiskEvent(s.events[i])) n++;
+    }
+    return n;
+  }
+  if (category == "connection") {
+    if (!s.available.events) return -1;
+    for (std::size_t i = 0; i < s.events.size(); i++) {
+      const EventItem& e = s.events[i];
+      if (e.time < since) continue;
+      if (isDisconnectEvent(e) || wheaComponent(e) == "pcie") n++;
+    }
+    return n;
+  }
+  if (category == "gpu_driver" || category == "display_util" || category == "other_driver" ||
+      category == "os_update" || category == "peripheral_driver") {
+    if (!s.available.events && !s.available.minidump) return -1;
+    for (std::size_t i = 0; i < s.events.size(); i++) {
+      const EventItem& e = s.events[i];
+      if (e.time >= since && (isDisplayEvent(e) || isBugcheckEvent(e))) n++;
+    }
+    for (std::size_t i = 0; i < s.minidumps.size(); i++) {
+      if (s.minidumps[i].time >= since && isKernelDump(s.minidumps[i])) n++;
+    }
+    return n;
+  }
+  if (category == "network_driver") {
+    if (!s.available.events) return -1;
+    for (std::size_t i = 0; i < s.events.size(); i++) {
+      if (s.events[i].time >= since && isNetworkLinkEvent(s.events[i])) n++;
+    }
+    return n;
+  }
+  return -1;
 }
 
 int crashEventsSince(const Snapshot& s, long long since) {

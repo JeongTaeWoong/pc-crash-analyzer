@@ -23,6 +23,27 @@ bool isWheaEvent(const EventItem& e);        // 하드웨어 오류
 bool isDiskEvent(const EventItem& e);        // 저장장치 오류
 bool isDisconnectEvent(const EventItem& e);  // 모니터/USB 연결 해제
 bool isMemoryEvent(const EventItem& e);
+bool isBugcheckEvent(const EventItem& e);     // 블루스크린 후 기록되는 BugCheck / WER-SystemErrorReporting
+bool isNetworkLinkEvent(const EventItem& e);  // 네트워크 어댑터 링크 끊김 (NDIS·랜카드 드라이버)
+std::string wheaComponent(const EventItem& e);  // WHEA 오류 부품: memory | cpu | pcie | cache | ""
+
+// Kernel-Power 41 은 '갑자기 전원이 나간 것'과 '블루스크린 뒤 재부팅' 둘 다에서 기록된다.
+// 41 의 BugcheckCode 가 0이고, 앞뒤 10분 안에 블루스크린 흔적이 없을 때만 전원 문제의 근거로 쓴다.
+bool isPowerLossEvent(const Snapshot& s, const EventItem& e);
+bool hasNonZeroBugcheckCode(const std::string& subject);  // "BugcheckCode 278" → true
+
+bool isKernelDump(const MiniDumpInfo& d);  // 블루스크린 커널 덤프인가
+int kernelDumpCount(const Snapshot& s);
+// 블루스크린이 하드웨어 오류 때문인가 (0x124 WHEA_UNCORRECTABLE_ERROR 등)
+bool isHardwareBugcheck(const std::string& bugcheck);
+
+// SMART 경고가 있는 드라이브 수 (재할당·대기 섹터, 고칠 수 없는 오류, 미디어 오류, 도구 판정 warning/bad)
+int disksWithWarning(const Snapshot& s);
+bool diskHasWarning(const DiskHealth& d);
+
+// 원인 카테고리별로 '그 원인이 아직 남아 있다'는 신호가 since 이후 몇 번 있었는지 센다.
+// 세션 검증에서 증상 재발과 함께 본다. 해당 카테고리에 객관적 신호가 없으면 -1.
+int causeSignalsSince(const Snapshot& s, const std::string& category, long long since);
 
 // 여러 크래시에서 모인 오류 모듈(소문자, 중복 제거). 매번 다르면 HW 가설의 근거가 된다.
 std::vector<std::string> distinctFaultingModules(const Snapshot& s);
@@ -34,6 +55,7 @@ bool throttlingSeen(const Snapshot& s);
 bool clockDropMatchesFrameDrop(const Snapshot& s, long long* whenOut);
 
 bool isMicrosoftModule(const Snapshot& s, const std::string& moduleName);
+bool isDriverModuleName(const std::string& moduleName);  // .sys 로 끝나면 커널 드라이버
 
 // UpperFilters 값에 원래 들어 있는 Windows 기본 클래스 드라이버(kbdclass, mouclass)인가.
 // 이 둘은 서드파티 필터가 아니므로 후보·근거에서 뺀다.

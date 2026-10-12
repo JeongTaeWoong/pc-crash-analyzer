@@ -46,7 +46,9 @@ struct CheckTemplate {
   bool group = false;                   // true면 조건에 맞는 후보를 한 번에 묶어 검사
   std::vector<std::string> categories;  // 적용 카테고리(비면 layers로 판단)
   std::vector<std::string> layers;      // 적용 층(SW/DRIVER/HW)
+  std::vector<std::string> symptoms;    // 이 증상일 때만 쓴다 (비면 모든 증상)
   bool appliesTo(const std::string& category, Layer layer) const;
+  bool usableFor(const std::string& symptom) const;
 };
 
 // 원인이 확인된 뒤 보여 줄 '해결' 방법. 점검(일시 중지)과 달리 문제를 없애는 조치다.
@@ -61,6 +63,15 @@ struct RemedyTemplate {
   double success_seed = 0.6;            // 이 해결책이 통하는 비율(시드값, 사례로 갱신)
   bool appliesTo(const std::string& category, const std::string& subject,
                  const std::string& symptom) const;
+};
+
+// 지원 범위 단계. 멘토링 1차 3.3 의 확장 순서를 그대로 옮긴 것:
+//   1차 보안 프로그램 충돌 → 2차 드라이버·시스템 → 3차 하드웨어
+// 어느 단계에도 속하지 않는 카테고리(오버레이·입력 유틸 등 일반 소프트웨어)는 stage 0(이후 확장)이다.
+struct ScopeStage {
+  int stage = 0;
+  std::string name;
+  std::vector<std::string> categories;
 };
 
 // 사례 DB 항목. 피드백으로 갱신되며 집단 통계의 자리를 차지한다(본 학기: 시드 + 로컬 피드백).
@@ -89,14 +100,16 @@ struct Rules {
   double time_window_minutes = 4320;      // 변경-증상 시간 상관 창(기본 3일)
   double time_full_credit_minutes = 120;  // 이 안쪽은 만점
 
-  // 1차 핀포인트 범위 (멘토링 1차: 보안 프로그램 충돌부터)
-  std::string focus_name;
-  std::vector<std::string> focus_categories;
+  // 지원 범위 단계 (1차 보안 → 2차 드라이버·시스템 → 3차 하드웨어)
+  std::vector<ScopeStage> scopes;
 
   // 세션(확인 → 안내 → 해결 → 검증)
   double skip_layer_threshold = 0.15;  // 이 확률 미만인 층은 점검 생략 권고
   double confirm_threshold = 0.85;     // 그룹 점검 후 한 후보의 확률이 이 값을 넘으면 원인 확정
   double verify_min_observe_minutes = 60;  // 해결 후 이만큼 재발이 없어야 '해결됨'
+  // 점검을 다 해도 원인을 못 찾았을 때 드는 비용(수리점·전문가 점검 등, 팀 추정).
+  // 순서 계산과 기대 비용 비교에서 '못 찾은 경우'를 공평하게 세려고 쓴다.
+  double unresolved_cost_minutes = 120;
 
   std::vector<CategoryHint> hints;
   std::vector<ActionTemplate> actions;
@@ -111,7 +124,9 @@ struct Rules {
                     const std::string& subject) const;  // 없으면 -1
   const CheckTemplate* findCheck(const std::string& id) const;
   const ActionTemplate* findAction(const std::string& id) const;
-  bool inFocus(const std::string& category) const;
+  int stageOf(const std::string& category) const;  // 범위 밖이면 0
+  std::string stageName(int stage) const;           // "보안 프로그램 충돌" 등
+  bool inFocus(const std::string& category) const;  // stageOf() > 0
   // haystack(이름+제조사 등 검색 대상) 에서 카테고리를 찾고, display 를 바탕으로 표시명을 만든다.
   // 매칭 실패 시 fallback 카테고리와 display 를 그대로 돌려준다.
   void classifyName(const std::string& haystack, const std::string& display,
