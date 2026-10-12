@@ -81,8 +81,8 @@ bool targetRan(const Snapshot& s) {
 //     exhausted
 //
 //   s1 시연 순서
-//     session start  → 첫 점검: Discord 오버레이 끄기
-//     report ×3      → 오버레이 2개, Defender 모두 '아님' → Vanguard 79%
+//     session start  → 첫 점검: Steam 오버레이 끄기
+//     report ×2      → 오버레이 2개 모두 '아님' → Vanguard 69%
 //     report         → Vanguard 중지 '해결됨' → confirmed (원인 확정)
 //     apply-fix      → "안티치트를 해당 게임 할 때만 켜기" 적용 → fixing
 //     verify         → 사후 스냅샷: 120분 동안 크래시 0건 → resolved, 사례 DB 갱신
@@ -234,7 +234,7 @@ bool Session::rebuild(std::string* error) {
     return false;
   }
   diag_ = diagnose(snapshot_, rules_, version_, policy_, warn);
-  instances_ = buildCheckInstances(diag_.planning, rules_);
+  instances_ = buildCheckInstances(diag_.planning, rules_, diag_.symptom);
 
   belief_.clear();
   double sum = 0;
@@ -281,7 +281,8 @@ int Session::topBeliefIndex() const {
 
 int Session::nextCheckIndex() const {
   if (status_ != SessionStatus::Checking) return -1;
-  return chooseNextCheck(belief_, instances_, indexOf(diag_.planning), used_);
+  return chooseNextCheck(belief_, instances_, indexOf(diag_.planning), used_,
+                         rules_.unresolved_cost_minutes * 60.0, nullptr);
 }
 
 std::vector<RemedyOption> Session::remedies() const {
@@ -289,7 +290,26 @@ std::vector<RemedyOption> Session::remedies() const {
   if (confirmed_.empty()) return out;
   const int idx = findCandidate(diag_.candidates, confirmed_);
   if (idx < 0) return out;
-  return remediesFor(rules_, diag_.candidates[idx], diag_.symptom, policy_, snapshot_.target_process);
+  std::vector<RemedyOption> list =
+      remediesFor(rules_, diag_.candidates[idx], diag_.symptom, policy_, snapshot_.target_process);
+
+  // 원인을 확인한 점검의 조치가 그대로 해결책이 되는 경우(예: 팬 속도 높여 재현 → 팬 속도 높게 유지)
+  // 그 해결책을 맨 앞으로 올린다. 이미 효과를 본 방법이기 때문이다.
+  const int checkIdx = instanceIndexOf(confirm_check_);
+  if (checkIdx < 0) return list;
+  const std::string& provenAction = instances_[checkIdx].action_id;
+  for (std::size_t i = 1; i < list.size(); i++) {
+    bool uses = false;
+    for (std::size_t k = 0; k < list[i].actions.size(); k++) {
+      if (list[i].actions[k].action_id == provenAction) uses = true;
+    }
+    if (!uses) continue;
+    RemedyOption moved = list[i];
+    for (std::size_t k = i; k > 0; k--) list[k] = list[k - 1];
+    list[0] = moved;
+    break;
+  }
+  return list;
 }
 
 // ---------------------------------------------------------------- 진행
@@ -472,14 +492,35 @@ bool Session::verifyWithSnapshot(const json::Value& afterSnapshotJson, Rules* ru
     if (!after.available.events) measurable = false;
   }
   if (sym == Symptom::UnexpectedReboot) {
+    // 예고 없는 재부팅: 전원 끊김(KP41)과 블루스크린(BugCheck) 기록을 모두 재발로 센다.
     int n = 0;
     for (std::size_t i = 0; i < after.events.size(); i++) {
-      if (signals::isKernelPower41(after.events[i]) && after.events[i].time >= fixTime) n++;
+      const EventItem& e = after.events[i];
+      if (e.time < fixTime) continue;
+      if (signals::isKernelPower41(e) || signals::isBugcheckEvent(e)) n++;
     }
     r.recurrences += n;
+    if (n > 0) r.details.push_back("해결책 적용 이후에도 재부팅·블루스크린 기록이 " + std::to_string(n) + "건 있습니다.");
     if (!after.available.events) measurable = false;
   }
   if (sym == Symptom::InputLoss || sym == Symptom::FpsDrop) measurable = false;
+
+  // 원인별 신호: 증상과 별개로 '그 원인이 아직 남아 있는지'를 본다.
+  //   예) 과열이 원인이었다면 사후 스냅샷 센서에 스로틀링이 또 있는지, 메모리면 WHEA 오류가 또 있는지.
+  //   프레임 저하처럼 증상 자체는 셀 수 없어도, 원인 신호를 셀 수 있으면 검증할 수 있다.
+  if (cIdx >= 0) {
+    const Candidate& cause = diag_.candidates[cIdx];
+    const int causeSignals = signals::causeSignalsSince(after, cause.category, fixTime);
+    if (causeSignals > 0) {
+      r.recurrences += causeSignals;
+      r.details.push_back("해결책 적용 이후에도 원인(" + cause.label + ") 신호가 " +
+                          std::to_string(causeSignals) + "건 관측되었습니다.");
+    }
+    if (causeSignals >= 0 && !measurable) {
+      measurable = true;
+      r.details.push_back("증상은 로그로 셀 수 없지만, 원인 신호로 재발 여부를 판단했습니다.");
+    }
+  }
 
   if (r.recurrences > 0) {
     r.outcome = "recurred";
@@ -497,13 +538,28 @@ bool Session::verifyWithSnapshot(const json::Value& afterSnapshotJson, Rules* ru
                         "분)보다 짧습니다.");
   } else {
     r.outcome = "resolved";
+    const std::string used = snapshot_.target_process.empty() ? "PC를" : "대상 프로그램을";
     r.details.push_back("해결책 적용 이후 " + std::to_string(static_cast<int>(r.observed_minutes)) +
-                        "분 동안 대상 프로그램을 사용했고 재발이 없었습니다.");
+                        "분 동안 " + used + " 사용했고 재발이 없었습니다.");
   }
   if (cIdx >= 0) {
-    r.details.push_back(r.cause_still_present
-                            ? "원인 대상(" + diag_.candidates[cIdx].label + ")은 여전히 설치·상주 중입니다."
-                            : "원인 대상(" + diag_.candidates[cIdx].label + ")이 더 이상 상주하지 않습니다.");
+    const Candidate& cause = diag_.candidates[cIdx];
+    if (cause.layer == Layer::Hardware) {
+      // 하드웨어 원인은 '상주' 여부가 없다. 원인 신호(스로틀링·WHEA 등)로 이미 판단했다.
+    } else if (cause.layer == Layer::Driver && r.cause_still_present) {
+      // 드라이버 해결책은 지우는 게 아니라 버전을 바꾸는 것이라 남아 있는 게 정상이다.
+      std::string version;
+      for (std::size_t i = 0; i < after.drivers.size(); i++) {
+        if (sameSubject(after.drivers[i].name, cause.subject)) version = after.drivers[i].version;
+      }
+      r.details.push_back("원인 드라이버(" + cause.label + ")는 " +
+                          (version.empty() ? std::string("") : "버전 " + version + "(으)로 ") +
+                          "설치되어 있습니다. 드라이버는 지우지 않고 버전을 바꾸는 것이라 정상입니다.");
+    } else {
+      r.details.push_back(r.cause_still_present
+                              ? "원인 대상(" + cause.label + ")은 여전히 설치·상주 중입니다."
+                              : "원인 대상(" + cause.label + ")이 더 이상 상주하지 않습니다.");
+    }
   }
   if (!finishVerification(&r, rulesForFeedback, error)) return false;
   if (out) *out = r;
@@ -607,6 +663,7 @@ json::Value Session::view() const {
     x.set("label", json::Value(c.label));
     x.set("category", json::Value(c.category));
     x.set("in_focus", json::Value(c.in_focus));
+    x.set("stage", json::Value(c.stage));
     x.set("probability", json::Value(belief_[order[i]]));
     bel.push(x);
   }
@@ -659,6 +716,7 @@ json::Value Session::view() const {
       x.set("category", json::Value(c.category));
       x.set("subject", json::Value(c.subject));
       x.set("in_focus", json::Value(c.in_focus));
+      x.set("stage", json::Value(c.stage));
       x.set("confirmed_by", json::Value(confirm_check_));
       json::Value ev = json::Value::makeArray();
       for (std::size_t k = 0; k < c.evidence.size(); k++) {
@@ -748,7 +806,7 @@ std::string Session::viewText() const {
 
   const json::Value& c = v["confirmed"];
   if (!c.isNull()) {
-    os << "\n[확인된 원인] " << c["label"].asString() << (c["in_focus"].asBool() ? "" : " (1차 범위 밖)")
+    os << "\n[확인된 원인] " << c["label"].asString() << (c["stage"].asInt(0) > 0 ? " (" + std::to_string(c["stage"].asInt(0)) + "차 범위)" : std::string(" (범위 밖)"))
        << "\n";
     const json::Array& ev = c["evidence"].asArray();
     for (std::size_t i = 0; i < ev.size(); i++) os << "  · " << ev[i]["detail"].asString() << "\n";

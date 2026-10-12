@@ -1,0 +1,138 @@
+{
+  "schema_version": "1.2",
+  "snapshot_id": "s10-memory-whea",
+  "marked_at": "2026-11-14T23:00:00+09:00",
+  "trigger": {
+    "kind": "hotkey"
+  },
+  "host": {
+    "os": "Windows 11 23H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "app_crash",
+    "target_process": "",
+    "scope": "multiple_apps",
+    "started_at": "2026-11-13T21:00:00+09:00",
+    "faulting_modules": [
+      "ntdll.dll",
+      "d3d11.dll",
+      "chrome.dll",
+      "ucrtbase.dll"
+    ]
+  },
+  "processes": [
+    "chrome.exe",
+    "game.exe",
+    "explorer.exe"
+  ],
+  "modules": [],
+  "drivers": [
+    {
+      "name": "nvlddmkm.sys",
+      "display": "NVIDIA Display Driver",
+      "type": "display",
+      "company": "NVIDIA",
+      "version": "565.90",
+      "started_at": "2026-10-20T09:00:00+09:00"
+    }
+  ],
+  "device_filters": {
+    "keyboard_upper": [
+      "kbdclass"
+    ],
+    "mouse_upper": [
+      "mouclass"
+    ],
+    "ndis_filters": []
+  },
+  "security": {
+    "realtime_av": [
+      "Microsoft Defender"
+    ],
+    "firewall_blocks": [],
+    "detections": []
+  },
+  "change_history": [
+    {
+      "time": "2026-11-13T19:30:00+09:00",
+      "kind": "setting",
+      "subject": "메모리 XMP 프로필",
+      "version": "DDR5-6000 켜짐"
+    }
+  ],
+  "events": [
+    {
+      "time": "2026-11-13T21:05:00+09:00",
+      "provider": "Application Error",
+      "id": 1000,
+      "subject": "game.exe",
+      "faulting_module": "d3d11.dll"
+    },
+    {
+      "time": "2026-11-13T22:40:00+09:00",
+      "provider": "Application Error",
+      "id": 1000,
+      "subject": "chrome.exe",
+      "faulting_module": "chrome.dll"
+    },
+    {
+      "time": "2026-11-14T20:15:00+09:00",
+      "provider": "Application Error",
+      "id": 1000,
+      "subject": "explorer.exe",
+      "faulting_module": "ntdll.dll"
+    },
+    {
+      "time": "2026-11-14T22:50:00+09:00",
+      "provider": "Application Error",
+      "id": 1000,
+      "subject": "game.exe",
+      "faulting_module": "ucrtbase.dll"
+    },
+    {
+      "time": "2026-11-13T21:04:00+09:00",
+      "provider": "Microsoft-Windows-WHEA-Logger",
+      "id": 19,
+      "subject": "Corrected hardware error",
+      "component": "memory"
+    },
+    {
+      "time": "2026-11-14T20:14:00+09:00",
+      "provider": "Microsoft-Windows-WHEA-Logger",
+      "id": 19,
+      "subject": "Corrected hardware error",
+      "component": "memory"
+    },
+    {
+      "time": "2026-11-14T22:49:00+09:00",
+      "provider": "Microsoft-Windows-WHEA-Logger",
+      "id": 19,
+      "subject": "Corrected hardware error",
+      "component": "memory"
+    }
+  ],
+  "sensors": {
+    "samples": [
+      {
+        "time": "2026-11-14T22:59:00+09:00",
+        "cpu_temp": 60,
+        "gpu_temp": 58,
+        "cpu_clock": 4500,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      }
+    ]
+  },
+  "baseline_diff": {
+    "added": [],
+    "removed": [],
+    "changed": []
+  },
+  "ground_truth": {
+    "layer": "HW",
+    "category": "memory",
+    "subject": "memory"
+  }
+}
