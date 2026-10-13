@@ -3,5 +3,196 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              ShutdownMode="OnExplicitShutdown"
              Startup="OnAppStartup">
-    <Application.Resources />
+    <Application.Resources>
+        <!-- ─── 토큰: 색 ─── -->
+        <SolidColorBrush x:Key="Ink" Color="#182233"/>
+        <SolidColorBrush x:Key="Ink2" Color="#22304A"/>
+        <SolidColorBrush x:Key="Surface" Color="#F3F5F8"/>
+        <SolidColorBrush x:Key="Card" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="Line" Color="#DEE4EC"/>
+        <SolidColorBrush x:Key="LineSoft" Color="#ECF0F5"/>
+        <SolidColorBrush x:Key="TextStrong" Color="#1C2740"/>
+        <SolidColorBrush x:Key="TextDim" Color="#5C6A80"/>
+        <SolidColorBrush x:Key="TextFaint" Color="#8B97A9"/>
+        <SolidColorBrush x:Key="Accent" Color="#2563C7"/>
+        <SolidColorBrush x:Key="AccentDark" Color="#1D4FA3"/>
+        <SolidColorBrush x:Key="AccentSoft" Color="#E8EFFB"/>
+        <SolidColorBrush x:Key="Green" Color="#2F9E63"/>
+        <SolidColorBrush x:Key="GreenSoft" Color="#E3F4EA"/>
+        <SolidColorBrush x:Key="Red" Color="#C2434A"/>
+        <SolidColorBrush x:Key="RedSoft" Color="#FAE7E8"/>
+        <SolidColorBrush x:Key="Amber" Color="#B9741F"/>
+        <SolidColorBrush x:Key="AmberSoft" Color="#F9EFDE"/>
+
+        <!-- ─── 텍스트 ─── -->
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+        <Style x:Key="Dim" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="LineHeight" Value="19"/>
+        </Style>
+        <Style x:Key="Faint" TargetType="TextBlock" BasedOn="{StaticResource Dim}">
+            <Setter Property="Foreground" Value="{StaticResource TextFaint}"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
+
+        <!-- ─── 카드 ─── -->
+        <Style x:Key="CardBox" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource Card}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="16,14"/>
+        </Style>
+
+        <!-- ─── 버튼 ─── -->
+        <Style x:Key="BtnBase" TargetType="Button">
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.88"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="BtnPrimary" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+            <Setter Property="Background" Value="{StaticResource Accent}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentDark}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="BtnSecondary" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+            <Setter Property="Background" Value="{StaticResource Card}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
+        </Style>
+        <Style x:Key="BtnGood" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+            <Setter Property="Background" Value="{StaticResource GreenSoft}"/>
+            <Setter Property="BorderBrush" Value="#BBDFC9"/>
+            <Setter Property="Foreground" Value="#1E6B42"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="BtnGhost" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+            <Setter Property="Background" Value="#2A3A57"/>
+            <Setter Property="BorderBrush" Value="#3B4D6E"/>
+            <Setter Property="Foreground" Value="#E8EDF5"/>
+        </Style>
+
+        <!-- ─── 입력 ─── -->
+        <Style TargetType="TextBox">
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Background" Value="{StaticResource Card}"/>
+            <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- ─── 밑줄형 탭 ─── -->
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border BorderBrush="{StaticResource Line}" BorderThickness="0,0,0,1" Margin="4,0">
+                                <TabPanel IsItemsHost="True"/>
+                            </Border>
+                            <ContentPresenter Grid.Row="1" ContentSource="SelectedContent"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="{StaticResource TextDim}"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="3"/>
+                            </Grid.RowDefinitions>
+                            <ContentPresenter ContentSource="Header" Margin="14,9,14,7"/>
+                            <Rectangle x:Name="indicator" Grid.Row="1" Height="3" RadiusX="1.5" RadiusY="1.5"
+                                       Fill="Transparent" Margin="10,0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="indicator" Property="Fill" Value="{StaticResource Accent}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ─── 리스트 (후보/해결책 선택) ─── -->
+        <Style TargetType="ListBox">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        </Style>
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="7" Padding="10,7" Margin="0,1">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource LineSoft}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource AccentSoft}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Application.Resources>
 </Application>

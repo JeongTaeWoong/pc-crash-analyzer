@@ -1,7 +1,9 @@
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Security.Principal;
 using System.Text.Json.Nodes;
 using System.Windows;
+using System.Windows.Media;
 using CrashAnalyzer.UI.Models;
 using CrashAnalyzer.UI.Services;
 using Microsoft.Win32;
@@ -16,11 +18,13 @@ public partial class MainWindow : Window
     private SessionService? _session;
     private string? _currentSnapshotPath;
     private string _currentCheckId = "";
-    private bool _fixApplied;
+    private readonly ObservableCollection<string> _activity = new();
 
     public MainWindow()
     {
         InitializeComponent();
+        icActivity.ItemsSource = _activity;
+
         _repoRoot = RepoPaths.FindRepoRoot();
         if (_repoRoot is null)
         {
@@ -31,7 +35,7 @@ public partial class MainWindow : Window
         {
             _engine = new EngineClient(RepoPaths.ResolveEnginePath(_repoRoot));
             _session = new SessionService(_engine);
-            SetStatus($"엔진: {_engine.ExePath}");
+            SetStatus($"엔진 연결됨 · {_engine.ExePath}");
         }
         catch (Exception ex)
         {
@@ -43,29 +47,27 @@ public partial class MainWindow : Window
         _collector.NewDump += path => Dispatcher.Invoke(() => OnNewDump(path));
         _collector.Exited += code => Dispatcher.Invoke(() =>
         {
-            txtCollectorState.Text = $"수집기: 종료됨 (코드 {code})";
-            btnCollectorStart.IsEnabled = true;
-            btnCollectorStop.IsEnabled = false;
+            SetCollectorState(false, $"종료됨 (코드 {code})");
+            Activity($"수집기 종료 (코드 {code})");
         });
 
         using var identity = WindowsIdentity.GetCurrent();
         bool elevated = new WindowsPrincipal(identity).IsInRole(WindowsBuiltInRole.Administrator);
-        txtElevation.Text = elevated ? "관리자 (ETW 가능)" : "비관리자 — ETW·모듈 추적 제한";
+        txtElevation.Text = elevated ? "관리자 모드" : "비관리자 — ETW·모듈 추적 제한";
 
         Closing += (_, _) => _collector?.Dispose();
     }
 
-    // ─── 수집기 제어 ───
+    // ─── 수집기 레일 ───
 
     private void OnCollectorStart(object sender, RoutedEventArgs e)
     {
         try
         {
             _collector!.Start();
-            txtCollectorState.Text = "수집기: 동작 중 ●";
-            btnCollectorStart.IsEnabled = false;
-            btnCollectorStop.IsEnabled = true;
+            SetCollectorState(true, "수집 중 — 크래시 대기");
             AppendLog($"=== 수집기 시작 {DateTime.Now:HH:mm:ss} ===");
+            Activity("수집기 시작");
             SetStatus("수집기 가동 중 — 크래시가 감지되면 자동으로 덤프가 생깁니다");
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "수집기 시작 실패"); }
@@ -74,18 +76,52 @@ public partial class MainWindow : Window
     private void OnCollectorStop(object sender, RoutedEventArgs e)
     {
         _collector!.Stop();
-        txtCollectorState.Text = "수집기: 꺼짐";
-        btnCollectorStart.IsEnabled = true;
-        btnCollectorStop.IsEnabled = false;
+        SetCollectorState(false, "꺼짐");
         AppendLog($"=== 수집기 중지 {DateTime.Now:HH:mm:ss} ===");
+        Activity("수집기 중지");
+    }
+
+    private void SetCollectorState(bool running, string text)
+    {
+        dotCollector.Fill = running ? Ui.Hex("#2F9E63") : Ui.Hex("#B9C2CF");
+        txtCollectorState.Text = text;
+        txtCollectorState.Foreground = running ? Ui.Hex("#1E6B42") : (Brush)FindResource("TextDim");
+        btnCollectorStart.IsEnabled = !running;
+        btnCollectorStop.IsEnabled = running;
     }
 
     private void OnNewDump(string path)
     {
+        string name = Path.GetFileName(Path.GetDirectoryName(path)) ?? path;
         AppendLog($"[새 덤프] {path}");
-        SetStatus($"새 덤프 감지: {Path.GetFileName(Path.GetDirectoryName(path))}");
+        Activity($"새 덤프: {name}");
+        SetStatus($"새 덤프 감지: {name}");
         if (chkAutoDiagnose.IsChecked == true)
             LoadSnapshot(path);
+    }
+
+    private void Activity(string text)
+    {
+        txtNoActivity.Visibility = Visibility.Collapsed;
+        _activity.Insert(0, $"{DateTime.Now:HH:mm}  {text}");
+        while (_activity.Count > 10) _activity.RemoveAt(_activity.Count - 1);
+    }
+
+    /// <summary>--open 인자용: 창이 뜬 직후 스냅샷 자동 진단.</summary>
+    public void OpenSnapshotOnStartup(string path) => LoadSnapshot(path);
+
+    /// <summary>--shot 인자용: 창 내용을 PNG로 렌더 (사용자 화면 캡처 없이 자가 검수).</summary>
+    public void SaveWindowPng(string outPath)
+    {
+        var size = new Size(ActualWidth, ActualHeight);
+        if (size.Width < 10 || size.Height < 10) return;
+        var rtb = new System.Windows.Media.Imaging.RenderTargetBitmap(
+            (int)size.Width, (int)size.Height, 96, 96, PixelFormats.Pbgra32);
+        rtb.Render(this);
+        var enc = new System.Windows.Media.Imaging.PngBitmapEncoder();
+        enc.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(rtb));
+        using var fs = File.Create(outPath);
+        enc.Save(fs);
     }
 
     // ─── 스냅샷 열기 → 진단 ───
@@ -96,7 +132,9 @@ public partial class MainWindow : Window
         var path = DumpLocator.FindLatestEngineSnapshot(RepoPaths.ResolveDumpsRoot(_repoRoot));
         if (path is null)
         {
-            MessageBox.Show(this, "collector 아래에서 engine-snapshot.json을 찾지 못했습니다.\n수집기를 켜고 마킹(크래시)이 한 번 발생해야 덤프가 생깁니다.", "덤프 없음");
+            MessageBox.Show(this,
+                "collector 아래에서 engine-snapshot.json을 찾지 못했습니다.\n수집기를 켜 두면 크래시 때 덤프가 자동으로 생깁니다.",
+                "덤프 없음");
             return;
         }
         LoadSnapshot(path);
@@ -124,25 +162,26 @@ public partial class MainWindow : Window
             string symType = snap?["symptom"]?["type"]?.GetValue<string>() ?? "";
             if (symType is "" or "unknown")
             {
-                var dlgResult = SymptomDialog.Ask(this, snap?["symptom"]?["target_process"]?.GetValue<string>() ?? "");
-                if (dlgResult is null) return;
+                var answer = SymptomDialog.Ask(this, snap?["symptom"]?["target_process"]?.GetValue<string>() ?? "");
+                if (answer is null) return;
                 var sym = snap!["symptom"] as JsonObject ?? new JsonObject();
-                sym["type"] = dlgResult.Type;
-                sym["scope"] = dlgResult.Scope;
-                sym["target_process"] = dlgResult.TargetProcess;
+                sym["type"] = answer.Type;
+                sym["scope"] = answer.Scope;
+                sym["target_process"] = answer.TargetProcess;
                 snap["symptom"] = sym;
                 usePath = Path.Combine(RepoPaths.SessionDir(),
                     $"patched_{DateTime.Now:HHmmss}_{Path.GetFileName(path)}");
                 await File.WriteAllTextAsync(usePath, snap.ToJsonString());
             }
 
-            SetStatus("진단 중...");
+            SetStatus("진단 중…");
             var result = await Task.Run(() => _engine.CallTool("diagnose", new JsonObject { ["snapshot_path"] = usePath }));
             _currentSnapshotPath = usePath;
-            RenderDiagnose(ViewMap.FromDiagnose(result), path);
+            RenderDiagnose(ViewMap.FromDiagnose(result));
             btnStartSession.IsEnabled = true;
             tabs.SelectedIndex = 0;
-            SetStatus($"진단 완료: {Path.GetFileName(path)}");
+            Activity($"진단 완료: {Path.GetFileName(path)}");
+            SetStatus($"진단 완료 · {path}");
         }
         catch (Exception ex)
         {
@@ -151,17 +190,28 @@ public partial class MainWindow : Window
         }
     }
 
-    private void RenderDiagnose(DiagnoseVm vm, string originalPath)
+    private void RenderDiagnose(DiagnoseVm vm)
     {
-        txtSnapInfo.Text = $"{vm.SnapshotId}  —  {originalPath}";
-        txtSymptomLine.Text = vm.HeaderLine;
-        txtLayerLine.Text = vm.LayerLine;
+        txtHeaderSnap.Text = $"{vm.SnapshotId}   ·   {vm.Symptom}" +
+                             (vm.Target.Length > 0 ? $"   ·   {vm.Target}" : "");
+        txtMetaLine.Text = vm.MetaLine;
+        txtConfLine.Text = vm.ConfidenceLine;
+        txtSummary.Text = vm.SummaryText;
         icLayerBars.ItemsSource = vm.LayerBars;
-        icLayerEvidence.ItemsSource = vm.LayerEvidence;
-        icCandidates.ItemsSource = vm.Candidates;
+        lbCandidates.ItemsSource = vm.Candidates.Take(12).ToList();
+        if (lbCandidates.Items.Count > 0) lbCandidates.SelectedIndex = 0;
         txtPlanSummary.Text = vm.PlanSummary;
         icSteps.ItemsSource = vm.Steps;
         icNotes.ItemsSource = vm.Notes;
+    }
+
+    private void OnCandidateSelected(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (lbCandidates.SelectedItem is not CandidateVm c) return;
+        txtSelCand.Text = c.Label;
+        icSelEvidence.ItemsSource = c.Evidence.Count > 0
+            ? c.Evidence
+            : new List<EvidenceVm> { new() { Text = "이 후보에 기록된 개별 근거가 없습니다 (사전 확률 기반)." } };
     }
 
     // ─── 세션: 확인 → 해결 → 검증 ───
@@ -170,6 +220,7 @@ public partial class MainWindow : Window
     {
         if (_session is null || _currentSnapshotPath is null) return;
         await RunSession(() => _session.Start(_currentSnapshotPath), gotoTab: 1);
+        Activity("원인 확인 세션 시작");
     }
 
     private async void OnReportSolved(object s, RoutedEventArgs e) => await Report("solved");
@@ -187,7 +238,7 @@ public partial class MainWindow : Window
     {
         if (_session is null) return;
         await RunSession(() => _session.ApplyFix(), gotoTab: 2);
-        _fixApplied = true;
+        Activity("해결책 적용 기록");
     }
 
     private async void OnVerifyAfterSnapshot(object sender, RoutedEventArgs e)
@@ -212,7 +263,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            SetStatus("엔진 호출 중...");
+            SetStatus("엔진 호출 중…");
             var view = await Task.Run(call);
             RenderSession(ViewMap.FromSessionView(view));
             if (gotoTab is { } t) tabs.SelectedIndex = t;
@@ -227,7 +278,7 @@ public partial class MainWindow : Window
 
     private void RenderSession(SessionVm vm)
     {
-        txtSessionStatus.Text = $"세션 상태: {vm.StatusText} ({vm.Status})";
+        txtSessionStatus.Text = $"세션 상태: {vm.StatusText}";
         txtNextAction.Text = vm.NextAction;
         icBelief.ItemsSource = vm.Belief;
         icHistory.ItemsSource = vm.History;
@@ -236,21 +287,34 @@ public partial class MainWindow : Window
         _currentCheckId = vm.CheckId;
         if (vm.HasNextCheck)
         {
+            var pill = Ui.ExecPill(vm.CheckExecution);
             txtCheckLabel.Text = vm.CheckLabel;
-            txtCheckMeta.Text = $"이 단계에서 원인이 드러날 확률 {vm.CheckChancePct}% · {vm.CheckExecutionText}";
+            txtCheckChance.Text = $"이 단계에서 원인이 드러날 확률 {vm.CheckChancePct}%";
             txtCheckAdvice.Text = vm.CheckAdvice;
-            icCheckSteps.ItemsSource = vm.CheckSteps.Select((s, i) => $"{i + 1}. {s}").ToList();
+            txtCheckExec.Text = pill.Text;
+            txtCheckExec.Foreground = pill.Fg;
+            bdCheckExec.Background = pill.Bg;
+            icCheckSteps.ItemsSource = vm.CheckSteps.Select((s, i) => $"{i + 1}.  {s}").ToList();
             txtCheckRollback.Text = vm.CheckRollback.Length > 0 ? "되돌리기: " + vm.CheckRollback : "";
         }
 
         txtConfirmed.Text = vm.ConfirmedLabel.Length > 0 ? vm.ConfirmedLabel : "아직 없음";
         icConfirmedEvidence.ItemsSource = vm.ConfirmedEvidence;
-        icRemedies.ItemsSource = vm.Remedies;
+        lbRemedies.ItemsSource = vm.Remedies;
+        var current = vm.Remedies.FirstOrDefault(r => r.IsCurrent) ?? vm.Remedies.FirstOrDefault();
+        if (current != null) lbRemedies.SelectedItem = current;
         btnApplyFix.IsEnabled = vm.Status is "confirmed" or "fixing";
         txtLastVerify.Text = vm.LastVerifyText;
         txtRestoreNote.Text = vm.RestoreNote;
 
-        if (vm.Status == "confirmed" && !_fixApplied) tabs.SelectedIndex = 2;
+        if (vm.Status == "confirmed") Activity($"원인 확정: {vm.ConfirmedLabel}");
+        if (vm.Status is "resolved") Activity("검증 완료 — 해결됨");
+    }
+
+    private void OnRemedySelected(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (lbRemedies.SelectedItem is RemedyVm r)
+            icRemedyActions.ItemsSource = r.Actions;
     }
 
     // ─── 공용 ───

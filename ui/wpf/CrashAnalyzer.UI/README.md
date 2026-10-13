@@ -13,7 +13,16 @@ ui\wpf\CrashAnalyzer.UI\bin\Release\net8.0-windows\CrashAnalyzerUI.exe
 
 - 엔진 위치는 자동 탐색(`engine/build/Release/crash_engine.exe`), 다르면 `CE_ENGINE` 환경 변수.
 - 덤프 탐색 루트는 `collector/` 전체, 다르면 `CE_DUMPS`.
-- `--selftest [출력파일]` 인자로 GUI 없이 엔진 연결·진단 매핑을 검증할 수 있다 (스모크/CI용).
+- `--selftest [출력파일]` : GUI 없이 엔진 연결·진단 매핑 검증 (스모크/CI용).
+- `--open <스냅샷.json>` : 시작하자마자 해당 스냅샷을 진단 (시연용).
+- `--shot <저장.png> [--open ...]` : 창을 화면 밖에서 렌더해 PNG로 저장 후 종료 — 사용자 화면을
+  캡처하지 않는 자가 검수용.
+
+## 디자인 토큰 (App.xaml)
+
+잉크 네이비 #182233(헤더) · 서피스 #F3F5F8 · 액센트 #2563C7 · 층 코드색(SW 블루 / 드라이버 퍼플 #6D4FC4 /
+HW 앰버 #C97A2B) · 실행 방식 필(안내 회색 / 자동 블루 / 동의 앰버 / 직접 레드). 새 화면을 추가할 땐
+`CardBox`·`SectionTitle`·`Dim`·`Faint`·`BtnPrimary/Secondary/Good/Ghost` 스타일을 재사용한다.
 
 ## v1 범위 (Python 시안 대비)
 

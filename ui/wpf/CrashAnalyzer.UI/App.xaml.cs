@@ -40,6 +40,31 @@ public partial class App : Application
         ShutdownMode = ShutdownMode.OnMainWindowClose;
         var win = new MainWindow();
         MainWindow = win;
+
+        // --open <스냅샷경로>: 시작하자마자 해당 스냅샷 진단 (시연용)
+        int openIdx = Array.IndexOf(e.Args, "--open");
+        string? openPath = openIdx >= 0 && openIdx + 1 < e.Args.Length ? e.Args[openIdx + 1] : null;
+
+        // --shot <png경로>: 화면 밖에서 창을 렌더해 PNG 저장 후 종료 (사용자 화면을 캡처하지 않는 자가 검수용)
+        int shotIdx = Array.IndexOf(e.Args, "--shot");
+        string? shotPath = shotIdx >= 0 && shotIdx + 1 < e.Args.Length ? e.Args[shotIdx + 1] : null;
+
+        if (shotPath != null)
+        {
+            win.WindowStartupLocation = WindowStartupLocation.Manual;
+            win.Left = -16000; win.Top = 0;
+            win.ShowActivated = false;
+            win.ShowInTaskbar = false;
+        }
+        if (openPath != null)
+            win.Loaded += (_, _) => win.OpenSnapshotOnStartup(openPath);
+        if (shotPath != null)
+            win.Loaded += async (_, _) =>
+            {
+                await Task.Delay(3500); // 진단·레이아웃 완료 대기
+                win.SaveWindowPng(shotPath);
+                Shutdown(0);
+            };
         win.Show();
     }
 }
