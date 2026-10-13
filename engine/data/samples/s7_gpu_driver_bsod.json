@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.2",
+  "snapshot_id": "s7-gpu-driver-bsod",
+  "marked_at": "2026-11-05T22:20:00+09:00",
+  "trigger": {
+    "kind": "auto_system",
+    "event_id": 1001
+  },
+  "host": {
+    "os": "Windows 11 23H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "unexpected_reboot",
+    "target_process": "",
+    "scope": "system_wide",
+    "started_at": "2026-11-05T20:40:00+09:00"
+  },
+  "processes": [
+    "explorer.exe",
+    "game.exe",
+    "Discord.exe"
+  ],
+  "modules": [],
+  "drivers": [
+    {
+      "name": "nvlddmkm.sys",
+      "display": "NVIDIA Display Driver",
+      "type": "display",
+      "company": "NVIDIA",
+      "version": "566.14",
+      "started_at": "2026-11-05T09:00:00+09:00"
+    },
+    {
+      "name": "rt640x64.sys",
+      "display": "Realtek PCIe GbE Family Controller",
+      "type": "network",
+      "company": "Realtek",
+      "version": "10.68",
+      "started_at": "2026-11-05T09:00:00+09:00"
+    }
+  ],
+  "device_filters": {
+    "keyboard_upper": [
+      "kbdclass"
+    ],
+    "mouse_upper": [
+      "mouclass"
+    ],
+    "ndis_filters": []
+  },
+  "security": {
+    "realtime_av": [
+      "Microsoft Defender"
+    ],
+    "firewall_blocks": [],
+    "detections": []
+  },
+  "change_history": [
+    {
+      "time": "2026-11-05T08:50:00+09:00",
+      "kind": "driver_update",
+      "subject": "NVIDIA Display Driver",
+      "version": "565.90 → 566.14"
+    }
+  ],
+  "events": [
+    {
+      "time": "2026-11-05T20:38:00+09:00",
+      "provider": "Display",
+      "id": 4101,
+      "subject": "nvlddmkm"
+    },
+    {
+      "time": "2026-11-05T20:41:00+09:00",
+      "provider": "Display",
+      "id": 4101,
+      "subject": "nvlddmkm"
+    },
+    {
+      "time": "2026-11-05T20:42:10+09:00",
+      "provider": "Microsoft-Windows-WER-SystemErrorReporting",
+      "id": 1001,
+      "subject": "0x116",
+      "faulting_module": "nvlddmkm.sys"
+    },
+    {
+      "time": "2026-11-05T20:42:40+09:00",
+      "provider": "Microsoft-Windows-Kernel-Power",
+      "id": 41,
+      "subject": "BugcheckCode 278"
+    },
+    {
+      "time": "2026-11-05T22:15:00+09:00",
+      "provider": "Display",
+      "id": 4101,
+      "subject": "nvlddmkm"
+    },
+    {
+      "time": "2026-11-05T22:16:05+09:00",
+      "provider": "Microsoft-Windows-WER-SystemErrorReporting",
+      "id": 1001,
+      "subject": "0x116",
+      "faulting_module": "nvlddmkm.sys"
+    },
+    {
+      "time": "2026-11-05T22:16:40+09:00",
+      "provider": "Microsoft-Windows-Kernel-Power",
+      "id": 41,
+      "subject": "BugcheckCode 278"
+    }
+  ],
+  "sensors": {
+    "samples": [
+      {
+        "time": "2026-11-05T22:14:00+09:00",
+        "cpu_temp": 70,
+        "gpu_temp": 71,
+        "cpu_clock": 4500,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-05T22:15:00+09:00",
+        "cpu_temp": 71,
+        "gpu_temp": 72,
+        "cpu_clock": 4500,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      },
+      {
+        "time": "2026-11-05T22:16:00+09:00",
+        "cpu_temp": 71,
+        "gpu_temp": 72,
+        "cpu_clock": 4500,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      }
+    ]
+  },
+  "minidumps": [
+    {
+      "time": "2026-11-05T20:42:10+09:00",
+      "kind": "kernel",
+      "process": "System",
+      "faulting_module": "nvlddmkm.sys",
+      "bugcheck": "0x116 VIDEO_TDR_FAILURE"
+    },
+    {
+      "time": "2026-11-05T22:16:05+09:00",
+      "kind": "kernel",
+      "process": "System",
+      "faulting_module": "nvlddmkm.sys",
+      "bugcheck": "0x116 VIDEO_TDR_FAILURE"
+    }
+  ],
+  "baseline_diff": {
+    "added": [],
+    "removed": [],
+    "changed": [
+      "NVIDIA Display Driver"
+    ]
+  },
+  "ground_truth": {
+    "layer": "DRIVER",
+    "category": "gpu_driver",
+    "subject": "nvlddmkm.sys"
+  }
+}

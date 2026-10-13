@@ -1,0 +1,110 @@
+{
+  "schema_version": "1.0",
+  "snapshot_id": "s4-display-util-flicker",
+  "marked_at": "2026-10-20T14:05:00+09:00",
+  "trigger": {
+    "kind": "hotkey"
+  },
+  "host": {
+    "os": "Windows 11 23H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "flicker",
+    "target_process": "",
+    "scope": "system_wide",
+    "started_at": "2026-10-20T13:40:00+09:00",
+    "faulting_modules": []
+  },
+  "modules": [
+    {
+      "process": "explorer.exe",
+      "name": "OnScreenControl.dll",
+      "company": "LG Electronics",
+      "signer": "LG Electronics",
+      "loaded_at": "2026-10-20T13:36:40+09:00"
+    }
+  ],
+  "drivers": [
+    {
+      "name": "nvlddmkm.sys",
+      "display": "NVIDIA Display Driver",
+      "type": "display",
+      "company": "NVIDIA",
+      "started_at": "2026-10-08T14:05:00+09:00"
+    }
+  ],
+  "device_filters": {
+    "keyboard_upper": [],
+    "mouse_upper": [],
+    "ndis_filters": []
+  },
+  "security": {
+    "realtime_av": [
+      "AhnLab V3"
+    ],
+    "firewall_blocks": []
+  },
+  "change_history": [
+    {
+      "time": "2026-10-20T13:35:00+09:00",
+      "kind": "install",
+      "subject": "LG OnScreen Control",
+      "version": "7.2"
+    },
+    {
+      "time": "2026-10-08T14:05:00+09:00",
+      "kind": "driver_update",
+      "subject": "NVIDIA Display Driver",
+      "version": "566.03"
+    }
+  ],
+  "events": [
+    {
+      "time": "2026-10-20T13:41:40+09:00",
+      "provider": "Display",
+      "id": 4101,
+      "subject": "nvlddmkm",
+      "faulting_module": ""
+    },
+    {
+      "time": "2026-10-20T14:00:00+09:00",
+      "provider": "Display",
+      "id": 4101,
+      "subject": "nvlddmkm",
+      "faulting_module": ""
+    }
+  ],
+  "sensors": {
+    "samples": [
+      {
+        "time": "2026-10-20T13:55:00+09:00",
+        "cpu_temp": 48,
+        "gpu_temp": 52,
+        "cpu_clock": 4300,
+        "gpu_clock": 1800,
+        "throttling": false
+      },
+      {
+        "time": "2026-10-20T14:05:00+09:00",
+        "cpu_temp": 49,
+        "gpu_temp": 53,
+        "cpu_clock": 4300,
+        "gpu_clock": 1800,
+        "throttling": false
+      }
+    ]
+  },
+  "baseline_diff": {
+    "added": [
+      "LG OnScreen Control"
+    ],
+    "removed": [],
+    "changed": []
+  },
+  "ground_truth": {
+    "layer": "DRIVER",
+    "category": "display_util",
+    "subject": "LG OnScreen Control"
+  }
+}

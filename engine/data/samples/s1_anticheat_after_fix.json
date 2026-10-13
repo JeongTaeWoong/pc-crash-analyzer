@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "snapshot_id": "s1-anticheat-after-fix",
+  "marked_at": "2026-10-15T23:00:00+09:00",
+  "observed_from": "2026-10-15T21:00:00+09:00",
+  "trigger": {
+    "kind": "verify"
+  },
+  "host": {
+    "os": "Windows 11 23H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "app_crash",
+    "target_process": "othergame.exe",
+    "scope": "single_app"
+  },
+  "processes": [
+    "othergame.exe",
+    "Discord.exe",
+    "steam.exe",
+    "explorer.exe"
+  ],
+  "modules": [
+    {
+      "process": "othergame.exe",
+      "name": "ntdll.dll",
+      "company": "Microsoft Corporation",
+      "signer": "Microsoft Windows",
+      "microsoft_signed": true
+    },
+    {
+      "process": "othergame.exe",
+      "name": "DiscordHook64.dll",
+      "company": "Discord Inc.",
+      "signer": "Discord Inc.",
+      "loaded_at": "2026-10-15T21:03:20+09:00"
+    },
+    {
+      "process": "othergame.exe",
+      "name": "GameOverlayRenderer64.dll",
+      "company": "Valve",
+      "signer": "Valve Corp.",
+      "loaded_at": "2026-10-15T21:03:30+09:00"
+    }
+  ],
+  "drivers": [
+    {
+      "name": "nvlddmkm.sys",
+      "display": "NVIDIA Display Driver",
+      "type": "display",
+      "company": "NVIDIA",
+      "started_at": "2026-10-15T20:58:00+09:00"
+    }
+  ],
+  "device_filters": {
+    "keyboard_upper": [
+      "kbdclass"
+    ],
+    "mouse_upper": [
+      "mouclass"
+    ],
+    "ndis_filters": []
+  },
+  "security": {
+    "realtime_av": [
+      "Microsoft Defender"
+    ],
+    "firewall_blocks": [],
+    "detections": []
+  },
+  "change_history": [
+    {
+      "time": "2026-10-15T20:52:00+09:00",
+      "kind": "setting",
+      "subject": "Riot Vanguard",
+      "version": "서비스 시작 유형: 자동 → 수동"
+    }
+  ],
+  "events": [
+    {
+      "time": "2026-10-14T21:29:00+09:00",
+      "provider": "Application Error",
+      "id": 1000,
+      "subject": "othergame.exe",
+      "faulting_module": "ntdll.dll"
+    }
+  ]
+}

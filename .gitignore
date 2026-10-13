@@ -1,0 +1,12 @@
+# .NET (collector)
+bin/
+obj/
+dumps/
+logs/
+*.dmp
+*.etl
+*.user
+
+# Python cache (ui prototype)
+__pycache__/
+*.pyc

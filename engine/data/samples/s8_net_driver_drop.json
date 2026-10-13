@@ -1,0 +1,123 @@
+{
+  "schema_version": "1.2",
+  "snapshot_id": "s8-net-driver-drop",
+  "marked_at": "2026-11-10T21:30:00+09:00",
+  "trigger": {
+    "kind": "hotkey"
+  },
+  "host": {
+    "os": "Windows 11 23H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "network_fail",
+    "target_process": "",
+    "scope": "system_wide",
+    "started_at": "2026-11-10T19:10:00+09:00"
+  },
+  "processes": [
+    "explorer.exe",
+    "chrome.exe",
+    "game.exe"
+  ],
+  "modules": [],
+  "drivers": [
+    {
+      "name": "rt640x64.sys",
+      "display": "Realtek PCIe GbE Family Controller",
+      "type": "network",
+      "company": "Realtek",
+      "version": "11.2",
+      "started_at": "2026-11-10T18:40:00+09:00"
+    },
+    {
+      "name": "nvlddmkm.sys",
+      "display": "NVIDIA Display Driver",
+      "type": "display",
+      "company": "NVIDIA",
+      "version": "565.90",
+      "started_at": "2026-11-01T09:00:00+09:00"
+    }
+  ],
+  "device_filters": {
+    "keyboard_upper": [
+      "kbdclass"
+    ],
+    "mouse_upper": [
+      "mouclass"
+    ],
+    "ndis_filters": []
+  },
+  "security": {
+    "realtime_av": [
+      "Microsoft Defender"
+    ],
+    "firewall_blocks": [],
+    "detections": []
+  },
+  "change_history": [
+    {
+      "time": "2026-11-10T18:35:00+09:00",
+      "kind": "driver_update",
+      "subject": "Realtek PCIe GbE Family Controller",
+      "version": "10.68 → 11.2 (Windows 업데이트)"
+    }
+  ],
+  "events": [
+    {
+      "time": "2026-11-10T19:12:00+09:00",
+      "provider": "rt640x64",
+      "id": 27,
+      "subject": "Network link is disconnected."
+    },
+    {
+      "time": "2026-11-10T19:48:00+09:00",
+      "provider": "rt640x64",
+      "id": 27,
+      "subject": "Network link is disconnected."
+    },
+    {
+      "time": "2026-11-10T20:25:00+09:00",
+      "provider": "rt640x64",
+      "id": 27,
+      "subject": "Network link is disconnected."
+    },
+    {
+      "time": "2026-11-10T21:02:00+09:00",
+      "provider": "rt640x64",
+      "id": 27,
+      "subject": "Network link is disconnected."
+    },
+    {
+      "time": "2026-11-10T21:28:00+09:00",
+      "provider": "rt640x64",
+      "id": 27,
+      "subject": "Network link is disconnected."
+    }
+  ],
+  "sensors": {
+    "samples": [
+      {
+        "time": "2026-11-10T21:29:00+09:00",
+        "cpu_temp": 55,
+        "gpu_temp": 50,
+        "cpu_clock": 4500,
+        "gpu_clock": 1900,
+        "throttling": false,
+        "gpu_power_limit_reason": ""
+      }
+    ]
+  },
+  "baseline_diff": {
+    "added": [],
+    "removed": [],
+    "changed": [
+      "Realtek PCIe GbE Family Controller"
+    ]
+  },
+  "ground_truth": {
+    "layer": "DRIVER",
+    "category": "network_driver",
+    "subject": "rt640x64.sys"
+  }
+}
