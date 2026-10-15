@@ -148,6 +148,24 @@ public partial class MainWindow : Window
         Application.Current.Shutdown(_diagnosedOnce ? 0 : 1);
     }
 
+    /// <summary>
+    /// --record-demo 인자용: 수집 시작 → 로그 탭 전환을 자동 수행하고,
+    /// 크래시 자동 진단(진단 탭 자동 전환 포함)이 끝나면 marker 파일을 쓴다.
+    /// </summary>
+    public async void StartRecordDemo(string markerPath)
+    {
+        await Task.Delay(800);
+        OnCollectorStart(this, new RoutedEventArgs());
+        await Task.Delay(1800);
+        tabs.SelectedIndex = 3; // 수집기 로그 탭 — [trigger]/[mark]/[dump]가 라이브로 보이도록
+
+        var t0 = DateTime.UtcNow;
+        while (!_diagnosedOnce && (DateTime.UtcNow - t0).TotalSeconds < 120)
+            await Task.Delay(300);
+        // 진단 성공 시 RenderDiagnose가 진단 탭으로 자동 전환해 둔 상태
+        try { await File.WriteAllTextAsync(markerPath, _diagnosedOnce ? "ok" : "timeout"); } catch { /* 마커 실패는 치명 아님 */ }
+    }
+
     /// <summary>--shot 인자용: 창 내용을 PNG로 렌더 (사용자 화면 캡처 없이 자가 검수).</summary>
     public void SaveWindowPng(string outPath)
     {

@@ -10,3 +10,5 @@ logs/
 # Python cache (ui prototype)
 __pycache__/
 *.pyc
+recordings/
+dumps_archive/

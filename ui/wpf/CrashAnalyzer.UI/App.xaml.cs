@@ -71,6 +71,22 @@ public partial class App : Application
             return;
         }
 
+        // --record-demo <marker.txt>: 촬영용 — 고정 위치·최상위 창에서 수집 시작→로그 탭을 자동 수행,
+        // 크래시 자동 진단이 끝나면 marker 파일을 써서 외부 녹화 스크립트(tools/record-demo.ps1)에 알린다.
+        int rdIdx = Array.IndexOf(e.Args, "--record-demo");
+        if (rdIdx >= 0)
+        {
+            string marker = rdIdx + 1 < e.Args.Length
+                ? e.Args[rdIdx + 1]
+                : Path.Combine(Path.GetTempPath(), "crashui_demo_marker.txt");
+            win.WindowStartupLocation = WindowStartupLocation.Manual;
+            win.Left = 60; win.Top = 60; win.Width = 1600; win.Height = 900;
+            win.Topmost = true; // 녹화 영역에 다른 창이 끼어들지 않도록
+            win.Loaded += (_, _) => win.StartRecordDemo(marker);
+            win.Show();
+            return;
+        }
+
         if (openPath != null)
             win.Loaded += (_, _) => win.OpenSnapshotOnStartup(openPath);
         if (shotPath != null)
