@@ -19,6 +19,8 @@ public partial class MainWindow : Window
     private string? _currentSnapshotPath;
     private string _currentCheckId = "";
     private readonly ObservableCollection<string> _activity = new();
+    private bool _diagnosedOnce;          // 리허설 모드: 자동 진단 완료 감지
+    public bool SuppressDialogs { get; set; } // 리허설(오프스크린)에서 MessageBox 차단
 
     public MainWindow()
     {
@@ -110,6 +112,42 @@ public partial class MainWindow : Window
     /// <summary>--open 인자용: 창이 뜬 직후 스냅샷 자동 진단.</summary>
     public void OpenSnapshotOnStartup(string path) => LoadSnapshot(path);
 
+    /// <summary>
+    /// --rehearse 인자용: 수집기 기동 → (외부에서 크래시 유발) → 새 덤프 자동 진단까지의
+    /// 녹화 시나리오 전체를 오프스크린으로 검증하고 결과를 파일로 남긴다.
+    /// </summary>
+    public async void StartRehearse(string outPng, string outTxt, int timeoutSec = 90)
+    {
+        var lines = new List<string>();
+        try
+        {
+            OnCollectorStart(this, new RoutedEventArgs());
+            lines.Add("collector_started=" + (_collector?.IsRunning ?? false));
+
+            var t0 = DateTime.UtcNow;
+            while (!_diagnosedOnce && (DateTime.UtcNow - t0).TotalSeconds < timeoutSec)
+                await Task.Delay(500);
+
+            lines.Add("auto_diagnosed=" + _diagnosedOnce);
+            lines.Add("trigger_in_log=" + txtLog.Text.Contains("[trigger]"));
+            lines.Add("mark_in_log=" + txtLog.Text.Contains("[mark]"));
+            lines.Add("dump_in_log=" + txtLog.Text.Contains("[dump]"));
+            lines.Add("header=" + txtHeaderSnap.Text);
+            lines.Add("activity=" + string.Join(" | ", _activity));
+
+            _collector?.Stop();
+            tabs.SelectedIndex = 0;
+            await Task.Delay(600);
+            SaveWindowPng(outPng);
+        }
+        catch (Exception ex)
+        {
+            lines.Add("error=" + ex.Message);
+        }
+        File.WriteAllLines(outTxt, lines);
+        Application.Current.Shutdown(_diagnosedOnce ? 0 : 1);
+    }
+
     /// <summary>--shot 인자용: 창 내용을 PNG로 렌더 (사용자 화면 캡처 없이 자가 검수).</summary>
     public void SaveWindowPng(string outPath)
     {
@@ -186,12 +224,13 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             SetStatus("진단 실패: " + ex.Message);
-            MessageBox.Show(this, ex.Message, "진단 실패");
+            if (!SuppressDialogs) MessageBox.Show(this, ex.Message, "진단 실패");
         }
     }
 
     private void RenderDiagnose(DiagnoseVm vm)
     {
+        _diagnosedOnce = true;
         txtHeaderSnap.Text = $"{vm.SnapshotId}   ·   {vm.Symptom}" +
                              (vm.Target.Length > 0 ? $"   ·   {vm.Target}" : "");
         txtMetaLine.Text = vm.MetaLine;

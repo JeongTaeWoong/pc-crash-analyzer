@@ -56,6 +56,21 @@ public partial class App : Application
             win.ShowActivated = false;
             win.ShowInTaskbar = false;
         }
+        // --rehearse <png> <txt>: 오프스크린에서 수집기 기동→크래시 자동 진단 시나리오 전체 검증
+        int rhIdx = Array.IndexOf(e.Args, "--rehearse");
+        if (rhIdx >= 0 && rhIdx + 2 < e.Args.Length)
+        {
+            win.WindowStartupLocation = WindowStartupLocation.Manual;
+            win.Left = -16000; win.Top = 0;
+            win.ShowActivated = false;
+            win.ShowInTaskbar = false;
+            win.SuppressDialogs = true;
+            string png = e.Args[rhIdx + 1], txt = e.Args[rhIdx + 2];
+            win.Loaded += (_, _) => win.StartRehearse(png, txt);
+            win.Show();
+            return;
+        }
+
         if (openPath != null)
             win.Loaded += (_, _) => win.OpenSnapshotOnStartup(openPath);
         if (shotPath != null)
