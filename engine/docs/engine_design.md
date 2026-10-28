@@ -188,3 +188,14 @@ probability = score / Σ score
 * 하드웨어는 '부품을 바꿔 봐야' 확정되는 경우가 많다. 엔진은 싼 재현 점검(팬·전력 제한·XMP)으로 먼저 좁히고,
   교체가 필요한 해결책은 되돌릴 수 없는 조치처럼 항상 사용자 확인을 받는다.
 * `unresolved_cost_minutes`(120분)도 팀 추정치다. 값에 따라 v1 순서가 달라질 수 있어 bench 로 함께 본다.
+
+
+## 2026-10-29 추가 (수집기 v0.6 연동)
+
+- **증상 `slow`**(점점 느려짐)와 입력 `resource_trends`(최근 60분 자원 추세 요약, `docs/snapshot_schema.md` 1.2) 추가. 후보 생성은 `candidates.cpp addFromResourceTrends`:
+  초점 프로세스 메모리 기울기 ≥5MB/분·R²≥0.7 → `app_memory` / GPU 최고 83℃·클럭 25%↓ → `thermal` / 초점 아닌 프로세스 60분 CPU ≥10% → 그 프로세스(hints) / 이벤트 37 → `power`.
+- **새 범주 `app_memory`**(SW 층, 범위 단계 0): 프로그램 자체의 메모리 누적. 충돌 '상대'가 없으므로 점검 `app_memory_restart_test`(저장 후 재시작, 120초)와
+  해결책 `r_app_memory_hygiene`(캐시·실행 취소 한도·플러그인)로 이어진다. 기존 `pause_other_sw`("의심 프로그램 종료")가 대상 프로그램 자체에 걸리는 모순을 피하기 위해 분리했다.
+- **`autoupdate_noise`**(rules.json): 브라우저·런처·메신저처럼 조용히 자동 업데이트되는 프로그램의 설치 기록은 시간 상관 가중을 1/4 로. 실덤프에서 Chrome·Edge·WebView2·Copilot 이 "증상 직전 설치"로 1~3순위를 차지한 노이즈 대응. 층 판정(`layer.cpp`)에도 같은 가중.
+- 다른 증상에서도 `resource_trends` 가 있으면 근거는 붙이되 기여도 절반(크래시 직전 메모리 폭증은 참고 정보).
+- 테스트: `s12_slow_app_memory.json`, `s13_autoupdate_noise.json`. 벤치 목록(11건)에는 넣지 않았다 — 단계별 건수 검증이 바뀌므로 다음 벤치 갱신 때 함께.

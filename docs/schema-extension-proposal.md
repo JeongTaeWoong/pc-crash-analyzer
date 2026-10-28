@@ -30,14 +30,16 @@
 `events[]`에 `wer_event_type`(APPCRASH/RADAR_PRE_LEAK_64/…)와 `exception_code`를 추가하면 엔진이 비크래시 보고를
 구분할 수 있다 — 수집기 버퍼에는 이미 `werEventType`, `exceptionCode`로 들어간다.
 
-## C. 느려짐 증상 (엔진 추가 필요 — 현재 `unknown`으로 읽힘)
+## C. 느려짐 증상 `slow` (엔진 **구현 완료 2026-10-29** — UI 선택지 추가 필요)
 
 ```json
-"symptom": {"type": "slow", "scope": "system_wide", "target_process": "", "started_at": "..."}
+"symptom": {"type": "slow", "scope": "single_app", "target_process": "Unity.exe", "started_at": "..."}
 ```
 
-트리거는 수동 마킹(`hotkey`). 느려짐은 시작 시점이 불분명하므로 `started_at`은 마킹 시각이며 엔진은 시간 상관 대신
-**베이스라인 대비 변화**를 본다.
+- 엔진: `Symptom::Slow`, priors(`app_memory` 0.20 · antivirus 0.15 · thermal 0.14 · fin_security 0.13 …), `resource_trends`(D) 기반 후보 생성(`addFromResourceTrends`), 새 범주 **`app_memory`**(프로그램 자체의 메모리 누적 — 충돌 상대가 아니라 "저장 후 재시작·캐시 비우기"가 처방), 점검 `app_memory_restart_test`, 해결책 `r_app_memory_hygiene`. 샘플 `s12_slow_app_memory.json`, ce_tests 152/152.
+- 수집기: 수동 마킹(`hotkey`) 덤프의 `symptom.type` 은 여전히 `unknown` — 콘솔 흐름엔 증상을 물을 UI 가 없다. 임시로 `tools/export-case.ps1 -Symptom slow` 로 채운다.
+- **UI(송민석) 인계**: 증상 선택 대화상자에 "점점 느려짐(slow)" 추가, `scope` 는 "특정 프로그램 / 전체" 를 그대로 사용. 느려짐은 시작 시점이 불분명하므로 `started_at` 은 마킹 시각으로 두고 엔진이 60분 추세를 본다.
+- 자동 감지: 느려짐은 이벤트가 없어 자동 트리거 **없음**(설계). 다음 단계 후보 — 롤업에서 `focus_process.privSlopeMBPerMin ≥ 10 && r2 ≥ 0.8` 이 15분 지속되면 "느려짐 의심" 후보 마킹을 **제안**(사용자 확인, 자동 덤프 아님).
 
 ## D. 자원 추세 (수집기 v0.6에서 구현 — `resource_trends`, 2026-10-29)
 

@@ -141,3 +141,22 @@ CrashDummy: (a) 즉시 unhandled exception — 수명 ~90ms, (b) 5초 후 FailFa
 - 최종 UI는 C# WPF로 포팅 예정(중간발표 후 착수, 10-12 결정) — 발표 시연은 Python 시안 사용.
 
 상세 근거·원자료: `collector/NOTES.md`, `collector/experiments/overhead.csv`, `collector/BlackBox/dumps/` (로컬).
+
+## 8. v0.6 — 느려짐 추세 수집과 엔진 `slow` 증상 (2026-10-29 추가)
+
+측정된 숫자만 적는다. 조건: 이 PC(16 논리 CPU, RAM 94GB, ko-KR Windows 10), 비관리자.
+
+| 항목 | 값 | 비고 |
+|---|---|---|
+| 새 소스 `resources`(10초) | 커밋/가용/페이징 메모리, GPU 어댑터 전용·공유 메모리, 전체 CPU, 프로세스 CPU 상위 10 + IO 상위 3 | Process 카테고리 일괄 읽기 553 인스턴스 **260ms** → 30초마다 |
+| 24시간 분 단위 롤업 | 분당 1줄, 프로세스 ≤22행 | 2분 2.4KB 실측 → 24시간 ≈1.7MB(단위 테스트 상한 2MB) |
+| 덤프 추가 필드 | `snapshot.json.rollup24h`, `engine-snapshot.json.resource_trends`(60분 기울기·R²) | 엔진은 미지 필드를 무시하므로 하위 호환 |
+| 오버헤드 10분 (v0.6, 비관리자) | CPU 평균 **0.31%**, 최대 4.25%, Private 94MB | v0.5 이전 30분 0.13%(관리자+ETW) 대비 상승 — 같은 구간에 C++ 빌드가 돌아 조건이 다름 |
+| 오버헤드 30분 조용한 조건 (배포본) | **측정 중(10/29 00:55~01:25)** — 아래 갱신 | |
+| 유의성 점수기 | GPU 드라이버 DLL·DriverStore 경로를 "드라이버 단서"(+20)로 | 이전엔 Windows 폴더라 가산 0 — 결함 수정 |
+| 엔진 `slow` | `s12_slow_app_memory.json`: 1순위 "Unity (프로그램 자체의 메모리 누적)" 41%, 2순위 금융보안 상주물 25% | ce_tests 152/152 |
+| 엔진 노이즈 수정 | 브라우저·런처 자동 업데이트 설치 기록의 시간 상관 가중 1/4 | 실덤프에서 Chrome·Edge·Copilot 이 1~3순위를 차지하던 문제 |
+| 배포본 | `dist/BlackBox-0.6.0-win-x64.zip` 35.9MB, 213 파일, 설치 불필요 | 코드 서명 없음(SmartScreen 경고) |
+| 단위 테스트 | 수집기 xUnit 47 · 엔진 152 | |
+
+**미측정·미확인**: 1002·BugCheck·4101·Event 37 실수신, LHM GPU 메모리/스로틀 사유 센서, 관리자 모드에서의 v0.6 오버헤드, 지인 PC 데이터(0건).
