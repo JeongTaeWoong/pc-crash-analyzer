@@ -20,11 +20,12 @@ public static class EngineSnapshotBuilder
         EngineFacts facts,
         List<string>? crashModulePaths,
         SignificanceResult? significance,
-        object? resourceTrends = null)
+        object? resourceTrends = null,
+        ManualMark? manual = null)
     {
-        // 증상·범위는 TriggerClassifier 결과를 그대로 쓴다. manual은 실제 제품 흐름에서 UI가 사용자에게 받아 채운다.
-        string symType = trigger?.Class.SymptomType ?? "unknown";
-        string symScope = trigger?.Class.Scope ?? "unknown";
+        // 증상·범위는 TriggerClassifier 결과를 그대로 쓴다. manual은 콘솔 `m slow blender` 또는 UI 증상 대화상자가 채운다.
+        string symType = trigger?.Class.SymptomType ?? manual?.Symptom ?? "unknown";
+        string symScope = trigger?.Class.Scope ?? (manual?.Target is { Length: > 0 } ? "single_app" : "unknown");
         string triggerKind = trigger is null
             ? "hotkey"
             : kind is "crash-1000" or "crash-1001" or "hang-1002" or "hang-1001" ? "auto_app_crash" : "auto_system";
@@ -53,9 +54,11 @@ public static class EngineSnapshotBuilder
                     case "sensors" when root.TryGetProperty("sensors", out var arr):
                     {
                         double? gpuTemp = null, gpuClock = null;
+                        // 주 GPU(메모리 총량 최대, SensorSource 가 primaryGpu 로 기록). 없던 시절 덤프는 NVIDIA 로 폴백 — AMD 외장 GPU PC 에서도 동작하도록(10/29)
+                        string gpuHw = root.TryGetProperty("primaryGpu", out var pg) && pg.GetString() is { Length: > 0 } pgName ? pgName : "NVIDIA";
                         foreach (var s in arr.EnumerateArray())
                         {
-                            if (!(s.GetProperty("hw").GetString() ?? "").Contains("NVIDIA")) continue;
+                            if (!(s.GetProperty("hw").GetString() ?? "").Contains(gpuHw, StringComparison.OrdinalIgnoreCase)) continue;
                             if (s.GetProperty("name").GetString() != "GPU Core") continue;
                             var t = s.GetProperty("type").GetString();
                             if (t == "Temperature") gpuTemp = s.GetProperty("value").GetDouble();
@@ -83,7 +86,7 @@ public static class EngineSnapshotBuilder
             catch { /* 형식이 다른 이벤트는 건너뛴다 */ }
         }
 
-        string targetProcess = trigger?.ProcessName ?? "";
+        string targetProcess = trigger?.ProcessName ?? manual?.Target ?? "";
         var snapshot = new Dictionary<string, object?>
         {
             ["schema_version"] = "1.1",

@@ -49,6 +49,19 @@ public class TriggerClassifierTests
         Assert.Equal("freeze", c.SymptomType);
     }
 
+    [Theory]
+    [InlineData("", null, null)]
+    [InlineData("slow", "slow", null)]
+    [InlineData("blender", null, "blender")]
+    [InlineData("slow blender", "slow", "blender")]
+    [InlineData("FREEZE Unity.exe", "freeze", "Unity.exe")]
+    public void Manual_mark_console_arguments_are_parsed(string args, string? symptom, string? target)
+    {
+        var m = BlackBox.Marking.ManualMark.Parse(args);
+        Assert.Equal(symptom, m.Symptom);
+        Assert.Equal(target, m.Target);
+    }
+
     [Fact]
     public void Processor_power_37_is_buffered_but_not_a_trigger()
     {

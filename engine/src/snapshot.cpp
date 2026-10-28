@@ -339,6 +339,9 @@ Snapshot parseSnapshot(const json::Value& v, std::vector<std::string>* warn) {
     t.gpu_temp_max = rt["gpu_temp_max"].asNumber(-1);
     t.gpu_clock_min = rt["gpu_clock_min"].asNumber(-1);
     t.gpu_clock_max = rt["gpu_clock_max"].asNumber(-1);
+    t.gpu_name = rt["gpu_name"].asString("");
+    t.gpu_mem_total_mb = rt["gpu_mem_total_mb"].asNumber(-1);
+    t.gpu_mem_pct_max = rt["gpu_mem_pct_max"].asNumber(-1);
     if (rt["focus_process"].isObject()) {
       t.has_focus = true;
       t.focus = parseProcTrend(rt["focus_process"]);

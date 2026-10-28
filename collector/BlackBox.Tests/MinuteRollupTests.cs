@@ -154,6 +154,31 @@ public class MinuteRollupTests
     }
 
     [Fact]
+    public void Gpu_memory_peak_percentage_uses_reported_total()
+    {
+        var r = new MinuteRollup(TimeSpan.FromHours(24));
+        for (int i = 0; i < 20; i++)
+        {
+            var at = T0.AddMinutes(i);
+            r.Ingest(at, Res(at, 50), new GpuSample(at, 60, 70, 2600, 200, 3000 + 600 * i, 16376, "NVIDIA GeForce RTX 4070 Ti SUPER"), null);
+        }
+        var trends = JsonDocument.Parse(JsonSerializer.Serialize(r.Export(T0.AddMinutes(19), null, null).Trends)).RootElement;
+        Assert.Equal(16376, trends.GetProperty("gpu_mem_total_mb").GetDouble(), 0);
+        Assert.Equal(3000 + 600 * 19, trends.GetProperty("gpu_mem_used_mb_max").GetDouble(), 0);
+        Assert.Equal((3000 + 600 * 19) / 16376.0 * 100, trends.GetProperty("gpu_mem_pct_max").GetDouble(), 1);
+        Assert.Equal("NVIDIA GeForce RTX 4070 Ti SUPER", trends.GetProperty("gpu_name").GetString());
+    }
+
+    [Theory]
+    [InlineData(17171480576.0, "Data", 16376.0)]   // 0.9.7-pre749 실측: Data 타입인데 바이트
+    [InlineData(16.0, "Data", 16384.0)]            // 예전 LHM: Data = GB
+    public void Lhm_gpu_memory_value_is_normalized_to_mb(double raw, string type, double expectedMb)
+    {
+        var t = Enum.Parse<LibreHardwareMonitor.Hardware.SensorType>(type);
+        Assert.Equal(expectedMb, BlackBox.Sources.SensorSource.ToMB(t, raw), 0);
+    }
+
+    [Fact]
     public void Memory_footprint_for_24h_stays_under_two_mb()
     {
         var r = new MinuteRollup(TimeSpan.FromHours(24));

@@ -10,8 +10,9 @@ public sealed record ResourceSample(
     double CpuTotalPct,
     IReadOnlyList<ProcUsage> TopCpu);
 
-/// <summary>GPU 코어 센서 요약(SensorSource.LatestGpu). 값이 없으면 null.</summary>
-public sealed record GpuSample(DateTimeOffset At, double? Temp, double? HotSpot, double? Clock, double? Power);
+/// <summary>주 GPU 센서 요약(SensorSource.LatestGpu). 값이 없으면 null. 메모리는 MB.</summary>
+public sealed record GpuSample(DateTimeOffset At, double? Temp, double? HotSpot, double? Clock, double? Power,
+    double? MemUsedMB = null, double? MemTotalMB = null, string? Name = null);
 
 /// <summary>프로세스 목록 요약(ProcessListSource.LatestSummary): Private Bytes 상위 + 전경.</summary>
 public sealed record ProcSummary(int Pid, string Name, double PrivMB, long Handles, bool Win);
@@ -31,6 +32,8 @@ public sealed class MinuteRollup : IDisposable
     private readonly Dictionary<string, string> _namePool = new(StringComparer.OrdinalIgnoreCase);
     private readonly TimeSpan _retention;
     private DateTimeOffset _lastResAt = DateTimeOffset.MinValue, _lastGpuAt = DateTimeOffset.MinValue, _lastProcAt = DateTimeOffset.MinValue;
+    private double? _gpuMemTotalMB;
+    private string? _gpuName;
     private CancellationTokenSource? _cts;
     private Task? _loop;
 
@@ -96,11 +99,14 @@ public sealed class MinuteRollup : IDisposable
             (float)(res?.CommittedPct ?? double.NaN), (float)(res?.AvailMB ?? double.NaN), (float)(res?.GpuDedicatedMB ?? double.NaN),
             (float)(res?.CpuTotalPct ?? double.NaN), (float)(res?.PagesPerSec ?? double.NaN),
             (float)(gpu?.Temp ?? double.NaN), (float)(gpu?.HotSpot ?? double.NaN), (float)(gpu?.Clock ?? double.NaN), (float)(gpu?.Power ?? double.NaN),
+            (float)(gpu?.MemUsedMB ?? double.NaN),
             res != null, // 이 분에 CPU 상위 목록이 있었는가 — 없으면 프로세스 CPU 를 0으로 셀 수 없다
             rows.Values.ToArray());
 
         lock (_lock)
         {
+            if (gpu?.MemTotalMB is { } total) _gpuMemTotalMB = total;
+            if (gpu?.Name is { } gname) _gpuName = gname;
             _entries.Enqueue(entry);
             var cutoff = at - _retention;
             while (_entries.Count > 0 && _entries.Peek().T < cutoff) _entries.Dequeue();
@@ -152,6 +158,10 @@ public sealed class MinuteRollup : IDisposable
         double? availSlopeMBPerMin = SlopePerMin(last60, e => e.AvailMB);
         double? gpuDedSlopeMBPerMin = SlopePerMin(last60, e => e.GpuDedMB);
         double? gpuTempMax60 = Max(last60, e => e.GpuTemp), gpuClockMin60 = Min(last60, e => e.GpuClock), gpuClockMax60 = Max(last60, e => e.GpuClock);
+        double? gpuMemMax60 = Max(last60, e => e.GpuMemUsedMB);
+        double? gpuMemTotal; string? gpuName;
+        lock (_lock) { gpuMemTotal = _gpuMemTotalMB; gpuName = _gpuName; }
+        double? gpuMemPctMax = gpuMemMax60 is { } gm && gpuMemTotal is { } gt && gt > 0 ? gm / gt * 100 : null;
         int cpuMinutes = last60.Count(e => e.HasCpu);
 
         // 프로세스별 시계열 — (pid, 이름) 키: PID 재사용으로 다른 프로그램이 한 시계열에 섞이지 않게
@@ -215,6 +225,10 @@ public sealed class MinuteRollup : IDisposable
             gpu_temp_max = Round(gpuTempMax60),
             gpu_clock_min = Round(gpuClockMin60),
             gpu_clock_max = Round(gpuClockMax60),
+            gpu_name = gpuName,
+            gpu_mem_total_mb = Round(gpuMemTotal),
+            gpu_mem_used_mb_max = Round(gpuMemMax60),
+            gpu_mem_pct_max = Round(gpuMemPctMax),
             focus_process = focus,
             focus_process_last15 = focus15,
             top_memory_growers = topGrowers,
@@ -236,7 +250,7 @@ public sealed class MinuteRollup : IDisposable
     {
         t = e.T,
         commitPct = R(e.CommittedPct), availMB = R(e.AvailMB), gpuDedMB = R(e.GpuDedMB), cpuPct = R(e.CpuTotalPct), pagesPerSec = R(e.PagesPerSec),
-        gpuTemp = R(e.GpuTemp), gpuHotSpot = R(e.GpuHotSpot), gpuClock = R(e.GpuClock), gpuPower = R(e.GpuPower),
+        gpuTemp = R(e.GpuTemp), gpuHotSpot = R(e.GpuHotSpot), gpuClock = R(e.GpuClock), gpuPower = R(e.GpuPower), gpuMemMB = R(e.GpuMemUsedMB),
         procs = e.Procs.Select(p => new { p.Pid, p.Name, privMB = R(p.PrivMB), p.Handles, cpu = R(p.Cpu), fg = p.Fg ? true : (bool?)null }).ToList(),
     }).ToList();
 
@@ -278,6 +292,7 @@ public sealed class MinuteRollup : IDisposable
         DateTimeOffset T,
         float CommittedPct, float AvailMB, float GpuDedMB, float CpuTotalPct, float PagesPerSec,
         float GpuTemp, float GpuHotSpot, float GpuClock, float GpuPower,
+        float GpuMemUsedMB,
         bool HasCpu,
         ProcRow[] Procs);
 }

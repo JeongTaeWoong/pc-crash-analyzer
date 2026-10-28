@@ -234,6 +234,25 @@ void testScenarios() {
     check(powerEvt, "프로세서 속도 제한 이벤트(37)가 전원 후보 근거로 붙음");
   }
   {
+    std::cout << "[s12b] 같은 스냅샷 + GPU 메모리 95% (B 메커니즘)\n";
+    json::Value v = loadJson("s12_slow_app_memory.json");
+    json::Value rt = v["resource_trends"];
+    rt.set("gpu_mem_total_mb", json::Value(16376.0));
+    rt.set("gpu_mem_pct_max", json::Value(95.0));
+    rt.set("gpu_name", json::Value("NVIDIA GeForce RTX 4070 Ti SUPER"));
+    v.set("resource_trends", rt);
+    std::vector<std::string> warn;
+    const Snapshot s = parseSnapshot(v, &warn);
+    const Diagnosis d = diagnose(s, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool vram = false;
+    for (std::size_t i = 0; i < d.candidates.size(); i++) {
+      for (std::size_t k = 0; k < d.candidates[i].evidence.size(); k++) {
+        if (d.candidates[i].evidence[k].detail.find("GPU 메모리가") != std::string::npos) vram = true;
+      }
+    }
+    check(vram, "GPU 메모리 95% 가 초점 프로그램 근거로 붙음");
+  }
+  {
     std::cout << "[s13] 브라우저 자동 업데이트가 '증상 직전 설치'로 보이는 노이즈 (2026-10-29 실덤프 재현)\n";
     const Rules r = Rules::defaults();
     check(r.isAutoUpdateNoise("Google Chrome") && r.isAutoUpdateNoise("Microsoft Edge WebView2 런타임") &&

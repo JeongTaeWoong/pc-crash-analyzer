@@ -160,6 +160,9 @@ struct ResourceTrends {
   double gpu_temp_max = -1;
   double gpu_clock_min = -1;
   double gpu_clock_max = -1;
+  std::string gpu_name;          // 주 GPU (메모리 총량 최대)
+  double gpu_mem_total_mb = -1;  // LibreHardwareMonitor GPU Memory Total
+  double gpu_mem_pct_max = -1;   // 최근 60분 최대 사용률 %
   bool has_focus = false;
   ProcTrend focus;                        // 크래시/전경 프로세스
   std::vector<ProcTrend> memory_growers;  // 메모리 증가 상위

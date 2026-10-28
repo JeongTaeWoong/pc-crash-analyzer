@@ -45,6 +45,19 @@ public sealed class MarkService
     public void MarkManual(string via) =>
         StartMark("manual", new { type = "manual", via }, null, null, null, null);
 
+    /// <summary>
+    /// 증상·대상을 지정한 수동 마킹 (콘솔 `m slow blender`, 이후 UI 증상 대화상자가 같은 경로를 쓴다).
+    /// 대상이 있으면 롤업 초점·마지막 모듈 목록을 그 프로그램 이름으로 잡는다 — 전경(콘솔 창)이 초점이 되는 문제(10/29) 해결.
+    /// </summary>
+    public void MarkManual(string via, ManualMark manual)
+    {
+        string? target = manual.Target is { Length: > 0 } t
+            ? (t.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? t : t + ".exe")
+            : null;
+        var m = manual with { Target = target };
+        StartMark("manual", new { type = "manual", via, symptom = m.Symptom, target = m.Target }, null, null, target, null, m);
+    }
+
     public void OnAutoTrigger(EventLogTrigger t)
     {
         if (_config.IsDenied(t.ProcessName))
@@ -86,7 +99,8 @@ public sealed class MarkService
         StartMark(t.Kind, t, t, t.Pid, t.ProcessName, merged);
     }
 
-    private void StartMark(string kind, object trigger, EventLogTrigger? autoTrigger, int? crashPid, string? crashProcessName, List<EventLogTrigger>? mergedTriggers)
+    private void StartMark(string kind, object trigger, EventLogTrigger? autoTrigger, int? crashPid, string? crashProcessName, List<EventLogTrigger>? mergedTriggers,
+        ManualMark? manual = null)
     {
         var markTime = DateTimeOffset.Now;
         Console.WriteLine($"[mark] {markTime:HH:mm:ss.fff} kind={kind} — {_post.TotalSeconds:0}초 후 덤프 예정");
@@ -120,7 +134,9 @@ public sealed class MarkService
                 {
                     try
                     {
-                        int? focusPid = crashPid ?? (snapResult.ForegroundPid > 0 ? snapResult.ForegroundPid : null);
+                        // 초점: 크래시 PID > 지정 대상 이름 > 마킹 시점 전경 PID
+                        int? focusPid = crashPid;
+                        if (focusPid == null && crashProcessName == null && snapResult.ForegroundPid > 0) focusPid = snapResult.ForegroundPid;
                         var export = _rollup.Export(markTime, focusPid, crashProcessName);
                         snapshot["rollup24h"] = export.Full;
                         resourceTrends = export.Trends;
@@ -143,7 +159,7 @@ public sealed class MarkService
                     ? new { primary = trigger, mergedWithinCooldown = mergedTriggers }
                     : trigger;
 
-                var engineSnapshot = EngineSnapshotBuilder.Build(markTime, kind, autoTrigger, events, snapResult.Facts, crashModulePaths, significance, resourceTrends);
+                var engineSnapshot = EngineSnapshotBuilder.Build(markTime, kind, autoTrigger, events, snapResult.Facts, crashModulePaths, significance, resourceTrends, manual);
                 var dir = _writer.Write(markTime, kind, triggerObj, from, to, events, snapshot, engineSnapshot, significance, _buffer.Stats, _statuses);
                 Console.WriteLine($"[dump] {Json.Serialize(new { dir, completedAt = DateTimeOffset.Now, kind, events = events.Count, significance = significance?.Score, tier = significance?.Tier })}");
             }

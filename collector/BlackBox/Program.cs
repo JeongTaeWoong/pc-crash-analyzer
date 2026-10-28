@@ -70,13 +70,21 @@ statuses.Add(hotkeyStatus);
 Console.WriteLine($"[source] {Json.Serialize(hotkeyStatus)}");
 
 Console.WriteLine($"[ready] 버퍼 {pre.TotalMinutes:0}분 유지, 마킹 윈도 -{pre.TotalMinutes:0}분~+{post.TotalSeconds:0}초, 모듈 스냅샷 전략={snapshotStrategy}");
-Console.WriteLine("[ready] 수동 마킹: Ctrl+Shift+F12 또는 m+Enter | 버퍼 통계: s+Enter | 종료: q+Enter");
+Console.WriteLine("[ready] 수동 마킹: Ctrl+Shift+F12 또는 m+Enter (증상·대상 지정: m slow blender) | 버퍼 통계: s+Enter | 종료: q+Enter");
 
 while (true)
 {
     var line = Console.ReadLine();
     if (line == null) break; // stdin EOF
-    switch (line.Trim().ToLowerInvariant())
+    var cmd = line.Trim();
+    if (cmd.StartsWith("m ", StringComparison.OrdinalIgnoreCase))
+    {
+        // m [증상] [대상]  예: m slow blender / m freeze / m Unity.exe
+        var manual = ManualMark.Parse(cmd[2..]);
+        markService.MarkManual("console", manual);
+        continue;
+    }
+    switch (cmd.ToLowerInvariant())
     {
         case "m":
             markService.MarkManual("console");
@@ -103,7 +111,7 @@ while (true)
         case "":
             break;
         default:
-            Console.WriteLine("[help] m=마킹, s=통계, q=종료");
+            Console.WriteLine("[help] m=마킹, m <증상> <대상>=지정 마킹(증상: slow freeze app_crash fps_drop …), s=통계, q=종료");
             break;
     }
 }

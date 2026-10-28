@@ -383,7 +383,19 @@ void addFromResourceTrends(const Snapshot& s, const Rules& r, CandidateBag& bag)
       bag.addEvidence(idx, "sensor", "핸들 수도 분당 " + fmt1(t.focus.handle_slope_per_min) + "개씩 늘고 있습니다 (누수 의심).",
                       0.3 * scale, 0);
     }
-  } else if (!t.has_focus && t.commit_pct_now >= 85 && !t.memory_growers.empty() &&
+  }
+  // 초점이 아닌 프로세스가 강하게 늘어나는 경우 (지정 대상이 틀렸거나 배경 프로그램이 원인) — 10/29 Blender 실험에서 필요
+  for (std::size_t i = 0; i < t.memory_growers.size(); i++) {
+    const ProcTrend& g = t.memory_growers[i];
+    if (t.has_focus && (g.pid == t.focus.pid || sameSubject(g.name, t.focus.name))) continue;
+    if (g.samples < 10 || g.priv_slope_mb_per_min < 10.0 || g.priv_r2 < 0.8) continue;
+    const int idx = bag.get("app_memory", g.name, g.name + " (프로그램 자체의 메모리 누적)");
+    bag.addEvidence(idx, "sensor",
+                    "최근 " + std::to_string(t.window_minutes) + "분 동안 이 프로세스의 메모리가 분당 " +
+                        fmt1(g.priv_slope_mb_per_min) + "MB 씩 늘었습니다 (R² " + fmt2(g.priv_r2) + ", 초점 프로그램 아님).",
+                    0.6 * scale, 0);
+  }
+  if (!t.has_focus && t.commit_pct_now >= 85 && !t.memory_growers.empty() &&
              t.memory_growers[0].priv_slope_mb_per_min >= 5.0) {
     // 초점이 없을 때(수동 마킹에서 전경을 못 잡은 경우) 가장 빨리 늘어난 프로세스를 올린다
     const ProcTrend& g = t.memory_growers[0];
@@ -392,6 +404,24 @@ void addFromResourceTrends(const Snapshot& s, const Rules& r, CandidateBag& bag)
                     "커밋 메모리 " + fmt1(t.commit_pct_now) + "% 상태에서 이 프로세스의 메모리가 분당 " +
                         fmt1(g.priv_slope_mb_per_min) + "MB 씩 늘었습니다.",
                     0.6 * scale, 0);
+  }
+
+  // B. GPU 메모리(VRAM) 압박: 최근 60분 최대 사용률 90% 이상 — 초점 프로그램(없으면 GPU) 에 근거를 단다
+  if (t.gpu_mem_pct_max >= 90.0 && t.gpu_mem_total_mb > 0) {
+    const std::string detail = "GPU 메모리가 총량 " + fmt1(t.gpu_mem_total_mb / 1024.0) + "GB 의 " +
+                               fmt1(t.gpu_mem_pct_max) + "% 까지 찼습니다" +
+                               (t.gpu_name.empty() ? "" : " (" + t.gpu_name + ")") +
+                               ". 넘치면 시스템 메모리로 밀려나 급격히 느려집니다.";
+    if (t.has_focus) {
+      const int idx = bag.get("app_memory", t.focus.name, t.focus.name + " (프로그램 자체의 메모리 누적)");
+      bag.addEvidence(idx, "sensor", detail, 0.6 * scale, 0);
+    } else {
+      std::string cat;
+      std::string label;
+      r.classifyName(t.gpu_name, t.gpu_name.empty() ? "GPU" : t.gpu_name, "gpu_driver", &cat, &label);
+      const int idx = bag.get(cat, t.gpu_name.empty() ? "gpu" : t.gpu_name, label);
+      bag.addEvidence(idx, "sensor", detail, 0.4 * scale, 0);
+    }
   }
 
   // C. GPU 열 스로틀 (온도↑ 클럭↓ 공존)

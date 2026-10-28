@@ -169,7 +169,7 @@ const char* const kDefaultRulesParts[] = {
 
     {"id": "a_app_memory_hygiene", "label": "프로그램 메모리 위생 (캐시·실행 취소 이력·플러그인)", "kind": "toggle_setting",
 )JSON",
-    R"JSON(     "steps": ["작업을 저장합니다.", "프로그램의 캐시·미리보기 메모리를 비웁니다 (예: After Effects Edit > Purge > All Memory & Disk Cache, Premiere 미디어 캐시 정리, Blender 환경설정 > System > Undo Steps 축소).", "최근 추가한 플러그인·애드온을 하나씩 꺼 보며 메모리 증가가 멈추는지 확인합니다.", "장시간 작업은 1~2시간마다 저장 후 재시작하는 습관을 둡니다."],
+    R"JSON(     "steps": ["작업을 저장합니다.", "프로그램의 캐시·미리보기 메모리를 비웁니다 (예: After Effects Edit > Purge > All Memory & Disk Cache, Premiere 미디어 캐시 정리, Blender 환경설정 > System > Undo Steps 축소).", "최근 추가한 플러그인·애드온을 하나씩 꺼 보며 메모리 증가가 멈추는지 확인합니다.", "GPU 메모리가 가득 찼다면 뷰포트·미리보기 해상도와 텍스처 크기를 낮추고, GPU 를 함께 쓰는 다른 프로그램(브라우저 하드웨어 가속·오버레이)을 닫습니다.", "장시간 작업은 1~2시간마다 저장 후 재시작하는 습관을 둡니다."],
      "rollback": "바꾼 설정을 원래 값으로 되돌립니다.", "reversible": true, "requires_reboot": false, "risk": "low",
      "automation": "", "auto_default": false},
 
@@ -289,12 +289,12 @@ const char* const kDefaultRulesParts[] = {
 
     {"id": "a_driver_update_block", "label": "이 드라이버의 자동 업데이트 일시 보류", "kind": "toggle_setting",
      "steps": ["Windows 업데이트가 같은 드라이버를 다시 설치하지 않도록 'show or hide updates' 도구나 그룹 정책으로 이 드라이버 업데이트를 숨깁니다."],
-     "rollback": "숨긴 업데이트를 다시 표시합니다.", "reversible": true, "requires_reboot": false, "risk": "low",
+)JSON",
+    R"JSON(     "rollback": "숨긴 업데이트를 다시 표시합니다.", "reversible": true, "requires_reboot": false, "risk": "low",
      "automation": "wu_hide_driver:{subject}", "auto_default": false},
 
     {"id": "a_update_pause", "label": "Windows 업데이트 7일 일시 중지", "kind": "toggle_setting",
-)JSON",
-    R"JSON(     "steps": ["설정 → Windows 업데이트 → '1주 동안 일시 중지'를 누릅니다."],
+     "steps": ["설정 → Windows 업데이트 → '1주 동안 일시 중지'를 누릅니다."],
      "rollback": "'업데이트 다시 시작'을 누릅니다.", "reversible": true, "requires_reboot": false, "risk": "low",
      "automation": "wu_pause:7", "auto_default": true},
 
@@ -387,10 +387,10 @@ const char* const kDefaultRulesParts[] = {
 
   "remedies": [
     {"id": "r_app_memory_hygiene", "label": "프로그램 메모리 위생: 캐시 비우기·실행 취소 한도·플러그인 점검", "categories": ["app_memory"], "symptoms": ["slow", "freeze"],
-     "description": "장시간 작업 중 프로그램 자체가 실행 취소 이력·미리보기 캐시·플러그인 누수로 메모리를 계속 쌓는 경우입니다. 다른 프로그램과의 충돌이 아니므로 종료할 상대가 없고, 캐시를 비우고 한도를 낮추는 것이 해결입니다 (Adobe·Blender 공식 매뉴얼의 1차 조치).",
-     "actions": ["a_app_memory_hygiene"], "success_seed": 0.6},
 )JSON",
-    R"JSON(    {"id": "r_anticheat_autostart_off", "label": "안티치트를 해당 게임을 할 때만 켜기", "categories": ["anticheat"], "symptoms": ["app_crash", "freeze", "fps_drop", "slow"],
+    R"JSON(     "description": "장시간 작업 중 프로그램 자체가 실행 취소 이력·미리보기 캐시·플러그인 누수로 메모리를 계속 쌓는 경우입니다. 다른 프로그램과의 충돌이 아니므로 종료할 상대가 없고, 캐시를 비우고 한도를 낮추는 것이 해결입니다 (Adobe·Blender 공식 매뉴얼의 1차 조치).",
+     "actions": ["a_app_memory_hygiene"], "success_seed": 0.6},
+    {"id": "r_anticheat_autostart_off", "label": "안티치트를 해당 게임을 할 때만 켜기", "categories": ["anticheat"], "symptoms": ["app_crash", "freeze", "fps_drop", "slow"],
      "description": "다른 게임용 커널 안티치트가 상시 상주하면서 무관한 프로그램에 간섭하는 경우입니다. 상시 실행을 끄면 원래 게임은 그대로 쓰면서 충돌을 없앨 수 있습니다.",
      "actions": ["a_anticheat_autostart_off"], "success_seed": 0.7},
     {"id": "r_anticheat_repair", "label": "안티치트·게임 복구 및 최신 버전 업데이트", "categories": ["anticheat"],
@@ -501,12 +501,12 @@ const char* const kDefaultRulesParts[] = {
     {"symptom": "input_loss",   "category": "input_util",        "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
     {"symptom": "network_fail", "category": "security_firewall", "subject": "",        "weight": 0.7,  "solved": 0, "rejected": 0},
     {"symptom": "launch_fail",  "category": "antivirus",         "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
-    {"symptom": "flicker",      "category": "display_util",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0},
+)JSON",
+    R"JSON(    {"symptom": "flicker",      "category": "display_util",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0},
     {"symptom": "fps_drop",     "category": "thermal",           "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
     {"symptom": "unexpected_reboot", "category": "power",        "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
     {"symptom": "slow",         "category": "app_memory",        "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0},
-)JSON",
-    R"JSON(    {"symptom": "slow",         "category": "fin_security",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0}
+    {"symptom": "slow",         "category": "fin_security",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0}
   ]
 }
 )JSON",
