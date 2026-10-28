@@ -492,3 +492,20 @@ Process 카운터 인스턴스 재배정(chrome#3) 시 PID 불일치면 차분 �
 `tools/publish-collector.ps1` → `dist/BlackBox-0.6.0-win-x64.zip` 35.9MB, 213 파일(self-contained win-x64). 배포본 단독 기동 20초 확인: 소스 상태 동일(etw-kernel 은 비관리자 unavailable).
 함정: PowerShell 5.1 은 BOM 없는 UTF-8 스크립트의 한글을 깨뜨림 → ps1 에 BOM 필요. 참여자 안내문 `docs/participant-guide.md`.
 30분 조용한 조건 오버헤드는 배포본으로 측정 중(결과는 아래에 추가).
+
+### 오버헤드 30분 조용한 조건 (10/29 00:51~01:21, 배포본 v0.6.0, 비관리자, 빌드 없음, Get-Counter 10초 × 173)
+
+| 항목 | 값 |
+|---|---|
+| BlackBox CPU 평균(머신, 16 논리 CPU) | **0.255%** (기동 2분 제외 0.234%) |
+| CPU 최대 | 3.98% — 기동 직후 1샘플, 1% 초과는 173 중 1건 |
+| Private Bytes | 5분 평균 83 → 115 → 115 → 113 → 114 → 114 MB. 링버퍼(6분)가 차면 **평탄**, 마지막 15분 기울기 0.25MB/분(장기 확인은 지인 PC 2주에서) |
+| 버퍼 | 252건 4.3MB — processes 3.55MB(건당 ~99KB, privMB·handles 추가 후에도 동일 수준), sensors 0.8MB, resources 87KB |
+| 롤업 | 29분 24.3KB → 24시간 ≈ 1.2MB |
+| 핸들 | 최대 596 |
+
+v0.5 이전 0.13%(관리자+ETW, 30분) → v0.6 0.26%(비관리자). 증가분 ≈ Process 카테고리 30초 읽기(0.05%p) + 메모리·GPU 카운터 + 롤업. 1% 상한 대비 여유. 관리자+ETW 조건의 v0.6 수치는 **미측정**.
+
+### S6 앱 자체 크래시 로그 경로 (10/29 구현)
+
+`snapshot.json.appCrashLogs`: Blender `%TEMP%\*.crash.txt`, Unity `%TMP%\Unity\Editor\Crashes`, WER ReportArchive/ReportQueue, Maya `%TEMP%\*.dmp` — 최근 30일, 폴더당 10건, **경로·크기·시각만**(내용 안 읽음, `%USERPROFILE%` 치환 확인). 라이브 확인: unity 1건(10/10 crash.dmp 폴더) 기록, 나머지 0/absent. 스냅샷 캡처 7.4초(fltmc·WMI 포함, 이전과 비교 미측정).
