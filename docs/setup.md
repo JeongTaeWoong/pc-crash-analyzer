@@ -59,6 +59,7 @@ dotnet build ui/wpf/CrashAnalyzer.UI -c Release            # 또는 ui\prototype
 | `FaultLab plugin` | 네이티브 호스트(FaultHost.exe)가 플러그인 DLL 안에서 크래시 (s6 패턴) | 1000, 앱 = FaultHost.exe, 오류 모듈 = FaultPlugin.dll(비시스템 경로) |
 | `FaultLab plugin-inproc` | 비교용: .NET 프로세스 안에서 같은 DLL 호출 | CLR이 가로채 오류 모듈 = **coreclr.dll**로 기록됨 (10/28 실측 — 그래서 네이티브 호스트가 필요) |
 | `FaultLab hang 20` | 창이 응답 없음 → **직접 창을 클릭하고 닫기** | 1002 `hang-1002` |
+| `FaultLab hang-report 60 6` | 창을 멈춘 뒤 6초 후 **자기 창에 대해 WerReportHang 호출**(사람 조작 불필요, FaultLab 만 종료됨) | 1002 `hang-1002` — 10/29 실수신 확인(기록 0.5초 뒤 수신) |
 | `FaultLab cpu 30` / `disk 30 512` / `leak 2048 60` | CPU·디스크 과부하·메모리 점유 | 크래시 없음 — `slow` 수동 마킹과 함께 사용 |
 | `FaultLab crash-a/b/c` | CrashDummy와 동일 | 1000 |
 
@@ -71,3 +72,15 @@ powershell -ExecutionPolicy Bypass -File tools\publish-collector.ps1 -Version 0.
 
 zip 안에 `읽어주세요.md`(= `docs/participant-guide.md`), `blackbox.config.json`, `수집기 시작.bat` 이 함께 들어간다.
 코드 서명이 없어 SmartScreen 경고가 뜨며, 안내문에 그 사실을 적어 두었다. `dist/` 는 커밋하지 않는다.
+
+## 수집기 콘솔 명령과 검증 모드 (v0.6.1, 2026-10-29)
+
+| 입력 | 하는 일 |
+|---|---|
+| `m` | 수동 마킹 (증상·대상 없음 — 전경 창이 초점) |
+| `m slow blender` | 증상 `slow`, 대상 `blender.exe` 로 마킹 — 롤업 초점·마지막 모듈 목록을 그 프로그램으로 잡는다. 증상: `slow freeze app_crash fps_drop flicker input_loss launch_fail network_fail unexpected_reboot` |
+| `s` | 버퍼·롤업 통계 |
+| `BlackBox.exe --verify-eventlog [일수]` | 과거 이벤트 로그를 실시간 구독과 같은 파서·분류기로 다시 읽어 트리거 종류별 건수·표본·해석 누락을 출력(읽기 전용, 덤프 없음). 일수 생략 = 로그 전체 |
+| `tools\measure-overhead.ps1 -Minutes 30` | 수집기를 띄워 10초 간격 CPU·메모리를 CSV 로. **관리자 터미널에서 실행하면 ETW 포함 조건**. 결과는 `logs\overhead\`(커밋 안 함) |
+
+시작 시 `[boot] 이번 부팅 이후 기록 재생 N건` 이 찍힌다. Kernel-Power 41·BugCheck·WHEA 는 부팅 초기에 기록돼 로그온 뒤 켜지는 수집기가 실시간으로 받을 수 없어서, 시작할 때 한 번 읽어 같은 경로로 덤프한다(이미 덤프한 레코드는 건너뜀).

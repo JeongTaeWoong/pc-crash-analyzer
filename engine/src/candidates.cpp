@@ -95,9 +95,17 @@ class CandidateBag {
   int findSimilar(const std::string& category, const std::string& subject,
                   const std::string& label) const {
     if (normalizeName(subject).size() < 3) return -1;
+    // 힌트로 제품을 알아낸 표시명은 "제품 (구성요소)" 꼴이다. 같은 제품의 드라이버·DLL 여러 개는 원인 하나로 본다
+    // (10/29 Blender 실험: AhnLab Safe Transaction 커널 드라이버 5개가 각각 후보가 되어 확률을 나눠 가졌음).
+    const std::string product = productOf(label);
+    const bool hasProduct = product != label && normalizeName(product).size() >= 3;
     for (std::size_t i = 0; i < items_.size(); i++) {
       if (items_[i].category != category) continue;
       if (sameSubject(subject, items_[i].subject) || sameSubject(label, items_[i].label)) {
+        return static_cast<int>(i);
+      }
+      if (hasProduct && items_[i].label != items_[i].product &&
+          normalizeName(items_[i].product) == normalizeName(product)) {
         return static_cast<int>(i);
       }
     }

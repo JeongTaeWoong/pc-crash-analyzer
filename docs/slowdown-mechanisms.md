@@ -43,14 +43,14 @@ Application 1000 "Unity.exe 6000.4.9 / 오류 모듈 Unity.dll"이 기록돼 있
 | 어댑터 전용 메모리 사용량 | `\GPU Adapter Memory(*)\Dedicated Usage` (VidMm) | ○ (2,796 MB / 3 어댑터 인스턴스) | **신뢰 가능**. 총량 대비 비율로 압박 판정 |
 | 프로세스별 GPU 메모리 | `\GPU Process Memory(*)\Dedicated Usage` | △ 값은 나오나 한 PID가 **8,646,276 MB**로 비정상 | Microsoft 공식: Windows 10 1709+에서 이 카운터가 누수처럼 잘못된 값을 보임 [B1]. **미지원**으로 분류, 어댑터 총량만 사용 |
 | GPU 엔진 사용률 | `\GPU Engine(*)\Utilization Percentage` | ○ | 작업 부하 맥락용 |
-| LibreHardwareMonitor GPU Memory Used/Total | LHM 0.9.7 | **미확인** (스파이크 E 미빌드) | 확인되면 PerfCounter 대신 또는 교차용 |
+| LibreHardwareMonitor GPU Memory Used/Total | LHM 0.9.7 | ○ **10/29 검증**(값은 바이트) | 주 GPU 의 사용량/총량 → `resource_trends.gpu_mem_pct_max`, 엔진 B 규칙(≥90%) 구현 |
 
 ### C. 열 스로틀링
 
 | 신호 | 출처 | 이 PC 확인 | 비고 |
 |---|---|---|---|
 | GPU 온도·클럭·전력 2초 | LHM(구현됨) | ○ (10/09 30분 실측) | "온도↑ → 클럭↓" 패턴은 수집 중 |
-| GPU 스로틀 사유 플래그 | LHM | **미확인** | NVIDIA 스로틀 사유(열/전력) 노출 여부 스파이크 필요 |
+| GPU 스로틀 사유 플래그 | LHM | ✕ **미지원 확정(10/29)** | LHM 0.9.7-pre749 에 센서 없음 — 온도·클럭 공존으로 추론 |
 | CPU 속도 제한 이벤트 | System, `Microsoft-Windows-Kernel-Processor-Power` **Event 37** "프로세서 속도가 시스템 펌웨어에 의해 제한" [C1] | ○ 구독 가능 (30일 내 0건) | CPU 센서가 막힌 이 PC에서 **유일한 CPU 스로틀 신호**. Microsoft는 열이 아니라 전원 정책이 원인일 수 있다고 함 → "열"로 단정하지 않고 "속도 제한"으로만 기록 |
 | CPU 온도 | LHM | ✕ 미지원 (WinRing0 차단, 10/09 확정) | 지인 PC에서는 될 수 있음 → `unavailable` 사유를 그대로 남김 |
 
@@ -58,7 +58,7 @@ Application 1000 "Unity.exe 6000.4.9 / 오류 모듈 Unity.dll"이 기록돼 있
 
 | 신호 | 출처 | 이 PC 확인 | 비고 |
 |---|---|---|---|
-| 디스플레이 드라이버 응답 중지·복구 | System **4101** [D1] | ○ 트리거 구현됨, 30일 내 0건이라 **실수신 미확인** | TdrDelay 기본 2초·TdrDdiDelay 5초·TdrLevel 3 [D2]; 이 PC는 기본값(레지스트리 값 없음) |
+| 디스플레이 드라이버 응답 중지·복구 | System **4101** [D1] | ○ 트리거 구현됨. **10/29 과거 로그 재검증으로 실기록 7건 해석 확인**(nvlddmkm), 같은 시각 LiveKernelEvent 0x141 동반 | TdrDelay 기본 2초·TdrDdiDelay 5초·TdrLevel 3 [D2]; 이 PC는 기본값(레지스트리 값 없음) |
 | TDR 복구 실패 → BSOD | BugCheck 0x116 VIDEO_TDR_FAILURE [D2] → System 1001 BugCheck | ○ 트리거 구현됨, 사례 없음 | |
 | 앱 크래시의 오류 모듈이 **드라이버 DLL** | 1000 [3]/[11] | ○ 수집 중 | **점수기 결함**: 경로가 `\Windows\System32\DriverStore\` 아래라 현재 "시스템 모듈"로 취급돼 가산 없음 → **GPU 드라이버 범주 신설 필요**(아래 3절) |
 

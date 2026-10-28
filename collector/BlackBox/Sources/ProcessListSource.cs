@@ -31,6 +31,9 @@ public sealed class ProcessListSource : PolledSourceBase
 
     private readonly SnapshotStrategy _strategy;
     private readonly Dictionary<int, DateTime> _seen = new(); // pid → 처음 관측한 시각
+    private readonly Dictionary<int, double> _privMinuteAgo = new(); // pid → 60초 전 Private MB
+    private readonly Dictionary<int, double> _growthMB = new();
+    private HashSet<int> _stickyGrowers = new();
     private long _tick = -1;
 
     public ProcessListSource(SnapshotStrategy strategy) : base("processes", TimeSpan.FromSeconds(10))
@@ -39,7 +42,7 @@ public sealed class ProcessListSource : PolledSourceBase
     /// <summary>벤치 전용 — 운영 코드에서 쓰지 않는다.</summary>
     internal object SampleOnceForBench() => Sample();
 
-    /// <summary>롤업용 요약: Private Bytes 상위 12 + 전경 프로세스.</summary>
+    /// <summary>롤업용 요약: Private Bytes 상위 12 + 전경 프로세스 + 최근 1분 메모리 증가 상위(최대 12, 살아 있는 동안 유지).</summary>
     public ProcessSummary? LatestSummary { get; private set; }
 
     protected override object Sample()
@@ -76,6 +79,27 @@ public sealed class ProcessListSource : PolledSourceBase
             }
             var summary = rows.OrderByDescending(r => r.PrivMB).Take(12).ToList();
             if (fgPid > 0 && summary.All(r => r.Pid != fgPid) && rows.FirstOrDefault(r => r.Pid == fgPid) is { } fgRow) summary.Add(fgRow);
+
+            // 메모리가 늘고 있는 프로세스: 누수는 작게 시작하므로 "상위 12"만으로는 10분 넘게 기록되지 않는다(10/29 Blender 실험 설계 중 발견).
+            // 60초 전 대비 Private Bytes 증가 상위 8 을 고르고, 한 번 고른 프로세스는 살아 있는 동안 계속 담는다(추세에 연속 샘플이 필요, 최대 12).
+            if (_tick % 6 == 0)
+            {
+                foreach (var r in rows)
+                {
+                    if (_privMinuteAgo.TryGetValue(r.Pid, out var before) && r.PrivMB - before >= 1.0)
+                        _growthMB[r.Pid] = r.PrivMB - before;
+                }
+                foreach (var pid in _growthMB.OrderByDescending(kv => kv.Value).Take(8).Select(kv => kv.Key))
+                    _stickyGrowers.Add(pid);
+                _growthMB.Clear();
+                _privMinuteAgo.Clear();
+                foreach (var r in rows) _privMinuteAgo[r.Pid] = r.PrivMB;
+                _stickyGrowers.RemoveWhere(pid => !alive.Contains(pid));
+                if (_stickyGrowers.Count > 12)
+                    _stickyGrowers = new HashSet<int>(rows.Where(r => _stickyGrowers.Contains(r.Pid)).OrderByDescending(r => r.PrivMB).Take(12).Select(r => r.Pid));
+            }
+            foreach (var r in rows)
+                if (_stickyGrowers.Contains(r.Pid) && summary.All(x => x.Pid != r.Pid)) summary.Add(r);
             LatestSummary = new ProcessSummary(DateTimeOffset.Now, fgPid, summary);
 
             // 모듈 열거 대상 선정

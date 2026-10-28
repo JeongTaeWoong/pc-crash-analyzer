@@ -159,4 +159,5 @@ CrashDummy: (a) 즉시 unhandled exception — 수명 ~90ms, (b) 5초 후 FailFa
 | 배포본 | `dist/BlackBox-0.6.0-win-x64.zip` 35.9MB, 213 파일, 설치 불필요 | 코드 서명 없음(SmartScreen 경고) |
 | 단위 테스트 | 수집기 xUnit 47 · 엔진 152 | |
 
-**미측정·미확인**: 1002·BugCheck·4101·Event 37 실수신, LHM GPU 메모리/스로틀 사유 센서, 관리자+ETW 조건의 v0.6 오버헤드, 2주 이상 장기 메모리, 지인 PC 데이터(0건).
+**미측정·미확인**(10/29 v0.6.1 갱신): BugCheck 1001·WHEA·Event 37 은 이 PC 에 기록이 없어 미확인, 관리자+ETW 조건의 v0.6 오버헤드(`tools/measure-overhead.ps1` 준비됨), 2주 이상 장기 메모리, 지인 PC 데이터(0건).
+1002·4101·41·LiveKernelEvent 는 과거 로그 재검증과 FaultLab hang-report 로 **검증됨**, GPU 메모리 센서 검증·스로틀 사유 센서 미지원 확정 — `collector/NOTES.md` v0.6.1 절.

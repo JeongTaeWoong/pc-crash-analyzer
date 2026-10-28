@@ -509,3 +509,50 @@ v0.5 이전 0.13%(관리자+ETW, 30분) → v0.6 0.26%(비관리자). 증가분 
 ### S6 앱 자체 크래시 로그 경로 (10/29 구현)
 
 `snapshot.json.appCrashLogs`: Blender `%TEMP%\*.crash.txt`, Unity `%TMP%\Unity\Editor\Crashes`, WER ReportArchive/ReportQueue, Maya `%TEMP%\*.dmp` — 최근 30일, 폴더당 10건, **경로·크기·시각만**(내용 안 읽음, `%USERPROFILE%` 치환 확인). 라이브 확인: unity 1건(10/10 crash.dmp 폴더) 기록, 나머지 0/absent. 스냅샷 캡처 7.4초(fltmc·WMI 포함, 이전과 비교 미측정).
+
+
+## v0.6.1 — 미확인 항목 로컬 검증 (2026-10-29, 비관리자)
+
+### 스파이크 E 재검증 (LHM 0.9.7-pre749)
+
+| 센서 | 결과 | 분류 |
+|---|---|---|
+| NVIDIA `GPU Memory Total/Used/Free` | Data 타입, 값은 **바이트**(Total 17,171,480,576) — 문서상 Data=GB 와 다름 | 검증됨 → MB 정규화 |
+| `D3D Dedicated/Shared Memory Used` | 값 있음 | 검증됨(미사용) |
+| 스로틀 사유(NVML throttle reason) | 센서 없음 | **미지원 확정** |
+| `SensorType.SmallData` | 이 버전에 형식 자체가 없음(컴파일 오류로 확인) | — |
+
+**결함 발견·수정**: 하드웨어 열거 순서가 `GpuAmd`(CPU 내장 Radeon) → `GpuNvidia` 라 롤업 GPU 온도·클럭이 **내장 그래픽 값**(클럭 600MHz)이었다. 주 GPU = 메모리 총량 최대 GPU 로 바꾸고, 엔진 스냅샷도 `primaryGpu` 를 써서 AMD 외장 GPU PC 에서도 동작하게 했다.
+
+### 과거 이벤트 로그 재검증 (`--verify-eventlog`, 로그 전체 2025-12-04~)
+
+블루스크린·전원 차단·TDR 을 일부러 일으키지 않고, 이 PC 에 남은 실제 기록을 실시간 구독과 같은 파서·분류기로 다시 읽었다.
+
+| 종류 | 건수 | 분류 |
+|---|---|---|
+| crash-1000 | 142 (수정 전 144) | 검증됨 |
+| crash-1001 / hang-1001 | 248 / 8 | 검증됨 |
+| **hang-1002** | 19 | **검증됨(실기록 해석)** |
+| **display-4101** | 7 | **검증됨(실기록 해석)** — 공급자 Display, 메시지 "nvlddmkm 응답 중지 후 복구" |
+| **kernel-live** | 16 — 코드 0x141 12건, 0x144 4건 | 검증됨 |
+| **power-41** | 118 — BugcheckCode 전부 0 | 검증됨 |
+| bsod-1001 (BugCheck) | 0 | 미확인(이 PC 에 기록 없음) |
+| WHEA | 0 | 미확인(기록 없음) |
+| Event 37 | 0 | 미확인(기록 없음) |
+
+발견과 수정:
+- **ID 1000 을 다른 공급자도 쓴다**: ".NET Runtime" 1000 2건(ASP.NET Kestrel 경고)이 앱 크래시로 잡혀 있었다 → 구독·분류를 공급자 `Application Error`/`Windows Error Reporting`/`Application Hang` 로 제한. 재검증 후 해석 누락 0건.
+- **Kernel-Power 41 118건의 속성**: BugcheckCode 0 이 118건, 그중 SleepInProgress=6 110건·4 1건, 0/0/0 7건, 전원 버튼 0건. 전부 기본점 90 이면 RADAR_PRE_LEAK 같은 노이즈가 된다 → BugcheckCode≠0 `bsod-41`(90) / 전원 버튼 60 / 절전 전환 중 40 / 0·0·0 90 으로 세분. SleepInProgress 값의 의미는 Microsoft 문서에서 확인 못 함(**미확인**), 필드명만 근거.
+- **41 은 실시간으로 받을 수 없다**: 부팅 초기에 기록돼 로그온 뒤 켜지는 수집기의 EventLogWatcher 는 못 본다 → 시작 시 "이번 부팅 이후" System 41·BugCheck·WHEA 를 한 번 재생, 기존 덤프 meta.json 의 RecordId 로 중복 방지. 라이브 확인: 10/05 부팅의 41 1건 재생·덤프, 같은 폴더 재실행 시 0건.
+- **LiveKernelEvent 의 P1 은 프로세스가 아니라 라이브 덤프 코드**: 0x141 VIDEO_ENGINE_TIMEOUT_DETECTED(12건, 4101 과 같은 시각), 0x144 BUGCODE_USB3_DRIVER(4건) — Microsoft Learn 라이브 덤프 코드 문서. 0x141/0x117 → `flicker`(TDR 계열), 0x144 → USB3. 엔진은 이제 LiveKernelEvent 를 앱 크래시로 세지 않고 0x141/0x117 을 디스플레이 신호로 본다.
+- 시스템 범위 사건의 엔진 `target_process` 에 "BugcheckCode 0" 이 들어가던 결함 수정.
+
+### 1002 실수신 (FaultLab hang-report)
+
+`FaultLab hang-report 60 6`: UI 스레드를 멈춘 뒤 같은 프로세스의 배경 스레드가 자기 창에 `WerReportHang`(faultrep.dll, Microsoft Learn 문서화 API) 호출 → 반환 0x10000000, FaultLab 즉시 종료, **Application Hang 1002 기록(02:02:04) → 수집기 수신 0.5초 뒤, PID 346764 해석, hang-1002 덤프**(테스트 아티팩트라 hidden). 사람 조작 없이 반복 가능. Microsoft 는 이 API 를 최상위 창에 쓰지 말라고 권하지만(자식 창용), 대상이 우리 테스트 프로그램 자신뿐이라 시험 도구로만 쓴다. → **1002 검증됨**.
+
+### 마킹 순간 비용 (중간발표 14쪽 "1코어 ~10%" 원인)
+
+항목별 캡처 시간(수동 마킹 2회): 전체 프로세스 모듈 열거 **7,436 / 7,306ms**, 필터 드라이버 230ms, 설치 이력 17ms, 보안 제품 1ms, 앱 크래시 로그 2ms → 원인은 모듈 열거.
+스파이크 J(`collector/spikes/J-ModuleSweep`, 546 프로세스, 3회): .NET `Process.Modules` **6.1초** vs Toolhelp32 **0.33초**(18배). 열거되는 프로세스·모듈 집합 동일, 차이는 Toolhelp32 가 WOW64 프로세스의 실행 파일을 한 번 더 내는 중복뿐(중복 제거).
+적용 후: 스냅샷 전체 **7.6초 → 0.64초**(모듈 열거 0.39초), 10초 주기 모듈 스냅샷 scanMs 50~60ms.

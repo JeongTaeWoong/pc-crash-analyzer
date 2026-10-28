@@ -250,6 +250,35 @@ void testScenarios() {
     check(signals::isAppCrashEvent(app), "일반 WER 1001 은 그대로 앱 크래시");
   }
   {
+    std::cout << "[s12c] 같은 제품의 커널 드라이버 여러 개는 후보 하나 + 클린 부트는 대상 프로그램을 덮지 않음\n";
+    json::Value v = loadJson("s12_slow_app_memory.json");
+    json::Value drv = json::Value::makeArray();
+    const char* names[] = {"AntiStealth_SafeTransaction", "asc_kbc_SafeTransaction", "ATamptNt_SafeTransaction"};
+    for (int i = 0; i < 3; i++) {
+      json::Value d = json::Value::makeObject();
+      d.set("name", json::Value(names[i]));
+      d.set("type", json::Value("kernel"));
+      drv.push(d);
+    }
+    v.set("drivers", drv);
+    std::vector<std::string> warn;
+    const Snapshot s = parseSnapshot(v, &warn);
+    const Diagnosis d = diagnose(s, Rules::defaults(), EngineVersion::V1, guide, warn);
+    int ast = 0;
+    for (std::size_t i = 0; i < d.candidates.size(); i++) {
+      if (containsNoCase(d.candidates[i].label, "Safe Transaction")) ast++;
+    }
+    check(ast == 1, "AhnLab Safe Transaction 드라이버 3개 → 후보 1개", std::to_string(ast) + "건");
+    bool cleanBootCoversApp = false;
+    for (std::size_t i = 0; i < d.plan.steps.size(); i++) {
+      if (d.plan.steps[i].check.template_id != "clean_boot") continue;
+      for (std::size_t k = 0; k < d.plan.steps[i].check.covers.size(); k++) {
+        if (d.plan.steps[i].check.covers[k].find("app_memory:") == 0) cleanBootCoversApp = true;
+      }
+    }
+    check(!cleanBootCoversApp, "클린 부트 점검이 대상 프로그램 자체(app_memory)를 덮지 않음");
+  }
+  {
     std::cout << "[s12b] 같은 스냅샷 + GPU 메모리 95% (B 메커니즘)\n";
     json::Value v = loadJson("s12_slow_app_memory.json");
     json::Value rt = v["resource_trends"];
