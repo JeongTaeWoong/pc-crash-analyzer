@@ -110,13 +110,9 @@ public sealed class ProcessListSource : PolledSourceBase
             {
                 try
                 {
-                    var nonSystem = new List<string>();
-                    foreach (ProcessModule m in p.Modules)
-                    {
-                        var file = m.FileName;
-                        if (!string.IsNullOrEmpty(file) && !SystemRoots.Any(r => file.StartsWith(r, StringComparison.OrdinalIgnoreCase)))
-                            nonSystem.Add(file);
-                    }
+                    var all = ModuleEnumerator.ModulePaths(p.Id); // Toolhelp32 (스파이크 J)
+                    if (all == null) { moduleDenied++; continue; }
+                    var nonSystem = all.Where(file => !SystemRoots.Any(r => file.StartsWith(r, StringComparison.OrdinalIgnoreCase))).ToList();
                     modules.Add(new { pid = p.Id, name = p.ProcessName, mods = nonSystem.Take(40).ToList() });
                 }
                 catch { moduleDenied++; }

@@ -61,6 +61,30 @@ switch (mode)
         break;
     }
 
+    case "hang-report":
+    {
+        // 사람 없이 응답 없음 보고를 재현: UI 스레드를 멈춘 뒤, 같은 프로세스의 배경 스레드가 자기 창에 대해 WerReportHang 을 호출한다.
+        // Microsoft Learn: "no-response reporting 을 시작하고, 완료 후 그 창을 만든 프로세스를 종료한다". 대상은 이 테스트 프로그램 자신뿐이다.
+        int sec = Arg(1, 60), after = Arg(2, 6);
+        Console.WriteLine($"창을 띄우고 UI 스레드를 {sec}초 멈춘 뒤, {after}초 후 자기 창에 대해 WerReportHang 호출 (이 프로세스만 종료됨)");
+        var form = new System.Windows.Forms.Form { Text = "FaultLab — 응답 없음 자동 보고", Width = 420, Height = 160 };
+        form.Shown += (_, _) =>
+        {
+            var hwnd = form.Handle;
+            new Thread(() =>
+            {
+                Thread.Sleep(after * 1000);
+                Mark("WER_REPORT_HANG_AT");
+                int hr = WerReportHang(hwnd, "FaultLab");
+                Console.WriteLine($"WerReportHang hr=0x{hr:x8}");
+            }) { IsBackground = true }.Start();
+            Mark("HANG_AT");
+            Thread.Sleep(sec * 1000);
+        };
+        System.Windows.Forms.Application.Run(form);
+        break;
+    }
+
     case "cpu":
     {
         int sec = Arg(1, 30), threads = Arg(2, Environment.ProcessorCount);
@@ -148,6 +172,9 @@ static string FindPlugin()
     }
     return "FaultPlugin.dll";
 }
+
+[DllImport("faultrep.dll", CharSet = CharSet.Unicode)]
+static extern int WerReportHang(IntPtr hwndHungApp, string? pwzHungApplicationName);
 
 [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 delegate void FaultCrash();

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Management;
+using BlackBox.Core;
 using BlackBox.Sources;
 using Microsoft.Win32;
 
@@ -29,18 +30,28 @@ public sealed class StateSnapshotter
         var sw = Stopwatch.StartNew();
         var facts = new EngineFacts();
         int fgPid = ProcessListSource.GetForegroundPid();
+        // 항목별 소요 시간 — 중간발표 14쪽 "마킹 순간 1코어 ~10%" 원인 분석용(10/29)
+        var timings = new Dictionary<string, long>();
+        object Timed(string name, Func<object> f)
+        {
+            var t = Stopwatch.StartNew();
+            var r = Guard(f);
+            timings[name] = t.ElapsedMilliseconds;
+            return r;
+        }
         var snapshot = new Dictionary<string, object?>
         {
             ["capturedAt"] = DateTimeOffset.Now,
             ["fgPidAtMark"] = fgPid,
-            ["processes"] = Guard(CaptureProcessModules),
-            ["filterDrivers"] = Guard(() => CaptureFilterDrivers(facts)),
+            ["processes"] = Timed("processModules", CaptureProcessModules),
+            ["filterDrivers"] = Timed("filterDrivers", () => CaptureFilterDrivers(facts)),
             ["sensors"] = _sensorSource.Latest ?? new { status = "unavailable", reason = "센서 샘플 없음" },
-            ["recentInstalls30d"] = Guard(() => CaptureRecentInstalls(facts)),
-            ["securityProducts"] = Guard(() => CaptureSecurityProducts(facts)),
-            ["appCrashLogs"] = Guard(CaptureAppCrashLogs),
+            ["recentInstalls30d"] = Timed("recentInstalls", () => CaptureRecentInstalls(facts)),
+            ["securityProducts"] = Timed("securityProducts", () => CaptureSecurityProducts(facts)),
+            ["appCrashLogs"] = Timed("appCrashLogs", CaptureAppCrashLogs),
         };
         snapshot["captureDurationMs"] = sw.ElapsedMilliseconds;
+        snapshot["captureTimingsMs"] = timings;
         return new SnapshotResult(snapshot, facts, fgPid);
     }
 
@@ -118,20 +129,17 @@ public sealed class StateSnapshotter
             total++;
             try
             {
-                var nonSystem = new List<string>();
-                foreach (ProcessModule m in p.Modules)
-                {
-                    var file = m.FileName;
-                    if (!string.IsNullOrEmpty(file) && !SystemRoots.Any(r => file.StartsWith(r, StringComparison.OrdinalIgnoreCase)))
-                        nonSystem.Add(file);
-                }
+                // Toolhelp32 (스파이크 J: .NET Process.Modules 대비 18배 빠름, 같은 모듈 집합) — 마킹 순간 CPU 급증의 97% 가 여기였다
+                var all = ModuleEnumerator.ModulePaths(p.Id);
+                if (all == null) { accessDenied++; continue; }
+                var nonSystem = all.Where(file => !SystemRoots.Any(r => file.StartsWith(r, StringComparison.OrdinalIgnoreCase))).ToList();
                 if (nonSystem.Count > 0)
                     withNonSystem.Add(new { pid = p.Id, name = p.ProcessName, count = nonSystem.Count, modules = nonSystem.Take(40).ToList() });
             }
             catch { accessDenied++; }
             finally { p.Dispose(); }
         }
-        return new { total, accessDenied, withNonSystemModules = withNonSystem };
+        return new { total, accessDenied, method = "toolhelp32", withNonSystemModules = withNonSystem };
     }
 
     private static object CaptureFilterDrivers(EngineFacts facts)
