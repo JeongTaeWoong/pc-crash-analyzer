@@ -59,11 +59,11 @@ bool sameSubject(const std::string& a, const std::string& b) {
 
 Layer layerOfCategory(const std::string& category) {
   const char* sw[] = {"anticheat", "antivirus", "fin_security", "security_firewall",
-                      "overlay",   "input_util", "other_sw"};
+                      "overlay",   "input_util", "other_sw",    "app_memory"};
   const char* drv[] = {"gpu_driver",     "display_util", "peripheral_driver",
                        "network_driver", "os_update",    "other_driver"};
   const char* hw[] = {"thermal", "power", "connection", "storage", "memory"};
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < 8; i++) {
     if (category == sw[i]) return Layer::Software;
   }
   for (int i = 0; i < 6; i++) {

@@ -345,6 +345,11 @@ std::string fmt1(double v) {
   std::snprintf(buf, sizeof(buf), "%.1f", v);
   return buf;
 }
+std::string fmt2(double v) {
+  char buf[32];
+  std::snprintf(buf, sizeof(buf), "%.2f", v);
+  return buf;
+}
 
 // 수집기 v0.6 의 60분 자원 추세(resource_trends)로 느려짐 메커니즘 후보를 만든다 (docs/slowdown-mechanisms.md 2절 분기표).
 //   A 앱 메모리 증가 : 초점 프로세스의 Private Bytes 가 분당 5MB 이상 단조 증가(R² ≥ 0.7) → 그 프로그램 자체(other_sw 등)
@@ -358,15 +363,13 @@ void addFromResourceTrends(const Snapshot& s, const Rules& r, CandidateBag& bag)
 
   // A. 초점 프로세스 메모리 증가
   if (t.has_focus && t.focus.samples >= 10 && t.focus.priv_slope_mb_per_min >= 5.0 && t.focus.priv_r2 >= 0.7) {
-    std::string cat;
-    std::string label;
-    r.classifyName(t.focus.name, t.focus.name, "other_sw", &cat, &label);
-    const int idx = bag.get(cat, t.focus.name, label + " (메모리 증가)");
+    // 프로그램 '자체'의 메모리 누적은 충돌 상대가 아니라 app_memory 범주(저장 후 재시작·캐시 비우기 처방)
+    const int idx = bag.get("app_memory", t.focus.name, t.focus.name + " (프로그램 자체의 메모리 누적)");
     bag.addEvidence(idx, "sensor",
                     "최근 " + std::to_string(t.window_minutes) + "분 동안 메모리가 분당 " +
                         fmt1(t.focus.priv_slope_mb_per_min) + "MB 씩 꾸준히 늘었습니다 (" +
                         fmt1(t.focus.priv_mb_start) + "→" + fmt1(t.focus.priv_mb_now) + "MB, R² " +
-                        fmt1(t.focus.priv_r2) + ").",
+                        fmt2(t.focus.priv_r2) + ").",
                     0.8 * scale, 0);
     if (t.commit_pct_now >= 85) {
       bag.addEvidence(idx, "sensor",
@@ -380,10 +383,7 @@ void addFromResourceTrends(const Snapshot& s, const Rules& r, CandidateBag& bag)
              t.memory_growers[0].priv_slope_mb_per_min >= 5.0) {
     // 초점이 없을 때(수동 마킹에서 전경을 못 잡은 경우) 가장 빨리 늘어난 프로세스를 올린다
     const ProcTrend& g = t.memory_growers[0];
-    std::string cat;
-    std::string label;
-    r.classifyName(g.name, g.name, "other_sw", &cat, &label);
-    const int idx = bag.get(cat, g.name, label + " (메모리 증가)");
+    const int idx = bag.get("app_memory", g.name, g.name + " (프로그램 자체의 메모리 누적)");
     bag.addEvidence(idx, "sensor",
                     "커밋 메모리 " + fmt1(t.commit_pct_now) + "% 상태에서 이 프로세스의 메모리가 분당 " +
                         fmt1(g.priv_slope_mb_per_min) + "MB 씩 늘었습니다.",

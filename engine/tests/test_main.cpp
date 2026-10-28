@@ -216,8 +216,14 @@ void testScenarios() {
     std::cout << "[s12] 장시간 작업 중 느려짐 — 앱 메모리 증가 (수집기 v0.6 resource_trends, 2026-10-29)\n";
     const Diagnosis d = diagnoseFile("s12_slow_app_memory.json", guide);
     check(d.symptom == "slow", "증상 slow 를 읽음", d.symptom);
-    check(d.top() && sameSubject(d.top()->subject, "Unity"),
-          "1순위 = 대상 프로그램 자체의 메모리 증가(분당 12MB, R² 0.97)", topLabel(d));
+    check(d.top() && sameSubject(d.top()->subject, "Unity") && d.top()->category == "app_memory",
+          "1순위 = 대상 프로그램 자체의 메모리 누적(app_memory, 분당 12MB, R² 0.97)", topLabel(d));
+    // 플래너는 비용 가중이라 20초짜리 오버레이 점검이 먼저 올 수 있다 — 재시작 점검이 계획에 들어가는지만 본다
+    bool restartPlanned = false;
+    for (std::size_t i = 0; i < d.plan.steps.size(); i++) {
+      if (d.plan.steps[i].check.template_id == "app_memory_restart_test") restartPlanned = true;
+    }
+    check(restartPlanned, "계획에 '저장 후 프로그램 재시작' 점검 포함(의심 프로그램 종료가 아님)");
     bool finsec = false;
     bool powerEvt = false;
     for (std::size_t i = 0; i < d.candidates.size(); i++) {
