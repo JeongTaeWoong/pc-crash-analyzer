@@ -18,3 +18,6 @@ recordings/
 
 # 배포 빌드 산출물 (tools/publish-collector.ps1)
 dist/
+
+# 골든 셋 케이스(개인 PC 덤프 파생) — FaultLab 합성 케이스만 검토 후 수동 커밋
+cases/
