@@ -339,6 +339,96 @@ void addFromCrashModules(const Snapshot& s, const Rules& r, CandidateBag& bag) {
   }
 }
 
+// 수치 표시용 (소수 1자리)
+std::string fmt1(double v) {
+  char buf[32];
+  std::snprintf(buf, sizeof(buf), "%.1f", v);
+  return buf;
+}
+
+// 수집기 v0.6 의 60분 자원 추세(resource_trends)로 느려짐 메커니즘 후보를 만든다 (docs/slowdown-mechanisms.md 2절 분기표).
+//   A 앱 메모리 증가 : 초점 프로세스의 Private Bytes 가 분당 5MB 이상 단조 증가(R² ≥ 0.7) → 그 프로그램 자체(other_sw 등)
+//   C 열 스로틀     : GPU 최고 온도 83℃ 이상이면서 최저 클럭이 최고의 75% 미만 → thermal
+//   E 외부 간섭     : 초점이 아닌 프로세스가 60분 평균 CPU 10% 이상 → 그 프로세스(hints 로 백신·금융보안 분류)
+// 느려짐(slow)이 아닌 증상에서도 근거는 붙이되 기여도를 절반으로 — 크래시 직전 메모리 폭증은 참고 정보다.
+void addFromResourceTrends(const Snapshot& s, const Rules& r, CandidateBag& bag) {
+  const ResourceTrends& t = s.trends;
+  if (!t.available) return;
+  const double scale = (s.symptom == Symptom::Slow) ? 1.0 : 0.5;
+
+  // A. 초점 프로세스 메모리 증가
+  if (t.has_focus && t.focus.samples >= 10 && t.focus.priv_slope_mb_per_min >= 5.0 && t.focus.priv_r2 >= 0.7) {
+    std::string cat;
+    std::string label;
+    r.classifyName(t.focus.name, t.focus.name, "other_sw", &cat, &label);
+    const int idx = bag.get(cat, t.focus.name, label + " (메모리 증가)");
+    bag.addEvidence(idx, "sensor",
+                    "최근 " + std::to_string(t.window_minutes) + "분 동안 메모리가 분당 " +
+                        fmt1(t.focus.priv_slope_mb_per_min) + "MB 씩 꾸준히 늘었습니다 (" +
+                        fmt1(t.focus.priv_mb_start) + "→" + fmt1(t.focus.priv_mb_now) + "MB, R² " +
+                        fmt1(t.focus.priv_r2) + ").",
+                    0.8 * scale, 0);
+    if (t.commit_pct_now >= 85) {
+      bag.addEvidence(idx, "sensor",
+                      "시스템 커밋 메모리가 " + fmt1(t.commit_pct_now) + "% 로 한계에 가깝습니다.", 0.5 * scale, 0);
+    }
+    if (t.focus.handle_slope_per_min >= 2.0) {
+      bag.addEvidence(idx, "sensor", "핸들 수도 분당 " + fmt1(t.focus.handle_slope_per_min) + "개씩 늘고 있습니다 (누수 의심).",
+                      0.3 * scale, 0);
+    }
+  } else if (!t.has_focus && t.commit_pct_now >= 85 && !t.memory_growers.empty() &&
+             t.memory_growers[0].priv_slope_mb_per_min >= 5.0) {
+    // 초점이 없을 때(수동 마킹에서 전경을 못 잡은 경우) 가장 빨리 늘어난 프로세스를 올린다
+    const ProcTrend& g = t.memory_growers[0];
+    std::string cat;
+    std::string label;
+    r.classifyName(g.name, g.name, "other_sw", &cat, &label);
+    const int idx = bag.get(cat, g.name, label + " (메모리 증가)");
+    bag.addEvidence(idx, "sensor",
+                    "커밋 메모리 " + fmt1(t.commit_pct_now) + "% 상태에서 이 프로세스의 메모리가 분당 " +
+                        fmt1(g.priv_slope_mb_per_min) + "MB 씩 늘었습니다.",
+                    0.6 * scale, 0);
+  }
+
+  // C. GPU 열 스로틀 (온도↑ 클럭↓ 공존)
+  if (t.gpu_temp_max >= 83 && t.gpu_clock_max > 0 && t.gpu_clock_min >= 0 &&
+      t.gpu_clock_min < 0.75 * t.gpu_clock_max) {
+    const int idx = bag.get("thermal", "thermal", hardwareLabel("thermal"));
+    bag.addEvidence(idx, "sensor",
+                    "최근 " + std::to_string(t.window_minutes) + "분 GPU 최고 " + fmt1(t.gpu_temp_max) +
+                        "℃, 클럭이 " + fmt1(t.gpu_clock_max) + "→" + fmt1(t.gpu_clock_min) + "MHz 로 떨어졌습니다.",
+                    0.7 * scale, 0);
+  }
+
+  // E. 외부 간섭: 초점이 아닌 상주 프로세스의 CPU 점유
+  for (std::size_t i = 0; i < t.top_cpu.size(); i++) {
+    const ProcTrend& p = t.top_cpu[i];
+    if (p.cpu_avg < 10.0 || p.samples < 10) continue;
+    if (t.has_focus && (p.pid == t.focus.pid || sameSubject(p.name, t.focus.name))) continue;
+    if (!s.target_process.empty() && sameSubject(p.name, s.target_process)) continue;
+    std::string cat;
+    std::string label;
+    r.classifyName(p.name, p.name, "other_sw", &cat, &label);
+    const int idx = bag.get(cat, p.name, label);
+    bag.addEvidence(idx, "coexist",
+                    "배경에서 최근 " + std::to_string(t.window_minutes) + "분 평균 CPU " + fmt1(p.cpu_avg) +
+                        "% 를 계속 점유했습니다.",
+                    0.6 * scale, 0);
+  }
+
+  // CPU 속도 제한 이벤트(Kernel-Processor-Power 37): Microsoft 는 펌웨어·전원 정책 원인을 들므로 power 쪽에 둔다
+  int limited = 0;
+  for (std::size_t i = 0; i < s.events.size(); i++) {
+    if (s.events[i].id == 37 && containsNoCase(s.events[i].provider, "Processor-Power")) limited++;
+  }
+  if (limited > 0) {
+    const int idx = bag.get("power", "power", hardwareLabel("power"));
+    bag.addEvidence(idx, "event",
+                    "프로세서 속도가 시스템 펌웨어에 의해 제한된 기록이 " + std::to_string(limited) + "건 있습니다 (이벤트 37).",
+                    0.5 * scale, 0);
+  }
+}
+
 // 조건(pred)에 맞는 이벤트 수. firstTime 이 있으면 처음 나온 이벤트 시각을 적어 준다.
 int countEvents(const Snapshot& s, bool (*pred)(const EventItem&), long long* firstTime) {
   int n = 0;
@@ -549,6 +639,7 @@ std::vector<Candidate> buildCandidates(const Snapshot& s, const Rules& r,
   addFromCrashModules(s, r, bag);
   addDriverEventEvidence(s, r, bag);
   addHardwareCandidates(s, bag);
+  addFromResourceTrends(s, r, bag);
 
   const std::string symptom = toString(s.symptom);
   const double availability = availabilityFactor(s);

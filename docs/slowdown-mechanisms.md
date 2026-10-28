@@ -88,11 +88,11 @@ Application 1000 "Unity.exe 6000.4.9 / 오류 모듈 Unity.dll"이 기록돼 있
 
 | # | 변경 | 근거 | 상태 |
 |---|---|---|---|
-| S1 | 분 단위 롤업에 **프로세스별 Private Bytes·Handle Count** 보존(상위 N + 전경) → 덤프 시 최근 60분 기울기 | A | 설계 |
-| S2 | `\Memory\Committed Bytes`·`Commit Limit`·`Available MBytes` 10초 샘플 + 롤업 | A | 스파이크 ○ |
-| S3 | `\GPU Adapter Memory(*)\Dedicated Usage` 10초 샘플 (프로세스별은 **미지원**으로 기록) | B, [B1] | 스파이크 ○ |
-| S4 | System Event 37(Kernel-Processor-Power) 구독 → 트리거 아님, 버퍼 이벤트 | C, [C1] | 스파이크 ○ |
-| S5 | `SignificanceScorer`: 오류 모듈 경로가 `\DriverStore\` 또는 알려진 GPU 드라이버 DLL이면 `gpu-driver-module` 태그(+20) | D | 코드 수정 필요, 테스트 추가 |
+| S1 | 분 단위 롤업에 **프로세스별 Private Bytes·Handle Count** 보존(상위 N + 전경) → 덤프 시 최근 60분 기울기 | A | **구현(10/29)** `MinuteRollup` 24h, 덤프 `rollup24h` + `resource_trends` |
+| S2 | `\Memory\Committed Bytes`·`Commit Limit`·`Available MBytes` 10초 샘플 + 롤업 | A | **구현(10/29)** `ResourceSource` |
+| S3 | `\GPU Adapter Memory(*)\Dedicated Usage` 10초 샘플 (프로세스별은 **미지원**으로 기록) | B, [B1] | **구현(10/29)** `ResourceSource` |
+| S4 | System Event 37(Kernel-Processor-Power) 구독 → 트리거 아님, 버퍼 이벤트 | C, [C1] | **구현(10/29)**; 엔진은 37을 power 근거로 |
+| S5 | `SignificanceScorer`: 오류 모듈 경로가 `\DriverStore\` 또는 알려진 GPU 드라이버 DLL이면 `gpu-driver-module` 태그(+20) | D | **구현(10/29)** + 테스트 3건 |
 | S6 | 덤프 시 **앱 자체 크래시 로그의 경로·크기·시각만** 기록(Unity Crashes·`%TEMP%\*.crash.txt`·WER ReportArchive). 내용은 읽지 않음 | A, [A3][A4][A5] | 설계. 개인정보: 경로만, `%USERPROFILE%` 치환 |
 | S7 | 마킹 시 **한 줄 메모** 입력(선택) → `meta.userNote` | 요구 3 | UI 측(송민석)과 협의 |
 | S8 | 프로세스 스냅샷에 **명령줄 인수**를 넣을지 결정 — 커스텀 스크립트(python.exe·node.exe)의 정체는 명령줄에만 있음 | 요구 3 | **결정 필요**: 개인정보 위험(경로·토큰) vs 진단 가치. 넣는다면 스크립트 파일명만 |

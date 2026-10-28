@@ -68,7 +68,8 @@
     "input_loss":        {"input_util": 0.30, "antivirus": 0.18, "fin_security": 0.15, "connection": 0.15, "overlay": 0.08, "peripheral_driver": 0.10},
     "launch_fail":       {"antivirus": 0.30, "anticheat": 0.20, "fin_security": 0.18, "security_firewall": 0.12, "other_sw": 0.12, "os_update": 0.05},
     "network_fail":      {"security_firewall": 0.33, "antivirus": 0.24, "fin_security": 0.20, "network_driver": 0.12, "connection": 0.08, "other_sw": 0.03},
-    "unexpected_reboot": {"power": 0.35, "thermal": 0.25, "memory": 0.15, "storage": 0.10, "gpu_driver": 0.08, "other_driver": 0.04, "antivirus": 0.03}
+    "unexpected_reboot": {"power": 0.35, "thermal": 0.25, "memory": 0.15, "storage": 0.10, "gpu_driver": 0.08, "other_driver": 0.04, "antivirus": 0.03},
+    "slow":              {"other_sw": 0.22, "antivirus": 0.15, "fin_security": 0.13, "thermal": 0.15, "storage": 0.10, "memory": 0.07, "overlay": 0.05, "anticheat": 0.04, "gpu_driver": 0.05, "power": 0.04}
   },
 
   "hints": [
@@ -104,6 +105,10 @@
     {"match": "interezen",          "category": "fin_security",      "label": "Interezen IPInside"},
     {"match": "ipinside",           "category": "fin_security",      "label": "Interezen IPInside"},
     {"match": "nprotect",           "category": "fin_security",      "label": "nProtect Online Security"},
+    {"match": "signkorea",          "category": "fin_security",      "label": "SignKorea 인증 툴킷"},
+    {"match": "anysign",            "category": "fin_security",      "label": "AnySign4PC"},
+    {"match": "wizvera",            "category": "fin_security",      "label": "WIZVERA Process Manager"},
+    {"match": "crosscert",          "category": "fin_security",      "label": "CrossCert UniCRS"},
     {"match": "firewall",           "category": "security_firewall", "label": "보안 방화벽 모듈"},
     {"match": "smartdefense",       "category": "security_firewall", "label": "보안 방화벽 모듈"},
     {"match": "netfilter",          "category": "security_firewall", "label": "네트워크 필터 드라이버"},
@@ -348,7 +353,7 @@
      "advice": "온도·케이블·장착 상태를 한 번에 확인합니다. 하드웨어 층 전체를 거칠게 가릅니다."},
     {"id": "fan_curve_test", "label": "팬 속도 높여 재현", "action": "a_fan_curve", "cost_seconds": 300, "reliability": 0.7, "categories": ["thermal"],
      "advice": "케이스를 열지 않고 팬 속도만 높여서 같은 작업을 해 보세요. 증상이 줄면 냉각 문제입니다."},
-    {"id": "gpu_power_limit_test", "label": "GPU 전력 제한 낮춰 재현", "action": "a_gpu_power_limit", "cost_seconds": 120, "reliability": 0.65, "categories": ["power"], "symptoms": ["unexpected_reboot", "freeze", "app_crash", "fps_drop"],
+    {"id": "gpu_power_limit_test", "label": "GPU 전력 제한 낮춰 재현", "action": "a_gpu_power_limit", "cost_seconds": 120, "reliability": 0.65, "categories": ["power"], "symptoms": ["unexpected_reboot", "freeze", "app_crash", "fps_drop", "slow"],
      "advice": "GPU 전력 제한을 90%로 낮추고 같은 작업을 해 보세요. 꺼지지 않으면 순간 전력 부족(파워) 문제일 가능성이 큽니다."},
     {"id": "xmp_off_test", "label": "메모리 XMP 끄고 재현", "action": "a_xmp_off", "cost_seconds": 600, "reliability": 0.75, "categories": ["memory"],
      "advice": "BIOS에서 XMP를 끄고 같은 작업을 해 보세요. 메모리 테스트보다 빨리 메모리 쪽인지 가를 수 있습니다."},
@@ -357,7 +362,7 @@
   ],
 
   "remedies": [
-    {"id": "r_anticheat_autostart_off", "label": "안티치트를 해당 게임을 할 때만 켜기", "categories": ["anticheat"], "symptoms": ["app_crash", "freeze", "fps_drop"],
+    {"id": "r_anticheat_autostart_off", "label": "안티치트를 해당 게임을 할 때만 켜기", "categories": ["anticheat"], "symptoms": ["app_crash", "freeze", "fps_drop", "slow"],
      "description": "다른 게임용 커널 안티치트가 상시 상주하면서 무관한 프로그램에 간섭하는 경우입니다. 상시 실행을 끄면 원래 게임은 그대로 쓰면서 충돌을 없앨 수 있습니다.",
      "actions": ["a_anticheat_autostart_off"], "success_seed": 0.7},
     {"id": "r_anticheat_repair", "label": "안티치트·게임 복구 및 최신 버전 업데이트", "categories": ["anticheat"],
@@ -465,6 +470,8 @@
     {"symptom": "launch_fail",  "category": "antivirus",         "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
     {"symptom": "flicker",      "category": "display_util",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0},
     {"symptom": "fps_drop",     "category": "thermal",           "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
-    {"symptom": "unexpected_reboot", "category": "power",        "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0}
+    {"symptom": "unexpected_reboot", "category": "power",        "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
+    {"symptom": "slow",         "category": "other_sw",          "subject": "",        "weight": 0.5,  "solved": 0, "rejected": 0},
+    {"symptom": "slow",         "category": "fin_security",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0}
   ]
 }

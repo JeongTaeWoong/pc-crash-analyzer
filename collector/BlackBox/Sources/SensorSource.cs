@@ -23,6 +23,9 @@ public sealed class SensorSource : PolledSourceBase
     /// <summary>마킹 시점 상태 스냅샷에서 쓰는 가장 최근 샘플.</summary>
     public object? Latest { get; private set; }
 
+    /// <summary>롤업용 GPU 코어 요약. 하드웨어 종류가 Gpu*인 첫 장치의 "GPU Core" 온도/클럭, "GPU Hot Spot", "GPU Package" 전력.</summary>
+    public GpuSample? LatestGpu { get; private set; }
+
     /// <summary>벤치 전용 — 운영 코드에서 쓰지 않는다.</summary>
     internal object SampleOnceForBench() => Sample();
 
@@ -45,8 +48,10 @@ public sealed class SensorSource : PolledSourceBase
 
         var values = new List<object>();
         var zeroUnavailable = new List<string>();
+        double? gTemp = null, gHot = null, gClock = null, gPower = null;
         void Collect(IHardware hw)
         {
+            bool isGpu = hw.HardwareType.ToString().StartsWith("Gpu", StringComparison.OrdinalIgnoreCase);
             foreach (var s in hw.Sensors)
             {
                 if (!Collectable(s) || !s.Value.HasValue) continue;
@@ -54,7 +59,16 @@ public sealed class SensorSource : PolledSourceBase
                 if (v == 0 && ZeroMeansUnavailable(s.SensorType))
                     zeroUnavailable.Add($"{hw.Name}/{s.Name}");
                 else
+                {
                     values.Add(new { hw = hw.Name, type = s.SensorType.ToString(), name = s.Name, value = Math.Round(v, 1) });
+                    if (isGpu)
+                    {
+                        if (s.SensorType == SensorType.Temperature && s.Name == "GPU Core") gTemp ??= v;
+                        else if (s.SensorType == SensorType.Temperature && s.Name == "GPU Hot Spot") gHot ??= v;
+                        else if (s.SensorType == SensorType.Clock && s.Name == "GPU Core") gClock ??= v;
+                        else if (s.SensorType == SensorType.Power && s.Name.StartsWith("GPU", StringComparison.OrdinalIgnoreCase)) gPower ??= v;
+                    }
+                }
             }
             foreach (var sub in hw.SubHardware) Collect(sub);
         }
@@ -67,6 +81,7 @@ public sealed class SensorSource : PolledSourceBase
             zeroAsUnavailableSample = zeroUnavailable.Take(3).ToList(),
         };
         Latest = payload;
+        LatestGpu = (gTemp ?? gHot ?? gClock ?? gPower) is null ? null : new GpuSample(DateTimeOffset.Now, gTemp, gHot, gClock, gPower);
         return payload;
     }
 

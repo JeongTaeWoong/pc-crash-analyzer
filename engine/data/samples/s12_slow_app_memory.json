@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.1",
+  "snapshot_id": "s12-slow-app-memory",
+  "marked_at": "2026-10-29T15:40:00+09:00",
+  "trigger": {
+    "kind": "hotkey"
+  },
+  "host": {
+    "os": "Windows 10 22H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "slow",
+    "target_process": "Unity.exe",
+    "scope": "single_app",
+    "started_at": "2026-10-29T15:00:00+09:00",
+    "faulting_modules": []
+  },
+  "processes": ["Unity.exe", "chrome.exe", "Discord.exe", "SignKoreaWD.exe", "MsMpEng.exe", "explorer.exe"],
+  "modules": [
+    {
+      "process": "Unity.exe",
+      "name": "DiscordHook64.dll",
+      "company": "Discord Inc.",
+      "signer": "Discord Inc."
+    }
+  ],
+  "security": {
+    "realtime_av": ["Microsoft Defender"]
+  },
+  "events": [
+    {"time": "2026-10-29T15:35:00+09:00", "provider": "Microsoft-Windows-Kernel-Processor-Power", "id": 37, "subject": ""}
+  ],
+  "sensors": {
+    "samples": [
+      {"time": "2026-10-29T15:38:00+09:00", "gpu_temp": 61, "gpu_clock": 1980},
+      {"time": "2026-10-29T15:39:00+09:00", "gpu_temp": 62, "gpu_clock": 1965}
+    ]
+  },
+  "resource_trends": {
+    "window_minutes": 60,
+    "samples": 58,
+    "commit_slope_pct_per_hour": 6.2,
+    "commit_pct_now": 86.5,
+    "avail_mb_slope_per_min": -41.0,
+    "gpu_dedicated_mb_slope_per_min": 0.3,
+    "gpu_temp_max": 63.0,
+    "gpu_clock_min": 1950.0,
+    "gpu_clock_max": 2010.0,
+    "focus_process": {
+      "pid": 4242, "name": "Unity", "samples": 58,
+      "privMBNow": 11240.0, "privMBStart": 3990.0,
+      "privSlopeMBPerMin": 12.4, "privR2": 0.97, "handleSlopePerMin": 4.9, "cpuAvg": 9.1
+    },
+    "focus_process_last15": {"privSlopeMBPerMin": 14.0, "r2": 0.95, "samples": 15},
+    "top_memory_growers": [
+      {"pid": 4242, "name": "Unity", "samples": 58, "privSlopeMBPerMin": 12.4, "privR2": 0.97, "cpuAvg": 9.1},
+      {"pid": 777, "name": "chrome", "samples": 58, "privSlopeMBPerMin": 0.4, "privR2": 0.2, "cpuAvg": 2.1}
+    ],
+    "top_cpu_60": [
+      {"pid": 4242, "name": "Unity", "samples": 58, "cpuAvg": 9.1},
+      {"pid": 1234, "name": "SignKoreaWD", "samples": 58, "cpuAvg": 13.9},
+      {"pid": 2222, "name": "MsMpEng", "samples": 58, "cpuAvg": 3.2}
+    ]
+  },
+  "ground_truth": {
+    "layer": "software",
+    "category": "other_sw",
+    "subject": "Unity"
+  }
+}

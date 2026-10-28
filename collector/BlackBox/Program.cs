@@ -30,12 +30,15 @@ var snapshotStrategy = SnapshotStrategy.ForegroundPlusRecent;
 
 var eventLogSource = new EventLogSource();
 var sensorSource = new SensorSource();
+var processSource = new ProcessListSource(snapshotStrategy);
+var resourceSource = new ResourceSource(); // v0.6: 커밋/가용 메모리·GPU 어댑터 메모리·프로세스 CPU 상위 (느려짐 메커니즘 A·B·E)
 var etwSource = new EtwKernelSource(); // 관리자: Kernel Process+ImageLoad 구독 / 비관리자: 스텁(unavailable)
 var sources = new ISignalSource[]
 {
     eventLogSource,
     sensorSource,
-    new ProcessListSource(snapshotStrategy),
+    processSource,
+    resourceSource,
     etwSource,
 };
 
@@ -48,11 +51,15 @@ foreach (var source in sources)
     Console.WriteLine($"[source] {Json.Serialize(status)}");
 }
 
+// v0.6: 24시간 분 단위 롤업 (메모리에만) — 덤프 시 60분 기울기 요약(resource_trends)으로 나간다
+using var rollup = new MinuteRollup(TimeSpan.FromHours(24));
+rollup.Start(() => resourceSource.Latest, () => sensorSource.LatestGpu, () => processSource.LatestSummary, TimeSpan.FromMinutes(1));
+
 var config = BlackBoxConfig.Load();
 Console.WriteLine($"[config] {Json.Serialize(new { testArtifacts = config.TestArtifacts, denylist = config.Denylist })}");
 var snapshotter = new StateSnapshotter(sensorSource);
 var writer = new DumpWriter(Path.Combine(Environment.CurrentDirectory, "dumps"));
-var markService = new MarkService(buffer, snapshotter, writer, pre, post, statuses, config);
+var markService = new MarkService(buffer, snapshotter, writer, pre, post, statuses, config, rollup);
 
 // 자동 감지: 구독 중인 이벤트(= 전부 크래시/전원/디스플레이/WHEA 계열)는 수신 즉시 자동 마킹
 eventLogSource.OnTrigger += markService.OnAutoTrigger;
@@ -87,6 +94,7 @@ while (true)
                 approxKB = Math.Round(bytes / 1024.0, 1),
                 bySource,
                 etwCounters = new { imageLoadTotal = etw.ImageLoadTotal, imageLoadKept = etw.ImageLoadKept, processEvents = etw.ProcessEvents },
+                rollup = new { minutes = rollup.Count, approxKB = Math.Round(rollup.ApproxBytes / 1024.0, 1) },
                 gcTotalMB = Math.Round(GC.GetTotalMemory(false) / 1048576.0, 1),
             })}");
             break;

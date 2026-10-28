@@ -38,7 +38,7 @@ public sealed class DumpWriter
         var meta = new
         {
             collector = "BlackBox",
-            version = "0.1",
+            version = "0.6",
             os = Environment.OSVersion.VersionString,
             isElevated,
             markTime,

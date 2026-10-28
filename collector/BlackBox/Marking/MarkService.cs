@@ -22,6 +22,7 @@ public sealed class MarkService
     private readonly TimeSpan _post;
     private readonly IReadOnlyList<SourceStatus> _statuses;
     private readonly BlackBoxConfig _config;
+    private readonly MinuteRollup? _rollup;
     private readonly object _lock = new();
     private readonly List<Task> _pending = new();
     private readonly Dictionary<string, (string Kind, DateTimeOffset At)> _recentByProcess = new(StringComparer.OrdinalIgnoreCase);
@@ -29,8 +30,9 @@ public sealed class MarkService
     private List<EventLogTrigger>? _mergeTarget;
 
     public MarkService(RingBuffer buffer, StateSnapshotter snapshotter, DumpWriter writer,
-        TimeSpan pre, TimeSpan post, IReadOnlyList<SourceStatus> statuses, BlackBoxConfig config)
+        TimeSpan pre, TimeSpan post, IReadOnlyList<SourceStatus> statuses, BlackBoxConfig config, MinuteRollup? rollup = null)
     {
+        _rollup = rollup;
         _buffer = buffer;
         _snapshotter = snapshotter;
         _writer = writer;
@@ -112,6 +114,16 @@ public sealed class MarkService
                     crashModulePaths = found.Paths;
                 }
 
+                // 24시간 분 단위 롤업(느려짐 추세) — 크래시 프로세스를 초점으로, 없으면(수동 마킹) 마킹 시점 전경 프로세스
+                object? resourceTrends = null;
+                if (_rollup != null)
+                {
+                    int? focusPid = crashPid ?? (snapResult.ForegroundPid > 0 ? snapResult.ForegroundPid : null);
+                    var export = _rollup.Export(markTime, focusPid, crashProcessName);
+                    snapshot["rollup24h"] = export.Full;
+                    resourceTrends = export.Trends;
+                }
+
                 SignificanceResult? significance = null;
                 if (autoTrigger != null)
                 {
@@ -123,7 +135,7 @@ public sealed class MarkService
                     ? new { primary = trigger, mergedWithinCooldown = mergedTriggers }
                     : trigger;
 
-                var engineSnapshot = EngineSnapshotBuilder.Build(markTime, kind, autoTrigger, events, snapResult.Facts, crashModulePaths, significance);
+                var engineSnapshot = EngineSnapshotBuilder.Build(markTime, kind, autoTrigger, events, snapResult.Facts, crashModulePaths, significance, resourceTrends);
                 var dir = _writer.Write(markTime, kind, triggerObj, from, to, events, snapshot, engineSnapshot, significance, _buffer.Stats, _statuses);
                 Console.WriteLine($"[dump] {Json.Serialize(new { dir, completedAt = DateTimeOffset.Now, kind, events = events.Count, significance = significance?.Score, tier = significance?.Tier })}");
             }

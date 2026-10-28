@@ -14,4 +14,4 @@ public sealed class EngineFacts
     public List<string> SecurityProducts { get; } = new();
 }
 
-public sealed record SnapshotResult(Dictionary<string, object?> Json, EngineFacts Facts);
+public sealed record SnapshotResult(Dictionary<string, object?> Json, EngineFacts Facts, int ForegroundPid = -1);

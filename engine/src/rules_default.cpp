@@ -77,7 +77,8 @@ const char* const kDefaultRulesParts[] = {
     "input_loss":        {"input_util": 0.30, "antivirus": 0.18, "fin_security": 0.15, "connection": 0.15, "overlay": 0.08, "peripheral_driver": 0.10},
     "launch_fail":       {"antivirus": 0.30, "anticheat": 0.20, "fin_security": 0.18, "security_firewall": 0.12, "other_sw": 0.12, "os_update": 0.05},
     "network_fail":      {"security_firewall": 0.33, "antivirus": 0.24, "fin_security": 0.20, "network_driver": 0.12, "connection": 0.08, "other_sw": 0.03},
-    "unexpected_reboot": {"power": 0.35, "thermal": 0.25, "memory": 0.15, "storage": 0.10, "gpu_driver": 0.08, "other_driver": 0.04, "antivirus": 0.03}
+    "unexpected_reboot": {"power": 0.35, "thermal": 0.25, "memory": 0.15, "storage": 0.10, "gpu_driver": 0.08, "other_driver": 0.04, "antivirus": 0.03},
+    "slow":              {"other_sw": 0.22, "antivirus": 0.15, "fin_security": 0.13, "thermal": 0.15, "storage": 0.10, "memory": 0.07, "overlay": 0.05, "anticheat": 0.04, "gpu_driver": 0.05, "power": 0.04}
   },
 
   "hints": [
@@ -113,6 +114,10 @@ const char* const kDefaultRulesParts[] = {
     {"match": "interezen",          "category": "fin_security",      "label": "Interezen IPInside"},
     {"match": "ipinside",           "category": "fin_security",      "label": "Interezen IPInside"},
     {"match": "nprotect",           "category": "fin_security",      "label": "nProtect Online Security"},
+    {"match": "signkorea",          "category": "fin_security",      "label": "SignKorea 인증 툴킷"},
+    {"match": "anysign",            "category": "fin_security",      "label": "AnySign4PC"},
+    {"match": "wizvera",            "category": "fin_security",      "label": "WIZVERA Process Manager"},
+    {"match": "crosscert",          "category": "fin_security",      "label": "CrossCert UniCRS"},
     {"match": "firewall",           "category": "security_firewall", "label": "보안 방화벽 모듈"},
     {"match": "smartdefense",       "category": "security_firewall", "label": "보안 방화벽 모듈"},
     {"match": "netfilter",          "category": "security_firewall", "label": "네트워크 필터 드라이버"},
@@ -162,14 +167,14 @@ const char* const kDefaultRulesParts[] = {
      "automation": "av_realtime:{product}:pause:600", "auto_default": false},
 
     {"id": "a_anticheat_stop", "label": "안티치트 서비스 중지 후 재부팅", "kind": "stop_service",
-     "steps": ["안티치트 서비스의 시작 유형을 '사용 안 함'으로 바꾸고 재부팅합니다.", "안티치트를 쓰는 게임은 실행하지 않은 상태로 대상 프로그램을 실행해 봅니다."],
+)JSON",
+    R"JSON(     "steps": ["안티치트 서비스의 시작 유형을 '사용 안 함'으로 바꾸고 재부팅합니다.", "안티치트를 쓰는 게임은 실행하지 않은 상태로 대상 프로그램을 실행해 봅니다."],
      "rollback": "서비스 시작 유형을 원래대로 되돌리고 재부팅합니다.", "reversible": true, "requires_reboot": true, "risk": "low",
      "automation": "service_start_type:{subject}:disabled", "auto_default": false},
 
     {"id": "a_finsec_stop", "label": "금융 보안모듈 상주 중지", "kind": "stop_service",
      "steps": ["서비스 관리자에서 해당 보안모듈 서비스를 중지합니다.", "대상 프로그램에서 증상이 다시 나는지 확인합니다."],
-)JSON",
-    R"JSON(     "rollback": "인터넷뱅킹을 쓰기 전에 서비스를 다시 시작합니다(은행 사이트 접속 시 자동 시작되기도 합니다).", "reversible": true, "requires_reboot": false, "risk": "medium",
+     "rollback": "인터넷뱅킹을 쓰기 전에 서비스를 다시 시작합니다(은행 사이트 접속 시 자동 시작되기도 합니다).", "reversible": true, "requires_reboot": false, "risk": "medium",
      "automation": "stop_service:{subject}", "auto_default": false},
 
     {"id": "a_firewall_allow", "label": "보안 제품 방화벽에 허용 규칙 추가", "kind": "firewall_allow",
@@ -289,7 +294,8 @@ const char* const kDefaultRulesParts[] = {
     {"id": "a_nic_power_saving_off", "label": "네트워크 어댑터 절전 기능 끄기", "kind": "toggle_setting",
      "steps": ["장치 관리자 → 네트워크 어댑터 → 전원 관리에서 '전원을 절약하기 위해 컴퓨터가 이 장치를 끌 수 있음'을 끕니다.", "고급 탭의 'Energy Efficient Ethernet'·'Green Ethernet'도 끕니다."],
      "rollback": "끈 항목을 다시 켭니다.", "reversible": true, "requires_reboot": false, "risk": "low",
-     "automation": "nic_power_saving:{subject}:off", "auto_default": true},
+)JSON",
+    R"JSON(     "automation": "nic_power_saving:{subject}:off", "auto_default": true},
 
     {"id": "a_gpu_power_limit", "label": "GPU 전력 제한 10% 낮추기", "kind": "toggle_setting",
      "steps": ["그래픽카드 제어 프로그램(또는 MSI Afterburner)에서 전력 제한(Power Limit)을 90%로 낮춥니다.", "같은 작업으로 문제를 재현해 봅니다."],
@@ -297,8 +303,7 @@ const char* const kDefaultRulesParts[] = {
      "automation": "gpu_power_limit:-10", "auto_default": true},
 
     {"id": "a_fan_curve", "label": "팬 속도를 높게 조정", "kind": "toggle_setting",
-)JSON",
-    R"JSON(     "steps": ["메인보드·그래픽카드 유틸에서 팬 커브를 '성능' 또는 더 높은 속도로 바꿉니다.", "같은 작업으로 온도와 증상을 다시 확인합니다."],
+     "steps": ["메인보드·그래픽카드 유틸에서 팬 커브를 '성능' 또는 더 높은 속도로 바꿉니다.", "같은 작업으로 온도와 증상을 다시 확인합니다."],
      "rollback": "팬 설정을 원래 프로필로 되돌립니다.", "reversible": true, "requires_reboot": false, "risk": "low",
      "automation": "fan_curve:aggressive", "auto_default": true},
 
@@ -359,7 +364,7 @@ const char* const kDefaultRulesParts[] = {
      "advice": "온도·케이블·장착 상태를 한 번에 확인합니다. 하드웨어 층 전체를 거칠게 가릅니다."},
     {"id": "fan_curve_test", "label": "팬 속도 높여 재현", "action": "a_fan_curve", "cost_seconds": 300, "reliability": 0.7, "categories": ["thermal"],
      "advice": "케이스를 열지 않고 팬 속도만 높여서 같은 작업을 해 보세요. 증상이 줄면 냉각 문제입니다."},
-    {"id": "gpu_power_limit_test", "label": "GPU 전력 제한 낮춰 재현", "action": "a_gpu_power_limit", "cost_seconds": 120, "reliability": 0.65, "categories": ["power"], "symptoms": ["unexpected_reboot", "freeze", "app_crash", "fps_drop"],
+    {"id": "gpu_power_limit_test", "label": "GPU 전력 제한 낮춰 재현", "action": "a_gpu_power_limit", "cost_seconds": 120, "reliability": 0.65, "categories": ["power"], "symptoms": ["unexpected_reboot", "freeze", "app_crash", "fps_drop", "slow"],
      "advice": "GPU 전력 제한을 90%로 낮추고 같은 작업을 해 보세요. 꺼지지 않으면 순간 전력 부족(파워) 문제일 가능성이 큽니다."},
     {"id": "xmp_off_test", "label": "메모리 XMP 끄고 재현", "action": "a_xmp_off", "cost_seconds": 600, "reliability": 0.75, "categories": ["memory"],
      "advice": "BIOS에서 XMP를 끄고 같은 작업을 해 보세요. 메모리 테스트보다 빨리 메모리 쪽인지 가를 수 있습니다."},
@@ -368,7 +373,7 @@ const char* const kDefaultRulesParts[] = {
   ],
 
   "remedies": [
-    {"id": "r_anticheat_autostart_off", "label": "안티치트를 해당 게임을 할 때만 켜기", "categories": ["anticheat"], "symptoms": ["app_crash", "freeze", "fps_drop"],
+    {"id": "r_anticheat_autostart_off", "label": "안티치트를 해당 게임을 할 때만 켜기", "categories": ["anticheat"], "symptoms": ["app_crash", "freeze", "fps_drop", "slow"],
      "description": "다른 게임용 커널 안티치트가 상시 상주하면서 무관한 프로그램에 간섭하는 경우입니다. 상시 실행을 끄면 원래 게임은 그대로 쓰면서 충돌을 없앨 수 있습니다.",
      "actions": ["a_anticheat_autostart_off"], "success_seed": 0.7},
     {"id": "r_anticheat_repair", "label": "안티치트·게임 복구 및 최신 버전 업데이트", "categories": ["anticheat"],
@@ -389,13 +394,13 @@ const char* const kDefaultRulesParts[] = {
      "actions": ["a_av_report_fp"], "success_seed": 0.4},
 
     {"id": "r_finsec_autostart_off", "label": "금융 보안모듈 자동 실행 끄기", "categories": ["fin_security"],
-     "description": "키보드 보안·안전 거래 모듈은 상시 상주하면서 입력 장치와 네트워크에 필터를 겁니다. 인터넷뱅킹을 할 때만 실행되게 하면 다른 프로그램과의 충돌이 사라집니다.",
+)JSON",
+    R"JSON(     "description": "키보드 보안·안전 거래 모듈은 상시 상주하면서 입력 장치와 네트워크에 필터를 겁니다. 인터넷뱅킹을 할 때만 실행되게 하면 다른 프로그램과의 충돌이 사라집니다.",
      "actions": ["a_finsec_autostart_off"], "success_seed": 0.65},
     {"id": "r_finsec_remove_unused", "label": "사용하지 않는 보안모듈 제거", "categories": ["fin_security"],
      "description": "한 번 설치된 보안모듈은 사이트를 다시 쓰지 않아도 남아 있습니다. 쓰지 않는 모듈을 지우면 필터 드라이버가 줄어듭니다.",
      "actions": ["a_finsec_uninstall"], "success_seed": 0.6},
-)JSON",
-    R"JSON(    {"id": "r_finsec_reinstall", "label": "보안모듈 최신 버전으로 재설치", "categories": ["fin_security"],
+    {"id": "r_finsec_reinstall", "label": "보안모듈 최신 버전으로 재설치", "categories": ["fin_security"],
      "description": "이전 버전 모듈이 Windows 업데이트 후 호환되지 않는 경우가 있습니다.",
      "actions": ["a_reinstall"], "success_seed": 0.5},
 
@@ -477,7 +482,9 @@ const char* const kDefaultRulesParts[] = {
     {"symptom": "launch_fail",  "category": "antivirus",         "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
     {"symptom": "flicker",      "category": "display_util",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0},
     {"symptom": "fps_drop",     "category": "thermal",           "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
-    {"symptom": "unexpected_reboot", "category": "power",        "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0}
+    {"symptom": "unexpected_reboot", "category": "power",        "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
+    {"symptom": "slow",         "category": "other_sw",          "subject": "",        "weight": 0.5,  "solved": 0, "rejected": 0},
+    {"symptom": "slow",         "category": "fin_security",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0}
   ]
 }
 )JSON",

@@ -431,3 +431,39 @@ FaultLab(`collector/experiments/FaultLab`): crash-a/b/c · plugin(네이티브 �
 | 앱 자체 크래시 로그 | Unity `%TMP%\Unity\Editor\Crashes\Crash_2026-10-10_072938424` (crash.dmp 1.9 MB + Editor.log) ↔ Application 1000 10/10 16:29 Unity.exe 6000.4.9 / 오류 모듈 Unity.dll **1:1 대응 확인**. Blender crash.txt 0, WER ReportArchive 0 | 검증됨 |
 
 발견: 점수기가 `\Windows\System32\DriverStore\` 아래 GPU 드라이버 DLL을 시스템 모듈로 취급해 가산이 없음 → `gpu-driver-module` 범주 신설 필요(S5).
+
+## v0.6 — 느려짐 추세 수집 (2026-10-29, 비관리자)
+
+결정(10/29): 목표를 "사용자 친화 컴퓨터 관리 프로그램"으로 올리되 **수집기는 읽기 전용 유지**, 조치는 사용자가 고른 수준에서 별도 실행기(CLAUDE.md 원칙 3 개정). 우선순위는 데이터 품질.
+
+### 스파이크 I — .NET PerformanceCounter (collector/spikes/I-PerfCounters, 5초, ko-KR)
+
+| 항목 | 결과 | 분류 |
+|---|---|---|
+| 영어 카운터 이름(`Memory`, `Process`, `GPU Adapter Memory`)이 한국어 Windows에서 동작 | 전부 true | 검증됨 |
+| `Memory\Committed Bytes` 등 5종 | 값 반환 (커밋 74.3%, 가용 54,486MB) | 검증됨 |
+| `GPU Adapter Memory(*)\Dedicated/Shared Usage` | 3 인스턴스, 주 어댑터 3,186/482MB | 검증됨 |
+| `Process` 카테고리 `ReadCategory()` 1회 | 553 인스턴스 **~260ms** — CPU%·Private Bytes·Handle Count·ID Process·IO를 접근 거부 없이 한 번에 | 검증됨 → 10초마다는 비싸서 **30초마다** |
+| `Process.GetProcesses()` 전수에서 `TotalProcessorTime` | 373개 중 180개 접근 거부(비관리자) | 미지원(비관리자) → PerfCounter 경로 사용 |
+
+### 구현
+
+- `Sources/ResourceSource.cs`(10초): 커밋/가용/페이징, GPU 어댑터 메모리(프로세스별 카운터는 MS 인정 오류라 미사용), 전체 CPU, 프로세스 CPU 상위 10 + IO 상위 3(30초마다).
+- `Core/MinuteRollup.cs`: 24시간 분 단위 롤업(메모리에만). 분당 1줄 = 시스템 수치 + 프로세스 ≤22행(Private Bytes 상위 12 + 전경 + CPU 상위 10). 덤프 시 `snapshot.json.rollup24h`(전체) + `engine-snapshot.json.resource_trends`(60분 기울기 요약: 초점 프로세스 기울기/R²·커밋 기울기·GPU 온도 최고/클럭 최저·메모리 증가 상위·CPU 상위).
+- `Core/Trend.cs`: 최소제곱 기울기·R². `SensorSource.LatestGpu`, `ProcessListSource.LatestSummary`(privMB·handles 추가), `StateSnapshotter.fgPidAtMark`(수동 마킹의 초점).
+- `SignificanceScorer`: GPU 드라이버 DLL(nvwgf2umx 등 NVIDIA/AMD/Intel 목록) → `gpu-driver-module`(+20), `\DriverStore\` 경로 → `driver-store-module`(+20). Event 37(Kernel-Processor-Power) 구독 — 버퍼만.
+- xUnit 42건 통과 (Trend 4, MinuteRollup 5, 점수기 +3, 분류기 +1).
+- 엔진: `Symptom::Slow`("slow") 추가, `resource_trends` 파싱, `addFromResourceTrends`(A 메모리 증가 → 그 프로그램 / C GPU 열 → thermal / E 배경 CPU ≥10% → 상주물 / 이벤트 37 → power), rules.json에 slow priors·사례·한국 금융보안 힌트 4종(signkorea·anysign·wizvera·crosscert), 샘플 `s12_slow_app_memory.json`.
+
+### 실측 (라이브 3분, 비관리자)
+
+| 항목 | 값 |
+|---|---|
+| 소스 상태 | eventlog·sensors·processes·**resources** ok, etw-kernel unavailable(비관리자), hotkey ok |
+| 버퍼 2분 20초 시점 | 94건 1,702KB — processes 1,418KB(14건), sensors 298KB(67건), **resources 27KB(13건, 건당 ~2KB)** |
+| 롤업 | 2분 2.4KB → 24시간 추정 ~1.7MB(테스트 상한 2MB 확인) |
+| 덤프(수동) | engine-snapshot 19KB · snapshot 322KB · events 1,059KB. `resource_trends` 생성됨(2분치라 기울기는 null, 초점 null — 10샘플 미만 설계대로), `fgPidAtMark`=전경 게임 PID 일치 |
+| resources 샘플 | scanMs 274(ReadCategory 틱), 커밋 75.2%, GPU 전용 3,213MB, 전체 CPU 27.8%, CPU 상위에 BlackBox 자신 1.3% 포함(측정 교차 확인용) |
+
+함정: 덤프 JSON은 UTF-8 **BOM** 포함(`File.WriteAllText(…, Encoding.UTF8)`) — Python은 `utf-8-sig`로 읽어야 함. 엔진은 문제없이 읽음(기존 E2E).
+병렬 셸 호출 시 `cd`가 서로 간섭함 — 스크립트는 절대 경로로.

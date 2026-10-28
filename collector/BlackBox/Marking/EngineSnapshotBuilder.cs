@@ -19,7 +19,8 @@ public static class EngineSnapshotBuilder
         IReadOnlyList<SignalEvent> events,
         EngineFacts facts,
         List<string>? crashModulePaths,
-        SignificanceResult? significance)
+        SignificanceResult? significance,
+        object? resourceTrends = null)
     {
         // 증상·범위는 TriggerClassifier 결과를 그대로 쓴다. manual은 실제 제품 흐름에서 UI가 사용자에게 받아 채운다.
         string symType = trigger?.Class.SymptomType ?? "unknown";
@@ -104,6 +105,10 @@ public static class EngineSnapshotBuilder
 
         if (significance != null)
             snapshot["significance"] = new { score = significance.Score, tier = significance.Tier, tags = significance.Tags };
+
+        // 확장 필드(docs/schema-extension-proposal.md D): 60분 자원 추세 — 엔진의 slow 증상 판정 입력. 엔진은 미지 필드를 무시한다.
+        if (resourceTrends != null)
+            snapshot["resource_trends"] = resourceTrends;
 
         if (processes.Count > 0)
             snapshot["processes"] = processes.Take(300).ToList();

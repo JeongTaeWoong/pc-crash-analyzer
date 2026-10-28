@@ -28,9 +28,11 @@ public sealed class StateSnapshotter
     {
         var sw = Stopwatch.StartNew();
         var facts = new EngineFacts();
+        int fgPid = ForegroundPid();
         var snapshot = new Dictionary<string, object?>
         {
             ["capturedAt"] = DateTimeOffset.Now,
+            ["fgPidAtMark"] = fgPid,
             ["processes"] = Guard(CaptureProcessModules),
             ["filterDrivers"] = Guard(() => CaptureFilterDrivers(facts)),
             ["sensors"] = _sensorSource.Latest ?? new { status = "unavailable", reason = "센서 샘플 없음" },
@@ -38,8 +40,26 @@ public sealed class StateSnapshotter
             ["securityProducts"] = Guard(() => CaptureSecurityProducts(facts)),
         };
         snapshot["captureDurationMs"] = sw.ElapsedMilliseconds;
-        return new SnapshotResult(snapshot, facts);
+        return new SnapshotResult(snapshot, facts, fgPid);
     }
+
+    private static int ForegroundPid()
+    {
+        try
+        {
+            var h = GetForegroundWindow();
+            if (h == IntPtr.Zero) return -1;
+            GetWindowThreadProcessId(h, out uint pid);
+            return (int)pid;
+        }
+        catch { return -1; }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
     /// <summary>SecurityCenter2에 등록된 실시간 보안 제품 (스파이크에서 비관리자 검증됨).</summary>
     private static object CaptureSecurityProducts(EngineFacts facts)

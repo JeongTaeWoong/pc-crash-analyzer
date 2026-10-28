@@ -212,6 +212,21 @@ void testScenarios() {
     if (count != 1) merged = false;
     check(merged, "오류 모듈과 로드 모듈이 같은 후보로 합쳐짐", std::to_string(count) + "건");
   }
+  {
+    std::cout << "[s12] 장시간 작업 중 느려짐 — 앱 메모리 증가 (수집기 v0.6 resource_trends, 2026-10-29)\n";
+    const Diagnosis d = diagnoseFile("s12_slow_app_memory.json", guide);
+    check(d.symptom == "slow", "증상 slow 를 읽음", d.symptom);
+    check(d.top() && sameSubject(d.top()->subject, "Unity"),
+          "1순위 = 대상 프로그램 자체의 메모리 증가(분당 12MB, R² 0.97)", topLabel(d));
+    bool finsec = false;
+    bool powerEvt = false;
+    for (std::size_t i = 0; i < d.candidates.size(); i++) {
+      if (d.candidates[i].category == "fin_security") finsec = true;
+      if (d.candidates[i].category == "power") powerEvt = true;
+    }
+    check(finsec, "배경 CPU 13.9% 상주물(SignKoreaWD)이 금융보안 후보로 올라옴");
+    check(powerEvt, "프로세서 속도 제한 이벤트(37)가 전원 후보 근거로 붙음");
+  }
 }
 
 // ---------------------------------------------------------------- 2차(드라이버)·3차(하드웨어) 시나리오

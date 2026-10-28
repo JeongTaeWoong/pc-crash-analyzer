@@ -54,7 +54,7 @@
 
 ```json
 "symptom": {
-  "type": "app_crash",          // app_crash|freeze|fps_drop|flicker|input_loss|launch_fail|network_fail|unexpected_reboot
+  "type": "app_crash",          // app_crash|freeze|fps_drop|flicker|input_loss|launch_fail|network_fail|unexpected_reboot|slow(점점 느려짐, 1.2)
   "target_process": "game.exe", // 없으면 빈 문자열
   "scope": "single_app",        // single_app|multiple_apps|system_wide|unknown  ← 층 판정의 1차 단서
   "started_at": "2026-10-14T20:30:00+09:00",  // 사용자가 기억하는 증상 시작 시점(시간 상관의 기준)
@@ -64,6 +64,27 @@
 
 `scope`와 `started_at`은 UI에서 사용자에게 한 번 물어보는 값이다. 두 값이 비면 시간 상관 근거를
 쓸 수 없어 정확도가 크게 떨어지므로, UI 흐름에서 반드시 받는다.
+
+## resource_trends (1.2, 선택 — 수집기 v0.6)
+
+수집기가 24시간 분 단위 롤업(메모리)에서 뽑은 **최근 60분 요약**. `slow`(점점 느려짐) 증상의 핵심 입력이며,
+다른 증상에서도 있으면 참고 근거(기여도 절반)로 쓴다. 필드 정의와 엔진 규칙은 `docs/schema-extension-proposal.md` D.
+
+```json
+"resource_trends": {
+  "window_minutes": 60, "samples": 58,
+  "commit_slope_pct_per_hour": 6.2, "commit_pct_now": 86.5, "avail_mb_slope_per_min": -41.0,
+  "gpu_dedicated_mb_slope_per_min": 0.3, "gpu_temp_max": 63.0, "gpu_clock_min": 1950.0, "gpu_clock_max": 2010.0,
+  "focus_process": {"pid": 4242, "name": "Unity", "samples": 58, "privMBNow": 11240.0, "privMBStart": 3990.0,
+                    "privSlopeMBPerMin": 12.4, "privR2": 0.97, "handleSlopePerMin": 4.9, "cpuAvg": 9.1},
+  "top_memory_growers": [ {"...": "..."} ],
+  "top_cpu_60": [ {"pid": 1234, "name": "SignKoreaWD", "samples": 58, "cpuAvg": 13.9} ]
+}
+```
+
+엔진 규칙(`candidates.cpp addFromResourceTrends`): 초점 프로세스 `privSlopeMBPerMin ≥ 5 && privR2 ≥ 0.7` → 그 프로그램 "메모리 증가" 후보 ·
+`gpu_temp_max ≥ 83 && gpu_clock_min < 0.75×gpu_clock_max` → thermal · 초점이 아닌 프로세스 `cpuAvg ≥ 10` → 상주 과부하 후보(hints 로 분류) ·
+이벤트 37(Kernel-Processor-Power) → power 근거.
 
 ## 배열 원소 형식
 

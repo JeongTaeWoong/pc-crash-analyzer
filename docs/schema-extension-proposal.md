@@ -39,20 +39,34 @@
 트리거는 수동 마킹(`hotkey`). 느려짐은 시작 시점이 불분명하므로 `started_at`은 마킹 시각이며 엔진은 시간 상관 대신
 **베이스라인 대비 변화**를 본다.
 
-## D. 자원 신호 (수집기 11/13 목표)
+## D. 자원 추세 (수집기 v0.6에서 구현 — `resource_trends`, 2026-10-29)
+
+수집기가 24시간 분 단위 롤업(메모리에만)을 유지하고, 덤프 시 **최근 60분 기울기 요약**을 엔진 스냅샷에 넣는다.
+전체 시계열은 `snapshot.json`의 `rollup24h`에만 있고 엔진에는 요약만 간다. 원천: PerfOS Memory·GPU Adapter Memory(VidMm)·
+Process 카테고리(CPU%)·LibreHardwareMonitor GPU 코어·ProcessListSource(Private Bytes/핸들). 스파이크 I(10/29, ko-KR)로 카운터 검증.
 
 ```json
-"resource_top": [{"name": "SignKoreaWD", "pid": 1234, "cpu_pct": 22, "ws_mb": 33, "io_bps": 0}],
-"memory": {"available_mb": 48483, "commit_pct": 72, "pages_per_sec": 0},
-"disk":   {"busy_pct": 0, "queue": 0, "bytes_per_sec": 2780876, "health": [{"name": "SanDisk Ultra 3D", "status": "Healthy"}]},
-"startup": {"run_keys": 17, "logon_tasks": 32, "items": ["..."]},
-"av_resource": {"process": "MsMpEng", "cpu_pct": 0, "ws_mb": 591},
-"baseline_diff": {"changed": [{"name": "SignKoreaWD", "cpu_pct_before": 2, "cpu_pct_after": 22}]}
+"resource_trends": {
+  "window_minutes": 60, "samples": 58,
+  "commit_slope_pct_per_hour": 2.4, "commit_pct_now": 74.3, "avail_mb_slope_per_min": -35.2,
+  "gpu_dedicated_mb_slope_per_min": 0.8, "gpu_temp_max": 78.0, "gpu_clock_min": 1395.0, "gpu_clock_max": 2505.0,
+  "focus_process": {"pid": 4242, "name": "Unity", "samples": 58, "privMBNow": 4697.2, "privMBStart": 3990.0,
+                    "privSlopeMBPerMin": 12.1, "privR2": 0.97, "handleSlopePerMin": 4.9, "cpuAvg": 8.3},
+  "focus_process_last15": {"privSlopeMBPerMin": 14.0, "r2": 0.95, "samples": 15},
+  "top_memory_growers": [{"pid": 4242, "name": "Unity", "privSlopeMBPerMin": 12.1, "privR2": 0.97, "...": "..."}],
+  "top_cpu_60": [{"pid": 1234, "name": "SignKoreaWD", "samples": 58, "cpuAvg": 13.9}]
+}
 ```
 
-- `baseline_diff`는 v1.1에 이미 있는 필드 — 수집기가 24시간 분 단위 롤업(메모리)과 마킹 창을 비교해 채운다.
-- 출처 스파이크(10/28): PerfProc/PerfOS/PerfDisk/Get-PhysicalDisk/Run 키·예약 작업 **검증됨**, SMART WMI 미지원.
-- 규칙 후보(엔진 rules.json): `resource_top[0].cpu_pct − baseline ≥ 15`이면 "상주 프로세스 과부하" 후보, 시작 항목 ≥15면 "시작 항목 과다".
+- `focus_process` = 크래시 프로세스(자동 트리거) 또는 마킹 시점 전경 프로세스(수동). 없으면 null.
+- 기울기는 최소제곱(`Trend.Fit`), `r2`가 낮으면(<0.5) 단조 증가가 아니라 들쭉날쭉 — 엔진이 "누수형"으로 단정하지 않도록 함께 제공.
+- 엔진 규칙(`docs/slowdown-mechanisms.md` 2절의 분기표; 10/29 엔진 구현):
+  - A 앱 메모리 증가: `focus_process.privSlopeMBPerMin ≥ 5 && privR2 ≥ 0.7` 또는 `commit_pct_now ≥ 85 && commit_slope_pct_per_hour > 0` → `other_sw:<focus>` "메모리 증가" 근거
+  - C 열 스로틀: `gpu_temp_max ≥ 83 && gpu_clock_min < 0.75 × gpu_clock_max` → `thermal` 근거 (CPU는 Event 37 이벤트로)
+  - E 외부 간섭: `top_cpu_60[*]`이 초점 프로세스가 아니고 `cpuAvg ≥ 10` → 해당 프로세스를 hints로 분류(antivirus/fin_security/other_sw)해 "상주 과부하" 근거
+  - B VRAM 압박: 어댑터 총량이 아직 없어 보류(host에 `gpu_dedicated_total_mb` 추가 예정)
+- 이전 초안의 `resource_top/memory/disk/startup/av_resource`는 `rollup24h`·`resources` 이벤트로 흡수. `disk.health`(SMART)는 WMI 미지원으로 보류, `startup`은 11/13.
+- `baseline_diff`(v1.1 기존 필드)는 롤업의 "24시간 전 같은 시각 vs 지금" 비교로 채우는 것을 다음 단계로 둔다.
 
 ## E. 도구 API 확장 (에이전트 멀티 턴용, 수집기 로컬 도구 — 별도 문서 예정)
 

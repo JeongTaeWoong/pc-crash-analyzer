@@ -21,7 +21,8 @@ enum class Symptom {
   InputLoss,        // 입력 누락
   LaunchFail,       // 실행 불가
   NetworkFail,      // 네트워크 접속 불가·끊김
-  UnexpectedReboot  // 예고 없는 재부팅
+  UnexpectedReboot, // 예고 없는 재부팅
+  Slow              // 점점 느려짐(장시간 작업 중 체감 저하; 수집기 resource_trends 와 함께 판정) — 2026-10-29
 };
 
 // 증상이 나타나는 범위 - 층 판정의 1차 단서 (제안서 5.3)
@@ -134,6 +135,37 @@ struct DeviceFilters {
   std::vector<std::string> ndis_filters;    // 네트워크 어댑터 필터 드라이버
 };
 
+// 프로세스 하나의 60분 자원 추세 (수집기 MinuteRollup 요약, docs/schema-extension-proposal.md D)
+struct ProcTrend {
+  int pid = 0;
+  std::string name;
+  int samples = 0;
+  double priv_mb_now = -1;           // 음수 = 없음
+  double priv_mb_start = -1;
+  double priv_slope_mb_per_min = 0;  // 최소제곱 기울기
+  double priv_r2 = -1;               // 결정계수(0~1). 낮으면 단조 증가가 아니다
+  double handle_slope_per_min = 0;
+  double cpu_avg = -1;               // 최근 60분 CPU 평균 %
+};
+
+// 수집기가 24시간 분 단위 롤업에서 뽑아 준 최근 60분 요약. 느려짐(slow) 증상의 핵심 입력.
+struct ResourceTrends {
+  bool available = false;
+  int window_minutes = 0;
+  int samples = 0;
+  double commit_slope_pct_per_hour = 0;
+  double commit_pct_now = -1;
+  double avail_mb_slope_per_min = 0;
+  double gpu_dedicated_mb_slope_per_min = 0;
+  double gpu_temp_max = -1;
+  double gpu_clock_min = -1;
+  double gpu_clock_max = -1;
+  bool has_focus = false;
+  ProcTrend focus;                        // 크래시/전경 프로세스
+  std::vector<ProcTrend> memory_growers;  // 메모리 증가 상위
+  std::vector<ProcTrend> top_cpu;         // CPU 평균 상위
+};
+
 struct BaselineDiff {  // 베이스라인 스냅샷 대비 변화 (제안서 5.1)
   bool available = false;
   std::vector<std::string> added;
@@ -156,6 +188,7 @@ struct Availability {
   bool detections = false;
   bool processes = false;
   bool storage = false;
+  bool trends = false;  // resource_trends (핵심 7항목에는 넣지 않는다)
 
   int countCore() const;  // 신뢰도 계산에 쓰는 핵심 7항목 중 받은 개수
 };
@@ -189,6 +222,7 @@ struct Snapshot {
   std::vector<MiniDumpInfo> minidumps;
   std::vector<DiskHealth> disks;
   BaselineDiff baseline;
+  ResourceTrends trends;
   Availability available;
 
   // 벤치마크 전용. 실측 스냅샷에는 없고 실험용 시나리오 파일에만 들어간다.

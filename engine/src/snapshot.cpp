@@ -80,6 +80,7 @@ std::string toString(Symptom s) {
   if (s == Symptom::LaunchFail) return "launch_fail";
   if (s == Symptom::NetworkFail) return "network_fail";
   if (s == Symptom::UnexpectedReboot) return "unexpected_reboot";
+  if (s == Symptom::Slow) return "slow";
   return "unknown";
 }
 
@@ -99,6 +100,7 @@ Symptom symptomFromString(const std::string& s) {
   if (s == "launch_fail") return Symptom::LaunchFail;
   if (s == "network_fail") return Symptom::NetworkFail;
   if (s == "unexpected_reboot") return Symptom::UnexpectedReboot;
+  if (s == "slow") return Symptom::Slow;
   return Symptom::Unknown;
 }
 
@@ -135,6 +137,22 @@ bool Snapshot::processRunning(const std::string& name) const {
   }
   return false;
 }
+
+namespace {
+ProcTrend parseProcTrend(const json::Value& p) {
+  ProcTrend t;
+  t.pid = p["pid"].asInt(0);
+  t.name = p["name"].asString("");
+  t.samples = p["samples"].asInt(0);
+  t.priv_mb_now = p["privMBNow"].asNumber(-1);
+  t.priv_mb_start = p["privMBStart"].asNumber(-1);
+  t.priv_slope_mb_per_min = p["privSlopeMBPerMin"].asNumber(0);
+  t.priv_r2 = p["privR2"].asNumber(-1);
+  t.handle_slope_per_min = p["handleSlopePerMin"].asNumber(0);
+  t.cpu_avg = p["cpuAvg"].asNumber(-1);
+  return t;
+}
+}  // namespace
 
 Snapshot parseSnapshot(const json::Value& v, std::vector<std::string>* warn) {
   Snapshot s;
@@ -306,6 +324,31 @@ Snapshot parseSnapshot(const json::Value& v, std::vector<std::string>* warn) {
     s.disks.push_back(dh);
   }
   s.available.storage = v["storage"].has("disks");
+
+  // 수집기 v0.6 확장: 최근 60분 자원 추세 (없으면 available=false, 경고 없음 — 선택 필드)
+  const json::Value& rt = v["resource_trends"];
+  if (rt.isObject()) {
+    ResourceTrends& t = s.trends;
+    t.available = true;
+    t.window_minutes = rt["window_minutes"].asInt(0);
+    t.samples = rt["samples"].asInt(0);
+    t.commit_slope_pct_per_hour = rt["commit_slope_pct_per_hour"].asNumber(0);
+    t.commit_pct_now = rt["commit_pct_now"].asNumber(-1);
+    t.avail_mb_slope_per_min = rt["avail_mb_slope_per_min"].asNumber(0);
+    t.gpu_dedicated_mb_slope_per_min = rt["gpu_dedicated_mb_slope_per_min"].asNumber(0);
+    t.gpu_temp_max = rt["gpu_temp_max"].asNumber(-1);
+    t.gpu_clock_min = rt["gpu_clock_min"].asNumber(-1);
+    t.gpu_clock_max = rt["gpu_clock_max"].asNumber(-1);
+    if (rt["focus_process"].isObject()) {
+      t.has_focus = true;
+      t.focus = parseProcTrend(rt["focus_process"]);
+    }
+    const json::Array& gr = rt["top_memory_growers"].asArray();
+    for (std::size_t i = 0; i < gr.size(); i++) t.memory_growers.push_back(parseProcTrend(gr[i]));
+    const json::Array& tc = rt["top_cpu_60"].asArray();
+    for (std::size_t i = 0; i < tc.size(); i++) t.top_cpu.push_back(parseProcTrend(tc[i]));
+    s.available.trends = true;
+  }
 
   const json::Value& bd = v["baseline_diff"];
   if (!bd.isNull()) {

@@ -39,6 +39,9 @@ public sealed class ProcessListSource : PolledSourceBase
     /// <summary>벤치 전용 — 운영 코드에서 쓰지 않는다.</summary>
     internal object SampleOnceForBench() => Sample();
 
+    /// <summary>롤업용 요약: Private Bytes 상위 12 + 전경 프로세스.</summary>
+    public ProcessSummary? LatestSummary { get; private set; }
+
     protected override object Sample()
     {
         _tick++;
@@ -50,24 +53,30 @@ public sealed class ProcessListSource : PolledSourceBase
             var winPids = VisibleWindowPids(); // EnumWindows 1회 — Process.MainWindowHandle를 400번 묻는 것보다 훨씬 싸다
 
             var basic = new List<object>(procs.Length);
+            var rows = new List<ProcSummary>(procs.Length);
             var alive = new HashSet<int>();
             foreach (var p in procs)
             {
                 try
                 {
+                    var row = new ProcSummary(p.Id, p.ProcessName, Math.Round(p.PrivateMemorySize64 / 1048576.0, 1), p.HandleCount, winPids.Contains(p.Id));
+                    rows.Add(row);
                     basic.Add(new
                     {
                         pid = p.Id,
                         name = p.ProcessName,
                         wsMB = Math.Round(p.WorkingSet64 / 1048576.0, 1),
-                        privMB = Math.Round(p.PrivateMemorySize64 / 1048576.0, 1), // 느려짐 A 메커니즘: 기울기 계산의 원천
-                        handles = p.HandleCount,
-                        win = winPids.Contains(p.Id),
+                        privMB = row.PrivMB, // 느려짐 A 메커니즘: 기울기 계산의 원천
+                        handles = row.Handles,
+                        win = row.Win,
                     });
                     alive.Add(p.Id);
                 }
                 catch { }
             }
+            var summary = rows.OrderByDescending(r => r.PrivMB).Take(12).ToList();
+            if (fgPid > 0 && summary.All(r => r.Pid != fgPid) && rows.FirstOrDefault(r => r.Pid == fgPid) is { } fgRow) summary.Add(fgRow);
+            LatestSummary = new ProcessSummary(DateTimeOffset.Now, fgPid, summary);
 
             // 모듈 열거 대상 선정
             var targets = new List<Process>();
