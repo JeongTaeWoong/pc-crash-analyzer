@@ -334,3 +334,34 @@ ImageLoad 총 174건/초(필터 통과 110건/초)를 유발 → 수동 마킹 �
 3. 센서 간격 2초→5초 조정 또는 LHM GPU-only Update 적용 (위 오버헤드 절 조정안)
 4. C를 보호 프로세스/타 세션 프로세스 대상으로 확장 테스트 (실패 양상 기록)
 5. F의 InstallDate 없는 127건 보완책 검토 (키 LastWriteTime은 Win32 API 필요 — 미확인)
+
+## 중간발표 이후 — 트리거 재분류·느려짐 스파이크 (2026-10-28, 관리자)
+
+상세 계획은 `docs/post-midterm-plan.md`. 여기엔 실측만 기록한다.
+
+### 30일 Application 로그 재분류 (이 PC)
+
+| 구분 | 건수 | 비고 |
+|---|---|---|
+| 1000 앱 크래시 | 42 | CrashDummy 30 제외 시 실제 12건(8개 프로그램) — **전부 수집기 OFF 때 발생, 덤프 0** |
+| 1001 WER 보고 | 79 | APPCRASH 38 · RADAR_PRE_LEAK_64 21 · CLR20r3 6 · crashpad_log 4 · StoreAgentScan 4 · LiveKernelEvent 2 · AppHangB1 2 · FTH 1 · BEX64 1 |
+| 1002 응답 없음 | 6 | NVIDIA Overlay 4 · Hearthstone 1 · STOVE 1 — **현재 미구독** |
+
+- 현 트리거(1000∨1001)는 30일 121회 중 테스트 61회 제외 60회, 그중 비크래시 30회(50%) → 1001은 유형별 분기 필수
+- 누락: 1002(응답 없음), LiveKernelEvent(커널 라이브 덤프), System BugCheck 1001(BSOD) → 추가 예정
+- 재설계 역산(추정): 121회 → 약 21회, 전부 사용자 체감 사건
+- 2번째 PC(남건호, 비관리자): 감지 4ms·덤프 정상, **.NET 8 런타임 없으면 실행 실패** — 세팅 가이드 항목
+
+### 느려짐 진단 신호 스파이크 (읽기 전용)
+
+| 신호 | 상태 | 실측 |
+|---|---|---|
+| 프로세스별 CPU/WS/IO (PerfProc) | 검증됨 | 유휴 중 SignKoreaWD 22% · Goji 22% · SKBspmtmon 13% (금융보안 상주물) |
+| 메모리 압박 (PerfOS_Memory) | 검증됨 | 가용 48GB, 커밋 72% |
+| 디스크 부하 (PerfDisk _Total) | 검증됨 | busy 0% |
+| 디스크 건강 (Get-PhysicalDisk) | 검증됨 | 4개 Healthy |
+| SMART FailurePredict (WMI) | **미지원** | 관리자에서도 액세스 거부 (NVMe 추정) → HealthStatus 대체 |
+| 시작 프로그램 (Run 키 + 로그온 예약 작업) | 검증됨 | Run 17 · 활성 예약 작업 32 |
+| 백신 자원 (MsMpEng) | 검증됨(PerfProc) | `Get-Process` CPU는 보호 프로세스에서 0 → 신뢰 불가 |
+
+함정: `Get-Process`의 CPU/TotalProcessorTime은 보호 프로세스(MsMpEng)에서 0을 돌려준다 — 자원 사용량은 PerfProc 카운터로만.
