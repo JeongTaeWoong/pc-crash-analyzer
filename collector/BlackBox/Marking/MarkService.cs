@@ -1,17 +1,19 @@
 using System.Text.Json;
 using BlackBox.Core;
+using BlackBox.Sources;
 
 namespace BlackBox.Marking;
 
 /// <summary>
 /// 마킹 처리: T 시점에 상태 스냅샷을 뜨기 시작하고, T+post까지 수집을 계속한 뒤
 /// 버퍼의 [T-pre, T+post] 구간과 스냅샷을 덤프한다.
-/// 자동 트리거는 쿨다운(10초) 안에 또 오면 새 덤프 대신 직전 마킹에 병합한다
-/// (한 번의 크래시가 1000→1001을 연달아 쏘는 것 대비).
+/// 자동 트리거는 (1) denylist, (2) WER 후속 보고 중복 제거(1001↔1000, hang-1001↔1002, 180초),
+/// (3) 쿨다운(10초) 병합을 거친다. 덤프 시 유의성 점수를 계산해 meta·엔진 스냅샷에 넣는다 — 낮은 점수도 덤프는 남긴다(2026-10-28 결정: 숨기기).
 /// </summary>
 public sealed class MarkService
 {
     private static readonly TimeSpan AutoCooldown = TimeSpan.FromSeconds(10);
+    private static readonly TimeSpan DedupeWindow = TimeSpan.FromSeconds(180);
 
     private readonly RingBuffer _buffer;
     private readonly StateSnapshotter _snapshotter;
@@ -19,13 +21,15 @@ public sealed class MarkService
     private readonly TimeSpan _pre;
     private readonly TimeSpan _post;
     private readonly IReadOnlyList<SourceStatus> _statuses;
+    private readonly BlackBoxConfig _config;
     private readonly object _lock = new();
     private readonly List<Task> _pending = new();
+    private readonly Dictionary<string, (string Kind, DateTimeOffset At)> _recentByProcess = new(StringComparer.OrdinalIgnoreCase);
     private DateTimeOffset _lastAutoMark = DateTimeOffset.MinValue;
     private List<EventLogTrigger>? _mergeTarget;
 
     public MarkService(RingBuffer buffer, StateSnapshotter snapshotter, DumpWriter writer,
-        TimeSpan pre, TimeSpan post, IReadOnlyList<SourceStatus> statuses)
+        TimeSpan pre, TimeSpan post, IReadOnlyList<SourceStatus> statuses, BlackBoxConfig config)
     {
         _buffer = buffer;
         _snapshotter = snapshotter;
@@ -33,6 +37,7 @@ public sealed class MarkService
         _pre = pre;
         _post = post;
         _statuses = statuses;
+        _config = config;
     }
 
     public void MarkManual(string via) =>
@@ -40,21 +45,42 @@ public sealed class MarkService
 
     public void OnAutoTrigger(EventLogTrigger t)
     {
+        if (_config.IsDenied(t.ProcessName))
+        {
+            Console.WriteLine($"[trigger] {Json.Serialize(new { receivedAt = t.ReceivedAt, kind = t.Kind, processName = t.ProcessName, suppressed = true, reason = "denylist" })}");
+            return;
+        }
+
         List<EventLogTrigger> merged;
         lock (_lock)
         {
-            if (DateTimeOffset.Now - _lastAutoMark < AutoCooldown && _mergeTarget != null)
+            var now = DateTimeOffset.Now;
+
+            // WER 후속 보고(1001)는 같은 프로그램의 1000/1002가 직전에 있었으면 같은 사건 — 별도 덤프를 만들지 않는다
+            if (t.ProcessName != null && _recentByProcess.TryGetValue(t.ProcessName, out var r) && now - r.At < DedupeWindow)
+            {
+                bool dup = (t.Kind == "crash-1001" && r.Kind == "crash-1000") || (t.Kind == "hang-1001" && r.Kind == "hang-1002");
+                if (dup)
+                {
+                    Console.WriteLine($"[trigger] {Json.Serialize(new { receivedAt = t.ReceivedAt, kind = t.Kind, id = t.EventId, werEventType = t.WerEventType, processName = t.ProcessName, suppressed = true, reason = $"같은 프로그램의 {r.Kind}와 중복(WER 후속 보고)" })}");
+                    return;
+                }
+            }
+            if (t.Kind is "crash-1000" or "hang-1002" && t.ProcessName != null)
+                _recentByProcess[t.ProcessName] = (t.Kind, now);
+
+            if (now - _lastAutoMark < AutoCooldown && _mergeTarget != null)
             {
                 _mergeTarget.Add(t);
                 Console.WriteLine($"[trigger] {Json.Serialize(new { receivedAt = t.ReceivedAt, kind = t.Kind, id = t.EventId, suppressed = true, reason = "쿨다운 내 — 직전 마킹에 병합" })}");
                 return;
             }
-            _lastAutoMark = DateTimeOffset.Now;
+            _lastAutoMark = now;
             merged = new List<EventLogTrigger>();
             _mergeTarget = merged;
         }
 
-        Console.WriteLine($"[trigger] {Json.Serialize(new { receivedAt = t.ReceivedAt, kind = t.Kind, log = t.Log, id = t.EventId, processName = t.ProcessName, pid = t.Pid })}");
+        Console.WriteLine($"[trigger] {Json.Serialize(new { receivedAt = t.ReceivedAt, kind = t.Kind, log = t.Log, id = t.EventId, werEventType = t.WerEventType, processName = t.ProcessName, pid = t.Pid, exceptionCode = t.ExceptionCode, note = t.Class.Note })}");
         StartMark(t.Kind, t, t, t.Pid, t.ProcessName, merged);
     }
 
@@ -86,13 +112,20 @@ public sealed class MarkService
                     crashModulePaths = found.Paths;
                 }
 
+                SignificanceResult? significance = null;
+                if (autoTrigger != null)
+                {
+                    significance = ComputeSignificance(autoTrigger, events, markTime);
+                    snapshot["significance"] = new { significance.Score, significance.Tier, significance.Tags, significance.Factors };
+                }
+
                 object triggerObj = mergedTriggers is { Count: > 0 }
                     ? new { primary = trigger, mergedWithinCooldown = mergedTriggers }
                     : trigger;
 
-                var engineSnapshot = EngineSnapshotBuilder.Build(markTime, kind, autoTrigger, events, snapResult.Facts, crashModulePaths);
-                var dir = _writer.Write(markTime, kind, triggerObj, from, to, events, snapshot, engineSnapshot, _buffer.Stats, _statuses);
-                Console.WriteLine($"[dump] {Json.Serialize(new { dir, completedAt = DateTimeOffset.Now, kind, events = events.Count })}");
+                var engineSnapshot = EngineSnapshotBuilder.Build(markTime, kind, autoTrigger, events, snapResult.Facts, crashModulePaths, significance);
+                var dir = _writer.Write(markTime, kind, triggerObj, from, to, events, snapshot, engineSnapshot, significance, _buffer.Stats, _statuses);
+                Console.WriteLine($"[dump] {Json.Serialize(new { dir, completedAt = DateTimeOffset.Now, kind, events = events.Count, significance = significance?.Score, tier = significance?.Tier })}");
             }
             catch (Exception ex)
             {
@@ -101,6 +134,64 @@ public sealed class MarkService
         });
 
         lock (_lock) { _pending.Add(task); _pending.RemoveAll(x => x.IsCompleted); }
+    }
+
+    /// <summary>
+    /// 유의성 점수 입력을 버퍼에서 모은다: 사용자 대면(창 보유/전경), 수명(ETW processStart 또는 스냅샷 최초 관측),
+    /// 7일 내 재발(이벤트 로그 조회), 오류 모듈 경로·예외 코드(트리거), 테스트 아티팩트(설정).
+    /// </summary>
+    private SignificanceResult ComputeSignificance(EventLogTrigger t, IReadOnlyList<SignalEvent> events, DateTimeOffset markTime)
+    {
+        bool? userFacing = null;
+        double? lifetime = null;
+        var crashAt = t.EventTime ?? t.ReceivedAt;
+
+        if (t.Pid is { } pid)
+        {
+            DateTimeOffset? firstSeen = null;
+            DateTimeOffset? etwStart = null;
+            foreach (var e in events)
+            {
+                if (e.Timestamp > markTime) continue;
+                try
+                {
+                    if (e.Source == "processes")
+                    {
+                        using var doc = JsonDocument.Parse(e.PayloadJson);
+                        var root = doc.RootElement;
+                        int fg = root.TryGetProperty("fgPid", out var f) ? f.GetInt32() : -1;
+                        if (!root.TryGetProperty("processes", out var arr)) continue;
+                        foreach (var p in arr.EnumerateArray())
+                        {
+                            if (p.GetProperty("pid").GetInt32() != pid) continue;
+                            firstSeen ??= e.Timestamp;
+                            bool win = p.TryGetProperty("win", out var w) && w.GetBoolean();
+                            if (win || fg == pid) userFacing = true;
+                            else userFacing ??= false;
+                        }
+                    }
+                    else if (e.Source == "etw-kernel")
+                    {
+                        using var doc = JsonDocument.Parse(e.PayloadJson);
+                        var r = doc.RootElement;
+                        if (r.GetProperty("ev").GetString() == "processStart" && r.GetProperty("pid").GetInt32() == pid)
+                            etwStart = e.Timestamp;
+                    }
+                }
+                catch { /* 형식이 다른 이벤트는 건너뛴다 */ }
+            }
+
+            if (etwStart is { } s) lifetime = (crashAt - s).TotalSeconds;
+            else if (firstSeen is { } fs && (crashAt - fs).TotalSeconds > 30) lifetime = (crashAt - fs).TotalSeconds; // 하한만 알 때는 30초 초과만 인정
+        }
+
+        int recurrence = 0;
+        if (t.Kind == "crash-1000" && t.ProcessName != null)
+            recurrence = Math.Max(0, EventLogSource.CountRecentCrashes(t.ProcessName, TimeSpan.FromDays(7)) - 1);
+
+        return SignificanceScorer.Compute(new SignificanceInput(
+            t.Class.BaseScore, userFacing, t.FaultingModule, t.FaultingModulePath, lifetime, recurrence,
+            t.ExceptionCode, _config.IsTestArtifact(t.ProcessName)));
     }
 
     /// <summary>
@@ -118,8 +209,7 @@ public sealed class MarkService
     /// <summary>
     /// 버퍼의 etw-kernel ImageLoad 이벤트에서 해당 PID의 로드 경로를 누적한다.
     /// PID 재사용 대비: 그 PID의 마지막 processStart(마킹 이전) 이후 이벤트만 센다.
-    /// ETW 실시간 전달은 1~3초 늦게 도착하므로(수명 100ms급 크래시에서 실측),
-    /// ImageLoad는 마킹 +5초까지 유예해 받아들인다 — PID 일치 조건이라 오염 위험 없음.
+    /// ETW 실시간 전달은 1~3초 늦게 도착하므로(수명 100ms급 크래시에서 실측), ImageLoad는 마킹 +5초까지 유예해 받아들인다.
     /// </summary>
     private static (object Dump, List<string> Paths)? AccumulateEtwImageLoads(IReadOnlyList<SignalEvent> events, DateTimeOffset markTime, int pid)
     {
@@ -175,7 +265,7 @@ public sealed class MarkService
 
     /// <summary>
     /// 주기 스냅샷 폴백: 최신부터 거슬러 PID 일치 우선, 프로세스명(확장자 제외) 일치는 차선.
-    /// 마킹 시점 이후 스냅샷 제외 — 이름 폴백이 크래시 후 새로 뜬 동명 프로세스를 집어오는 오류 방지 (2026-10-08 확인).
+    /// 마킹 시점 이후 스냅샷 제외 — 이름 폴백이 크래시 후 새로 뜬 동명 프로세스를 집어오는 오류 방지.
     /// </summary>
     private static (object Dump, List<string>? Paths) FindLastModulesFromSnapshots(IReadOnlyList<SignalEvent> events, DateTimeOffset markTime, int? pid, string? processName)
     {
@@ -209,11 +299,11 @@ public sealed class MarkService
                         name = mName,
                         modules = mods,
                     }, mods);
-                    if (pidHit) return entry;       // 최신 스냅샷의 PID 일치 — 바로 확정
-                    nameMatch ??= entry;            // 이름 일치는 폴백 후보로만
+                    if (pidHit) return entry;
+                    nameMatch ??= entry;
                 }
             }
-            catch { }
+            catch { /* 형식이 다른 이벤트는 건너뛴다 */ }
         }
 
         return nameMatch ?? ((object)new
@@ -228,7 +318,6 @@ public sealed class MarkService
     /// <summary>
     /// 덤프 구간의 ETW ImageLoad를 PID별로 집계해 상위 10개를 낸다. 같은 구간의 processStart와
     /// 매칭해(시작 시각·부모 PID·명령줄) "무엇이 로드 폭주를 유발했는지"를 덤프만으로 짚게 한다.
-    /// 2026-10-08 유휴 실측 중 ~320건/초 버스트의 원인을 사후 추적할 수 없었던 데서 추가.
     /// </summary>
     private static object TopImageLoadPids(IReadOnlyList<SignalEvent> events)
     {

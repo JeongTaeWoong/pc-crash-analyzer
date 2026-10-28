@@ -4,14 +4,19 @@ using BlackBox.Core;
 namespace BlackBox.Sources;
 
 /// <summary>
-/// 스파이크 A에서 검증된 이벤트 로그 실시간 구독.
-/// Application 1000(앱 크래시)/1001(WER), System 41(Kernel-Power)/4101(TDR)/WHEA 17~20.
-/// 수신 이벤트는 전부 자동 마킹 트리거이기도 하다 (쿼리가 그 이벤트만 구독하므로).
+/// 이벤트 로그 실시간 구독.
+/// Application 1000(앱 크래시) / 1001(WER 보고) / 1002(응답 없음),
+/// System 41(Kernel-Power) / 4101(TDR) / WHEA 17~20 / BugCheck 1001(BSOD 기록).
+/// 수신한 레코드는 전부 버퍼에 넣고, TriggerClassifier가 트리거로 분류한 것만 OnTrigger로 올린다
+/// (예: 1001 중 RADAR_PRE_LEAK 같은 비크래시 보고는 버퍼에만 남는다 — 2026-10-28 재분류 반영).
 /// </summary>
 public sealed class EventLogSource : ISignalSource
 {
-    private const string AppCond = "EventID=1000 or EventID=1001";
-    private const string SysCond = "(EventID=41 or EventID=4101) or (Provider[@Name='Microsoft-Windows-WHEA-Logger'] and (EventID>=17 and EventID<=20))";
+    private const string AppCond = "EventID=1000 or EventID=1001 or EventID=1002";
+    private const string SysCond =
+        "(EventID=41 or EventID=4101) " +
+        "or (Provider[@Name='Microsoft-Windows-WHEA-Logger'] and (EventID>=17 and EventID<=20)) " +
+        "or (Provider[@Name='Microsoft-Windows-WER-SystemErrorReporting'] and EventID=1001)";
 
     private readonly List<EventLogWatcher> _watchers = new();
 
@@ -51,7 +56,7 @@ public sealed class EventLogSource : ISignalSource
 
         if (_watchers.Count == 0)
             return SourceStatus.Unavailable(Name, string.Join(" / ", errors));
-        return SourceStatus.Ok(Name, errors.Count > 0 ? "부분 구독: " + string.Join(" / ", errors) : "Application+System 구독 중");
+        return SourceStatus.Ok(Name, errors.Count > 0 ? "부분 구독: " + string.Join(" / ", errors) : "Application 1000/1001/1002 + System 41/4101/WHEA/BugCheck 구독 중");
     }
 
     private void Handle(string logName, EventRecord rec)
@@ -62,21 +67,30 @@ public sealed class EventLogSource : ISignalSource
         msg = msg.Replace("\r\n", " ").Replace("\n", " ");
         if (msg.Length > 1000) msg = msg[..1000] + "...";
 
-        // 이벤트 1000(Application Error)의 표준 속성: [0]=앱 이름, [3]=모듈 이름, [8]=프로세스 ID(16진수 문자열)
-        string? pname = null;
-        string? faultingModule = null;
+        // 이벤트별 속성 위치 (2026-10-28 이 PC에서 확인):
+        //  1000: [0]앱 [3]모듈 [6]예외코드 [8]PID(16진) [10]앱 경로 [11]모듈 경로 [12]ReportId
+        //  1001: [2]WER 유형 [5]P1 앱 [8]P4 모듈
+        //  1002: [0]앱 [2]PID(16진) [5]앱 경로 [6]ReportId
+        string? pname = null, module = null, modulePath = null, exc = null, reportId = null, werType = null;
         int? pid = null;
-        if (rec.Id == 1000)
+        try
         {
-            try
+            var p = rec.Properties;
+            switch (logName, rec.Id)
             {
-                var props = rec.Properties;
-                if (props.Count > 0) pname = props[0].Value as string;
-                if (props.Count > 3) faultingModule = props[3].Value as string;
-                if (props.Count > 8) pid = ParsePid(props[8].Value);
+                case ("Application", 1000):
+                    pname = Str(p, 0); module = Str(p, 3); exc = Str(p, 6);
+                    pid = ParsePid(Val(p, 8)); modulePath = Str(p, 11); reportId = Str(p, 12);
+                    break;
+                case ("Application", 1001):
+                    werType = Str(p, 2); pname = Str(p, 5); module = Str(p, 8);
+                    break;
+                case ("Application", 1002):
+                    pname = Str(p, 0); pid = ParsePid(Val(p, 2)); modulePath = Str(p, 5); reportId = Str(p, 6);
+                    break;
             }
-            catch { }
         }
+        catch { /* 속성 형식이 다른 레코드 — 트리거 분류는 계속한다 */ }
 
         OnSignal?.Invoke(SignalEvent.Create(Name, new
         {
@@ -84,31 +98,48 @@ public sealed class EventLogSource : ISignalSource
             id = rec.Id,
             provider = rec.ProviderName,
             subject = pname,
-            faultingModule,
+            faultingModule = module,
+            werEventType = werType,
+            exceptionCode = exc,
             message = msg,
         }));
 
-        string? kind = KindOf(logName, rec.Id, rec.ProviderName);
-        if (kind == null) return;
+        var cls = TriggerClassifier.Classify(logName, rec.Id, rec.ProviderName, werType);
+        if (!cls.IsTrigger) return;
 
         OnTrigger?.Invoke(new EventLogTrigger(
-            receivedAt, logName, rec.Id, rec.ProviderName, rec.TimeCreated, msg, pname, pid, faultingModule, kind));
+            receivedAt, logName, rec.Id, rec.ProviderName, rec.TimeCreated, msg, pname, pid, module, cls.Kind!,
+            werType, exc, modulePath, reportId, cls));
     }
 
-    private static string? KindOf(string log, int id, string? provider) => (log, id) switch
+    /// <summary>유의성 점수의 "재발" 요소용: 최근 window 동안 같은 프로그램의 1000(앱 크래시) 건수.</summary>
+    public static int CountRecentCrashes(string processName, TimeSpan window)
     {
-        ("Application", 1000) => "crash-1000",
-        ("Application", 1001) => "crash-1001",
-        ("System", 41) => "power-41",
-        ("System", 4101) => "display-4101",
-        _ when log == "System" && id is >= 17 and <= 20 && provider == "Microsoft-Windows-WHEA-Logger" => "whea",
-        _ => null,
-    };
+        try
+        {
+            long ms = (long)window.TotalMilliseconds;
+            var q = new EventLogQuery("Application", PathType.LogName,
+                $"*[System[EventID=1000 and TimeCreated[timediff(@SystemTime) <= {ms}]]]");
+            using var reader = new EventLogReader(q);
+            int n = 0;
+            for (EventRecord? ev = reader.ReadEvent(); ev != null; ev = reader.ReadEvent())
+            {
+                using (ev)
+                {
+                    if (string.Equals(Str(ev.Properties, 0), processName, StringComparison.OrdinalIgnoreCase)) n++;
+                }
+            }
+            return n;
+        }
+        catch { return 0; }
+    }
+
+    private static object? Val(IList<EventProperty> p, int i) => i < p.Count ? p[i].Value : null;
+    private static string? Str(IList<EventProperty> p, int i) => Val(p, i) as string is { Length: > 0 } s ? s : null;
 
     private static int? ParsePid(object? value)
     {
-        // 이벤트 1000의 P9(프로세스 ID)는 "0x 접두사 없는 16진수 문자열"이다 (예: "5650" = 22096).
-        // 메시지 렌더링에서만 0x가 붙는다. 십진수로 읽으면 엉뚱한 PID가 된다 — 2026-10-08 테스트에서 확인.
+        // 이벤트 1000/1002의 PID는 "0x 접두사 없는 16진수 문자열" (예: "5650" = 22096). 십진으로 읽으면 안 된다.
         try
         {
             return value switch

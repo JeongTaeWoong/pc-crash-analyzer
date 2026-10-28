@@ -365,3 +365,53 @@ ImageLoad 총 174건/초(필터 통과 110건/초)를 유발 → 수동 마킹 �
 | 백신 자원 (MsMpEng) | 검증됨(PerfProc) | `Get-Process` CPU는 보호 프로세스에서 0 → 신뢰 불가 |
 
 함정: `Get-Process`의 CPU/TotalProcessorTime은 보호 프로세스(MsMpEng)에서 0을 돌려준다 — 자원 사용량은 PerfProc 카운터로만.
+
+## 트리거 재설계·유의성 점수 구현 — BlackBox v0.5 (2026-10-28)
+
+구현 (`docs/post-midterm-plan.md` 3절):
+- `TriggerClassifier`(1단계, 순수 규칙): 1001을 WER 유형별로 분기 — RADAR_PRE_LEAK·StoreAgentScan·crashpad_log·FTH 등은 **트리거 안 함(버퍼만)**,
+  LiveKernelEvent → `kernel-live`(90), AppHang → `hang-1001`, APPCRASH/CLR20r3/BEX → `crash-1001`. **1002 응답 없음 → `hang-1002`(freeze) 신규**,
+  System BugCheck 1001 → `bsod-1001` 신규(이 PC에 사례 없어 **미확인**). 미분류 WER 유형은 보수적으로 트리거하되 기본점 20.
+- 중복 제거: 같은 프로그램의 1000 뒤 180초 내 APPCRASH/CLR20r3 1001은 억제 (실측: 2.0초 뒤 도착한 APPCRASH 억제 확인), hang-1001↔1002 동일.
+- `SignificanceScorer`(2단계): 기본점 + 사용자 대면 30 + 서드파티 오류 모듈 20(1000 [11] 경로 기준; 런타임 모듈명·`\dotnet\` 경로는 제외) + 7일 재발 15 +
+  수명(>30s +15 / <5s −20) + 네이티브 예외 10 / 브레이크포인트 −10, 테스트 아티팩트는 ≤10. 등급 major≥60 / minor≥30 / hidden. **덤프는 남기고 UI 기본 숨김(10/28 결정)**.
+- 이벤트 속성 추출 확정: 1000 [0]앱 [3]모듈 [6]예외코드 [8]PID(16진) [11]모듈 경로 [12]ReportId · 1001 [2]WER 유형 [5]P1 앱 [8]P4 모듈 · 1002 [0]앱 [2]PID(16진) [5]경로 [6]ReportId.
+- 프로세스 스냅샷에 `win`(보이는 창 보유, EnumWindows 1회)·`fgPid` 추가 — 사용자 대면 판정용.
+- 엔진 스냅샷: `significance` 필드 추가(엔진이 미지 필드를 무시함을 10/28 확인), `modules[].company/version/microsoft_signed`(FileVersionInfo) 추가 → 엔진의 Microsoft 추정 폴백 작동.
+- 설정 `blackbox.config.json`: testArtifacts(기본 CrashDummy/FaultLab/FaultHost) · denylist.
+- xUnit `collector/BlackBox.Tests` 29건 통과 (분류기·점수기).
+
+FaultLab(`collector/experiments/FaultLab`): crash-a/b/c · plugin(네이티브 호스트) · plugin-inproc · hang · cpu · disk · leak. 네이티브 `plugin/`(CMake): FaultPlugin.dll + FaultHost.exe.
+
+### 실측 (E2E, 비관리자 셸)
+
+| 케이스 | 결과 |
+|---|---|
+| FaultLab plugin-inproc (.NET 프로세스 안에서 DLL 널 쓰기) | 1000 오류 모듈 = **coreclr.dll** — CLR이 접근 위반을 가로채 FailFast. s6 재현 **실패** → 네이티브 호스트 필요 |
+| FaultLab plugin (FaultHost.exe → FaultPlugin.dll) | 1000 앱 FaultHost.exe, 오류 모듈 = **FaultPlugin.dll**(비시스템 경로), c0000005 — **s6 패턴 재현 성공**. 요소: thirdPartyModule 20 + nativeFault 10 |
+| 1001 APPCRASH 후속 보고 | 1000 2.0초 뒤 도착 → "중복(WER 후속 보고)"로 억제 |
+| 이벤트 수신 지연 | **네이티브 크래시 ~3.5초**(WER 보고 생성 후 1000 기록) vs .NET 크래시 ~90ms — 지연 지표는 크래시 종류별로 따로 보고해야 함 |
+| 유의성 | 테스트 아티팩트라 10/hidden (설계대로) — 비테스트였다면 60(major) |
+
+함정:
+- PowerShell 5.1 `Get-Content`(인코딩 미지정)로 UTF-8 소스를 읽어 되쓰면 한글 주석이 깨진다 — 소스 편집은 Write/Edit 도구나 `-Encoding UTF8`로.
+- 1002(응답 없음)는 사용자가 멈춘 창을 클릭·닫아야 기록되므로 자동 재현 불가 → FaultLab hang은 수동 단계 포함. 구독 자체는 쿼리 등록 성공으로만 확인(**미확인**: 실이벤트 수신).
+
+## 설치 프로그램 인벤토리 + 충돌 검증 계획 (2026-10-28, 레지스트리 Uninstall 키·Win32_SystemDriver 읽기 전용)
+
+`docs/conflict-test-plan.md`의 1절 매트릭스 근거. 이 PC에서 재현 가능한 셀을 정하기 위해 조사.
+
+| 종류 | 설치됨 | 비고 |
+|---|---|---|
+| 영상·그래픽 편집 | Adobe Bridge 2023, Creative Cloud 데스크톱 | **Photoshop·Premiere 미설치** — Blender(무료)로 대체 검증 예정 |
+| 코드 에디터·IDE | VS Code, VS 2022, Unity 2021.3/6000.4/6000.7, Android Studio, CUDA·Nsight | M3(Defender vs 빌드) 재현 가능 |
+| 게임 런처·게임 | Steam, Epic, Battle.net, GOG, STOVE, Nexon Launcher, LOST ARK(+TEST) | M1 오버레이 재현 가능 |
+| 오버레이·캡처 | OBS Studio, Discord, NVIDIA App | Afterburner/RTSS·RGB 소프트웨어 **미설치** |
+| 보안·백신 | Defender(기본) | 서드파티 백신 없음 |
+| 금융·인증·사내 보안 | AhnLab Safe Transaction, nProtect Online Security, TouchEn nxKey, Veraport, Delfino G3, IPinside ×2, AnySign4PC, SignKorea, CrossCert UniCRSV3, WIZVERA Process Manager (11종) | M3 실측 대상(10/28 유휴 CPU 13–22% 관찰분과 동일 계열) |
+| 안티치트 드라이버 | **xhunter1/xhunter2**(Wellbia, Stopped), **ACE-BASE**(Tencent ACE, **Running**), ACE-ADVT(Stopped) | 유휴 상태에서 ACE-BASE가 실행 중 — 어느 게임이 올렸는지 **미확인** |
+
+벤더 공식 "알려진 충돌" 출처(등급 A)로 확인된 것: OBS↔오버레이 후킹, JetBrains↔백신 실시간 검사, Adobe↔NVIDIA 드라이버 범위, Riot Vanguard↔요건 미달 드라이버.
+**한국 금융보안 모듈↔게임 충돌은 공식·학술·보도 출처 없음** → "알려진 충돌"이 아닌 "우리가 측정한 자원 점유"로만 기술.
+
+상태 분류: 검증됨(인벤토리 수집 자체) / 미확인(ACE-BASE 출처, Vanguard·EAC 재현, 1002·BugCheck 실수신) / 미지원(Photoshop·Premiere 재현 — 미설치).

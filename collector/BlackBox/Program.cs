@@ -48,9 +48,11 @@ foreach (var source in sources)
     Console.WriteLine($"[source] {Json.Serialize(status)}");
 }
 
+var config = BlackBoxConfig.Load();
+Console.WriteLine($"[config] {Json.Serialize(new { testArtifacts = config.TestArtifacts, denylist = config.Denylist })}");
 var snapshotter = new StateSnapshotter(sensorSource);
 var writer = new DumpWriter(Path.Combine(Environment.CurrentDirectory, "dumps"));
-var markService = new MarkService(buffer, snapshotter, writer, pre, post, statuses);
+var markService = new MarkService(buffer, snapshotter, writer, pre, post, statuses, config);
 
 // 자동 감지: 구독 중인 이벤트(= 전부 크래시/전원/디스플레이/WHEA 계열)는 수신 즉시 자동 마킹
 eventLogSource.OnTrigger += markService.OnAutoTrigger;

@@ -21,6 +21,7 @@ public sealed class DumpWriter
         IReadOnlyList<SignalEvent> events,
         object snapshot,
         object engineSnapshot,
+        object? significance,
         (int Count, long ApproxBytes) bufferStats,
         IReadOnlyList<SourceStatus> sourceStatuses)
     {
@@ -43,6 +44,7 @@ public sealed class DumpWriter
             markTime,
             kind,
             trigger,
+            significance,
             window = new { from, to },
             sources = sourceStatuses,
             bufferAtDump = new { eventCount = bufferStats.Count, approxBytes = bufferStats.ApproxBytes },

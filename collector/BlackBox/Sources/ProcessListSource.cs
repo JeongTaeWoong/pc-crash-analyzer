@@ -17,6 +17,7 @@ public enum SnapshotStrategy
 /// 프로세스 목록(10초 주기) + 선별 대상의 비시스템 모듈 목록을 버퍼에 넣는다.
 /// 크래시 이벤트가 도착한 시점엔 프로세스가 이미 죽어 있으므로,
 /// 죽기 직전(최대 10초 전)의 모듈 목록이 버퍼에 남아 있게 하는 것이 목적.
+/// 각 프로세스에 "보이는 창 보유(win)" 플래그와 전경 PID(fgPid)를 함께 기록 — 유의성 점수의 "사용자 대면" 판정용.
 /// </summary>
 public sealed class ProcessListSource : PolledSourceBase
 {
@@ -45,13 +46,22 @@ public sealed class ProcessListSource : PolledSourceBase
         var procs = Process.GetProcesses();
         try
         {
+            int fgPid = GetForegroundPid();
+            var winPids = VisibleWindowPids(); // EnumWindows 1회 — Process.MainWindowHandle를 400번 묻는 것보다 훨씬 싸다
+
             var basic = new List<object>(procs.Length);
             var alive = new HashSet<int>();
             foreach (var p in procs)
             {
                 try
                 {
-                    basic.Add(new { pid = p.Id, name = p.ProcessName, wsMB = Math.Round(p.WorkingSet64 / 1048576.0, 1) });
+                    basic.Add(new
+                    {
+                        pid = p.Id,
+                        name = p.ProcessName,
+                        wsMB = Math.Round(p.WorkingSet64 / 1048576.0, 1),
+                        win = winPids.Contains(p.Id),
+                    });
                     alive.Add(p.Id);
                 }
                 catch { }
@@ -69,7 +79,6 @@ public sealed class ProcessListSource : PolledSourceBase
                     break;
 
                 case SnapshotStrategy.ForegroundPlusRecent:
-                    int fgPid = GetForegroundPid();
                     var cutoff = DateTime.Now.AddSeconds(-60);
                     foreach (var p in procs)
                     {
@@ -113,6 +122,7 @@ public sealed class ProcessListSource : PolledSourceBase
                 count = basic.Count,
                 strategy = _strategy.ToString(),
                 scanMs = sw.ElapsedMilliseconds,
+                fgPid,
                 moduleScanned = modules.Count,
                 moduleDenied,
                 processes = basic,
@@ -132,6 +142,29 @@ public sealed class ProcessListSource : PolledSourceBase
         GetWindowThreadProcessId(hwnd, out uint pid);
         return (int)pid;
     }
+
+    private static HashSet<int> VisibleWindowPids()
+    {
+        var set = new HashSet<int>();
+        EnumWindows((h, _) =>
+        {
+            if (IsWindowVisible(h))
+            {
+                GetWindowThreadProcessId(h, out uint pid);
+                set.Add((int)pid);
+            }
+            return true;
+        }, IntPtr.Zero);
+        return set;
+    }
+
+    private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hWnd);
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();

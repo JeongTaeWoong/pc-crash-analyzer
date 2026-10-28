@@ -10,3 +10,8 @@ logs/
 # Python cache (ui prototype)
 __pycache__/
 *.pyc
+collector/experiments/FaultLab/plugin/build/
+dumps_archive/
+
+# 개인 화면 녹화 (데모 영상) — 커밋 금지
+recordings/

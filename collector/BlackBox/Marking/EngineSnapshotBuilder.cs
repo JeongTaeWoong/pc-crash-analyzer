@@ -8,6 +8,7 @@ namespace BlackBox.Marking;
 /// 스키마 약속: 수집 실패 항목은 빈 값 대신 필드 자체를 생략, 시각은 ISO-8601+오프셋,
 /// 센서가 없으면 sensors를 아예 뺀다 (0을 넣지 않는다).
 /// 변환은 포맷팅일 뿐 분석이 아니다 — 추론은 엔진의 몫.
+/// 추가 필드(엔진 미지 필드는 무시됨을 2026-10-28 확인): significance — 제안서 docs/schema-extension-proposal.md.
 /// </summary>
 public static class EngineSnapshotBuilder
 {
@@ -17,25 +18,15 @@ public static class EngineSnapshotBuilder
         EventLogTrigger? trigger,
         IReadOnlyList<SignalEvent> events,
         EngineFacts facts,
-        List<string>? crashModulePaths)
+        List<string>? crashModulePaths,
+        SignificanceResult? significance)
     {
-        // kind → trigger.kind / symptom 매핑.
-        // manual은 실제 제품 흐름에서 UI가 symptom을 사용자에게 받아 채운다(스키마 명세) — 여기선 unknown.
-        string triggerKind, symType, symScope;
-        switch (kind)
-        {
-            case "crash-1000":
-            case "crash-1001":
-                triggerKind = "auto_app_crash"; symType = "app_crash"; symScope = "single_app"; break;
-            case "power-41":
-                triggerKind = "auto_system"; symType = "unexpected_reboot"; symScope = "system_wide"; break;
-            case "display-4101":
-                triggerKind = "auto_system"; symType = "flicker"; symScope = "system_wide"; break;
-            case "whea":
-                triggerKind = "auto_system"; symType = "freeze"; symScope = "system_wide"; break; // WHEA 전용 타입이 스키마에 없어 임시 매핑
-            default:
-                triggerKind = "hotkey"; symType = "unknown"; symScope = "unknown"; break;
-        }
+        // 증상·범위는 TriggerClassifier 결과를 그대로 쓴다. manual은 실제 제품 흐름에서 UI가 사용자에게 받아 채운다.
+        string symType = trigger?.Class.SymptomType ?? "unknown";
+        string symScope = trigger?.Class.Scope ?? "unknown";
+        string triggerKind = trigger is null
+            ? "hotkey"
+            : kind is "crash-1000" or "crash-1001" or "hang-1002" or "hang-1001" ? "auto_app_crash" : "auto_system";
 
         // 버퍼 이벤트에서 엔진용 events / sensors.samples / processes 추출
         var engineEvents = new List<object>();
@@ -111,12 +102,28 @@ public static class EngineSnapshotBuilder
             },
         };
 
+        if (significance != null)
+            snapshot["significance"] = new { score = significance.Score, tier = significance.Tier, tags = significance.Tags };
+
         if (processes.Count > 0)
             snapshot["processes"] = processes.Take(300).ToList();
 
         if (crashModulePaths is { Count: > 0 } && targetProcess.Length > 0)
-            snapshot["modules"] = crashModulePaths
-                .Select(p => new { process = targetProcess, name = Path.GetFileName(p), path = p }).ToList();
+            snapshot["modules"] = crashModulePaths.Select(p =>
+            {
+                string? company = null, version = null;
+                try
+                {
+                    var vi = System.Diagnostics.FileVersionInfo.GetVersionInfo(p);
+                    company = string.IsNullOrWhiteSpace(vi.CompanyName) ? null : vi.CompanyName;
+                    version = string.IsNullOrWhiteSpace(vi.FileVersion) ? null : vi.FileVersion;
+                }
+                catch { /* 파일 없음·접근 불가 — 필드 생략 */ }
+                var m = new Dictionary<string, object> { ["process"] = targetProcess, ["name"] = Path.GetFileName(p), ["path"] = p };
+                if (company != null) { m["company"] = company; m["microsoft_signed"] = company.Contains("Microsoft", StringComparison.OrdinalIgnoreCase); }
+                if (version != null) m["version"] = version;
+                return m;
+            }).ToList();
 
         var drivers = new List<object>();
         foreach (var (name, _) in facts.NonStandardDrivers)
