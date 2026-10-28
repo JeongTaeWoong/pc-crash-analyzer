@@ -38,9 +38,53 @@ public sealed class StateSnapshotter
             ["sensors"] = _sensorSource.Latest ?? new { status = "unavailable", reason = "센서 샘플 없음" },
             ["recentInstalls30d"] = Guard(() => CaptureRecentInstalls(facts)),
             ["securityProducts"] = Guard(() => CaptureSecurityProducts(facts)),
+            ["appCrashLogs"] = Guard(CaptureAppCrashLogs),
         };
         snapshot["captureDurationMs"] = sw.ElapsedMilliseconds;
         return new SnapshotResult(snapshot, facts, fgPid);
+    }
+
+    /// <summary>
+    /// 앱 자체 크래시 로그의 "위치·크기·시각"만 기록한다 (docs/slowdown-mechanisms.md S6). 내용은 읽지 않는다 —
+    /// Blender 애드온·Maya 스크립트처럼 DLL 이 아닌 플러그인은 모듈 목록에 안 뜨므로, 사용자가 UI 안내를 따라 직접 열어 볼 수 있게 경로를 남긴다.
+    /// 10/29 확인: Unity Crashes 폴더의 crash.dmp 와 Application 1000 이 1:1 대응. 최근 30일, 폴더당 최대 10건.
+    /// </summary>
+    private static object CaptureAppCrashLogs()
+    {
+        var cutoff = DateTime.Now.AddDays(-30);
+        string temp = Path.GetTempPath();
+        string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        var sources = new (string Name, string Dir, string Pattern, bool Recurse)[]
+        {
+            ("blender", temp, "*.crash.txt", false),                                              // Blender 매뉴얼: 임시 폴더의 <blend>.crash.txt
+            ("unity", Path.Combine(temp, "Unity", "Editor", "Crashes"), "*", false),              // Unity 매뉴얼: %TMP%\Unity\Editor\Crashes
+            ("wer-archive", Path.Combine(local, "Microsoft", "Windows", "WER", "ReportArchive"), "*", false),
+            ("wer-queue", Path.Combine(local, "Microsoft", "Windows", "WER", "ReportQueue"), "*", false),
+            ("maya", temp, "*.dmp", false),                                                       // Maya 크래시 리포트(.dmp)는 %TEMP% 에 생성(커뮤니티 확인)
+        };
+
+        var result = new List<object>();
+        foreach (var (name, dir, pattern, _) in sources)
+        {
+            try
+            {
+                if (!Directory.Exists(dir)) { result.Add(new { app = name, status = "absent", dir }); continue; }
+                var entries = new DirectoryInfo(dir).EnumerateFileSystemInfos(pattern)
+                    .Where(e => e.LastWriteTime >= cutoff)
+                    .OrderByDescending(e => e.LastWriteTime)
+                    .Take(10)
+                    .Select(e => new
+                    {
+                        path = e.FullName,
+                        modified = new DateTimeOffset(e.LastWriteTime),
+                        sizeBytes = e is FileInfo f ? f.Length : (long?)null,
+                        isDir = e is DirectoryInfo,
+                    }).ToList();
+                result.Add(new { app = name, dir, recent30d = entries.Count, entries });
+            }
+            catch (Exception ex) { result.Add(new { app = name, status = "unavailable", reason = $"{ex.GetType().Name}: {ex.Message}" }); }
+        }
+        return result;
     }
 
 
