@@ -86,7 +86,10 @@ public static class EngineSnapshotBuilder
             catch { /* 형식이 다른 이벤트는 건너뛴다 */ }
         }
 
-        string targetProcess = trigger?.ProcessName ?? manual?.Target ?? "";
+        // 시스템 전체 사건(41·4101·라이브 덤프·WHEA·BSOD)의 ProcessName 은 "BugcheckCode 0" 같은 부가 정보라 대상 프로그램이 아니다(10/29 재생 덤프에서 발견)
+        string targetProcess = trigger != null
+            ? (trigger.Class.Scope == "single_app" ? trigger.ProcessName ?? "" : "")
+            : manual?.Target ?? "";
         var snapshot = new Dictionary<string, object?>
         {
             ["schema_version"] = "1.1",

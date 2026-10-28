@@ -2,7 +2,7 @@ namespace BlackBox.Core;
 
 /// <summary>이벤트 로그 레코드 하나를 "트리거 종류"로 분류한 결과. Kind가 null이면 트리거가 아니다(버퍼에만 기록).</summary>
 public sealed record TriggerClass(
-    string? Kind,          // crash-1000 / crash-1001 / hang-1002 / hang-1001 / kernel-live / bsod-1001 / power-41 / display-4101 / whea
+    string? Kind,          // crash-1000 / crash-1001 / hang-1002 / hang-1001 / kernel-live / bsod-1001 / bsod-41 / power-41 / display-4101 / whea
     string SymptomType,    // 엔진 스키마 symptom.type
     string Scope,          // 엔진 스키마 symptom.scope
     int BaseScore,         // 유의성 기본 점수
@@ -12,14 +12,28 @@ public sealed record TriggerClass(
 }
 
 /// <summary>
-/// 트리거 1단계 분류 (규칙, 비용 0). 2026-10-28 30일 재분류에서 확인된 사실을 반영한다:
-/// 1001(WER)은 "보고서가 생겼다"는 이벤트라 유형(event name)별로 갈라야 하고, 절반은 크래시가 아니다.
+/// 분류에 필요한 이벤트별 부가 정보 (속성에서 뽑은 값). 모르면 null.
+/// - Kernel-Power 41: BugcheckCode / SleepInProgress / PowerButtonTimestamp(0이 아니면 전원 버튼 4초 이상 누름)
+/// - WER 1001 LiveKernelEvent: P1 = 라이브 덤프 코드(16진 문자열, 예 "141")
+/// </summary>
+public sealed record EventDetail(long? BugcheckCode = null, int? SleepInProgress = null, bool PowerButtonHeld = false, string? LiveKernelCode = null);
+
+/// <summary>
+/// 트리거 1단계 분류 (규칙, 비용 0). 2026-10-28 30일 재분류 + 10/29 전체 로그(2025-12~) 재검증에서 확인된 사실을 반영한다:
+/// - 1001(WER)은 "보고서가 생겼다"는 이벤트라 유형(event name)별로 갈라야 하고, 절반은 크래시가 아니다.
+/// - 이벤트 ID 1000 은 다른 공급자도 쓴다(이 PC: ".NET Runtime" 2건 — ASP.NET Kestrel 경고). 앱 크래시는 공급자 "Application Error" 만.
+/// - Kernel-Power 41 118건이 전부 BugcheckCode 0, 그중 111건은 SleepInProgress≠0 (절전 전환 중 종료). 전부 최상위로 두면 노이즈.
+/// - LiveKernelEvent 코드 141(VIDEO_ENGINE_TIMEOUT_DETECTED) 12건은 4101(디스플레이 드라이버 복구)과 같은 시각 — GPU 응답 없음 계열.
 /// 순수 함수 — xUnit으로 검증한다 (BlackBox.Tests).
 /// </summary>
 public static class TriggerClassifier
 {
     public const string BugCheckProvider = "Microsoft-Windows-WER-SystemErrorReporting";
     public const string WheaProvider = "Microsoft-Windows-WHEA-Logger";
+    public const string AppErrorProvider = "Application Error";
+    public const string AppHangProvider = "Application Hang";
+    public const string WerProvider = "Windows Error Reporting";
+    public const string KernelPowerProvider = "Microsoft-Windows-Kernel-Power";
 
     // WER 1001 중 크래시가 아닌 보고 유형(접두 일치). 버퍼에는 남기되 트리거하지 않는다.
     private static readonly string[] NonCrashWerPrefixes =
@@ -39,18 +53,28 @@ public static class TriggerClassifier
     private static readonly string[] CrashWerPrefixes = { "APPCRASH", "CLR20r3", "BEX", "MoAppCrash", "MoBEX" };
     private static readonly string[] HangWerPrefixes = { "AppHang", "MoAppHang" };
 
-    public static TriggerClass Classify(string log, int eventId, string? provider, string? werEventType)
+    // 라이브 덤프 코드 — Microsoft Learn "Kernel live dump code reference" / Bug Check 0x141·0x117 문서
+    private static readonly HashSet<string> GpuLiveCodes = new(StringComparer.OrdinalIgnoreCase) { "141", "117", "0x141", "0x117" };
+    private static readonly HashSet<string> Usb3LiveCodes = new(StringComparer.OrdinalIgnoreCase) { "144", "0x144" };
+
+    public static TriggerClass Classify(string log, int eventId, string? provider, string? werEventType, EventDetail? detail = null)
     {
         switch (log, eventId)
         {
             case ("Application", 1000):
+                if (provider != null && !provider.Equals(AppErrorProvider, StringComparison.OrdinalIgnoreCase))
+                    return new(null, "unknown", "unknown", 0, $"ID 1000 이지만 공급자가 {provider} — 앱 크래시 아님(버퍼만)");
                 return new("crash-1000", "app_crash", "single_app", 30, "Application Error");
             case ("Application", 1002):
+                if (provider != null && !provider.Equals(AppHangProvider, StringComparison.OrdinalIgnoreCase))
+                    return new(null, "unknown", "unknown", 0, $"ID 1002 이지만 공급자가 {provider} — 버퍼만");
                 return new("hang-1002", "freeze", "single_app", 60, "Application Hang");
             case ("Application", 1001):
-                return ClassifyWer(werEventType);
+                if (provider != null && !provider.Equals(WerProvider, StringComparison.OrdinalIgnoreCase))
+                    return new(null, "unknown", "unknown", 0, $"ID 1001 이지만 공급자가 {provider} — 버퍼만");
+                return ClassifyWer(werEventType, detail?.LiveKernelCode);
             case ("System", 41):
-                return new("power-41", "unexpected_reboot", "system_wide", 90, "Kernel-Power 비정상 종료");
+                return ClassifyKernelPower41(detail);
             case ("System", 1001) when provider == BugCheckProvider:
                 return new("bsod-1001", "unexpected_reboot", "system_wide", 90, "BugCheck(BSOD) 기록");
             case ("System", 4101):
@@ -62,11 +86,32 @@ public static class TriggerClassifier
         }
     }
 
-    private static TriggerClass ClassifyWer(string? werEventType)
+    /// <summary>
+    /// Kernel-Power 41(정상 종료 없이 재시작). BugcheckCode≠0 이면 블루스크린, 0 이면 전원 계열.
+    /// SleepInProgress 값의 의미는 Microsoft 공식 문서에서 확인하지 못함(미확인) — "절전 전환 중"이라는 필드명만 근거로 점수를 낮춘다.
+    /// </summary>
+    private static TriggerClass ClassifyKernelPower41(EventDetail? d)
+    {
+        if (d?.BugcheckCode is { } bc && bc != 0)
+            return new("bsod-41", "unexpected_reboot", "system_wide", 90, $"비정상 재시작 + 블루스크린 코드 0x{bc:x}");
+        if (d?.PowerButtonHeld == true)
+            return new("power-41", "unexpected_reboot", "system_wide", 60, "전원 버튼을 길게 눌러 끈 기록 — 멈춤 때문에 강제 종료했을 수 있음");
+        if (d?.SleepInProgress is { } sp && sp != 0)
+            return new("power-41", "unexpected_reboot", "system_wide", 40, $"절전 전환 중 비정상 종료(SleepInProgress={sp}, 의미 미확인) — 이 PC 118건 중 111건이 이 유형");
+        return new("power-41", "unexpected_reboot", "system_wide", 90, "블루스크린 코드 없이 갑자기 꺼짐(전원·하드웨어 의심)");
+    }
+
+    private static TriggerClass ClassifyWer(string? werEventType, string? liveKernelCode)
     {
         string t = werEventType ?? "";
         if (t.StartsWith("LiveKernelEvent", StringComparison.OrdinalIgnoreCase))
-            return new("kernel-live", "freeze", "system_wide", 90, "커널 라이브 덤프(GPU TDR 등 시스템급)");
+        {
+            if (liveKernelCode != null && GpuLiveCodes.Contains(liveKernelCode))
+                return new("kernel-live", "flicker", "system_wide", 80, $"GPU 엔진 응답 없음(라이브 덤프 0x{liveKernelCode.Replace("0x", "")}, TDR 계열)");
+            if (liveKernelCode != null && Usb3LiveCodes.Contains(liveKernelCode))
+                return new("kernel-live", "freeze", "system_wide", 60, "USB3 드라이버 이상(라이브 덤프 0x144)");
+            return new("kernel-live", "freeze", "system_wide", 90, $"커널 라이브 덤프(코드 {liveKernelCode ?? "미상"})");
+        }
         if (NonCrashWerPrefixes.Any(p => t.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
             return new(null, "unknown", "unknown", 0, $"WER 비크래시 보고({t}) — 버퍼에만 기록");
         if (HangWerPrefixes.Any(p => t.StartsWith(p, StringComparison.OrdinalIgnoreCase)))

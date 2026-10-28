@@ -16,4 +16,4 @@ public sealed record EventLogTrigger(
     string? ExceptionCode,       // 1000 [6]: c0000005 등
     string? FaultingModulePath,  // 1000 [11]: 오류 모듈 전체 경로 (서드파티 판정 근거)
     string? ReportId,            // 1000 [12] / 1002 [6]
-    TriggerClass Class);
+    TriggerClass Class, long? RecordId = null);

@@ -234,6 +234,22 @@ void testScenarios() {
     check(powerEvt, "프로세서 속도 제한 이벤트(37)가 전원 후보 근거로 붙음");
   }
   {
+    std::cout << "[live] LiveKernelEvent 0x141 은 앱 크래시가 아니라 디스플레이(TDR) 신호\n";
+    EventItem lk;
+    lk.id = 1001;
+    lk.provider = "Windows Error Reporting";
+    lk.subject = "LiveKernelEvent 0x141";
+    check(!signals::isAppCrashEvent(lk), "라이브 커널 이벤트를 앱 크래시로 세지 않음");
+    check(signals::isDisplayEvent(lk), "0x141 은 디스플레이 이벤트");
+    lk.subject = "LiveKernelEvent 0x144";
+    check(!signals::isDisplayEvent(lk), "0x144(USB3) 는 디스플레이 이벤트 아님");
+    EventItem app;
+    app.id = 1001;
+    app.provider = "Windows Error Reporting";
+    app.subject = "game.exe";
+    check(signals::isAppCrashEvent(app), "일반 WER 1001 은 그대로 앱 크래시");
+  }
+  {
     std::cout << "[s12b] 같은 스냅샷 + GPU 메모리 95% (B 메커니즘)\n";
     json::Value v = loadJson("s12_slow_app_memory.json");
     json::Value rt = v["resource_trends"];

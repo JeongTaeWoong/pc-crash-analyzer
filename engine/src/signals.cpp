@@ -35,12 +35,17 @@ bool isBugcheckEvent(const EventItem& e) {
   return containsNoCase(e.provider, "bugcheck") || containsNoCase(e.provider, "systemerrorreporting");
 }
 
+bool isLiveKernelEvent(const EventItem& e) { return containsNoCase(e.subject, "livekernelevent"); }
+
 bool isAppCrashEvent(const EventItem& e) {
   if (isBugcheckEvent(e)) return false;  // 1001 이라도 블루스크린 기록이면 앱 크래시가 아니다
+  if (isLiveKernelEvent(e)) return false;  // 커널 라이브 덤프 보고도 앱 크래시가 아니다 (10/29 실기록: 0x141 12건)
   return e.id == 1000 || e.id == 1001 || containsNoCase(e.provider, "application error");
 }
 
 bool isDisplayEvent(const EventItem& e) {
+  // 라이브 덤프 0x141(VIDEO_ENGINE_TIMEOUT_DETECTED)·0x117(VIDEO_TDR_TIMEOUT_DETECTED)는 TDR 계열 — 이 PC 에서 4101 과 같은 시각에 기록됨
+  if (isLiveKernelEvent(e) && (containsNoCase(e.subject, "0x141") || containsNoCase(e.subject, "0x117"))) return true;
   return e.id == 4101 || containsNoCase(e.provider, "display") ||
          containsNoCase(e.provider, "nvlddmkm") || containsNoCase(e.provider, "amdkmdag");
 }

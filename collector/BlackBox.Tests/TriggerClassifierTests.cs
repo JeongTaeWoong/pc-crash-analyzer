@@ -114,4 +114,44 @@ public class TriggerClassifierTests
         Assert.Equal("power-41", TriggerClassifier.Classify("System", 41, "Microsoft-Windows-Kernel-Power", null).Kind);
         Assert.Equal("display-4101", TriggerClassifier.Classify("System", 4101, "Display", null).Kind);
     }
+
+    // 2026-10-29 전체 로그 재검증에서 나온 실제 패턴들
+    [Fact]
+    public void Event_1000_from_other_provider_is_not_a_crash()
+    {
+        var c = TriggerClassifier.Classify("Application", 1000, ".NET Runtime", null);
+        Assert.False(c.IsTrigger);
+    }
+
+    [Fact]
+    public void Kernel_power_41_split_by_bugcheck_sleep_and_power_button()
+    {
+        const string kp = "Microsoft-Windows-Kernel-Power";
+        var bsod = TriggerClassifier.Classify("System", 41, kp, null, new EventDetail(BugcheckCode: 0x116));
+        Assert.Equal("bsod-41", bsod.Kind);
+        Assert.Equal(90, bsod.BaseScore);
+
+        var sleep = TriggerClassifier.Classify("System", 41, kp, null, new EventDetail(0, 6, false)); // 이 PC 110건 패턴
+        Assert.Equal("power-41", sleep.Kind);
+        Assert.Equal(40, sleep.BaseScore);
+
+        var button = TriggerClassifier.Classify("System", 41, kp, null, new EventDetail(0, 0, true));
+        Assert.Equal(60, button.BaseScore);
+
+        var sudden = TriggerClassifier.Classify("System", 41, kp, null, new EventDetail(0, 0, false)); // 0/0/0
+        Assert.Equal(90, sudden.BaseScore);
+    }
+
+    [Theory]
+    [InlineData("141", "flicker", 80)]   // VIDEO_ENGINE_TIMEOUT_DETECTED — 4101 과 같은 시각에 관측
+    [InlineData("117", "flicker", 80)]   // VIDEO_TDR_TIMEOUT_DETECTED
+    [InlineData("144", "freeze", 60)]    // BUGCODE_USB3_DRIVER
+    [InlineData("1b8", "freeze", 90)]    // 그 밖의 라이브 덤프
+    public void Live_kernel_event_code_decides_symptom(string code, string symptom, int baseScore)
+    {
+        var c = TriggerClassifier.Classify("Application", 1001, "Windows Error Reporting", "LiveKernelEvent", new EventDetail(LiveKernelCode: code));
+        Assert.Equal("kernel-live", c.Kind);
+        Assert.Equal(symptom, c.SymptomType);
+        Assert.Equal(baseScore, c.BaseScore);
+    }
 }

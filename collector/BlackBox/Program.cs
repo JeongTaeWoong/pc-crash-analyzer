@@ -17,6 +17,13 @@ if (args.Contains("--bench-sensors"))
     SnapshotBench.RunSensors();
     return;
 }
+if (Array.IndexOf(args, "--verify-eventlog") is var vi && vi >= 0)
+{
+    // 과거 이벤트 로그를 실시간 구독과 같은 파서·분류기로 다시 읽는다 (읽기 전용, 덤프 없음). 인자: 일수(생략·0 = 로그 전체)
+    int days = vi + 1 < args.Length && int.TryParse(args[vi + 1], out var d) ? d : 0;
+    Console.WriteLine(Json.Serialize(EventLogSource.VerifyHistory(days), indented: true));
+    return;
+}
 
 var pre = TimeSpan.FromMinutes(5);    // 마킹 전 구간
 var post = TimeSpan.FromSeconds(30);  // 마킹 후 구간
@@ -68,6 +75,21 @@ using var hotkey = new HotkeyListener();
 var hotkeyStatus = hotkey.Start(() => markService.MarkManual("hotkey"));
 statuses.Add(hotkeyStatus);
 Console.WriteLine($"[source] {Json.Serialize(hotkeyStatus)}");
+
+// v0.6.1: 부팅 직후 기록(41·BugCheck·WHEA)은 수집기가 켜지기 전에 써져 실시간으로 못 받는다 → 이번 부팅 이후 기록을 한 번 재생.
+// 이미 덤프한 레코드는 기존 dumps/*/meta.json 의 RecordId 로 거른다(읽기만).
+var dumpedRecordIds = new HashSet<long>();
+try
+{
+    var dumpRoot = Path.Combine(Environment.CurrentDirectory, "dumps");
+    if (Directory.Exists(dumpRoot))
+        foreach (var meta in Directory.EnumerateFiles(dumpRoot, "meta.json", SearchOption.AllDirectories))
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(File.ReadAllText(meta), "\"RecordId\":\\s*(\\d+)"))
+                dumpedRecordIds.Add(long.Parse(m.Groups[1].Value));
+}
+catch { /* 기존 덤프를 못 읽으면 중복 덤프가 생길 수 있을 뿐 — 수집은 계속 */ }
+int replayed = eventLogSource.ReplaySinceBoot(dumpedRecordIds.Contains);
+Console.WriteLine($"[boot] 이번 부팅 이후 기록 재생 {replayed}건 (41·BugCheck·WHEA, 이미 덤프한 {dumpedRecordIds.Count}건 제외)");
 
 Console.WriteLine($"[ready] 버퍼 {pre.TotalMinutes:0}분 유지, 마킹 윈도 -{pre.TotalMinutes:0}분~+{post.TotalSeconds:0}초, 모듈 스냅샷 전략={snapshotStrategy}");
 Console.WriteLine("[ready] 수동 마킹: Ctrl+Shift+F12 또는 m+Enter (증상·대상 지정: m slow blender) | 버퍼 통계: s+Enter | 종료: q+Enter");
