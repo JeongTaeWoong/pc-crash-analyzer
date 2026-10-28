@@ -49,6 +49,7 @@ public sealed class StateSnapshotter
             ["recentInstalls30d"] = Timed("recentInstalls", () => CaptureRecentInstalls(facts)),
             ["securityProducts"] = Timed("securityProducts", () => CaptureSecurityProducts(facts)),
             ["appCrashLogs"] = Timed("appCrashLogs", CaptureAppCrashLogs),
+            ["wmiClients24h"] = Timed("wmiClients", CaptureWmiClients),
         };
         snapshot["captureDurationMs"] = sw.ElapsedMilliseconds;
         snapshot["captureTimingsMs"] = timings;
@@ -98,6 +99,42 @@ public sealed class StateSnapshotter
         return result;
     }
 
+
+    /// <summary>
+    /// 최근 24시간 WMI 조회 오류(WMI-Activity/Operational 5858)를 보낸 클라이언트 프로세스 상위 5 — 느려짐 E 메커니즘(배경 상주물의 WMI 과다 조회).
+    /// 10/29 발견: wmiprvse 가 상시 2.5% CPU 인데 수집기와 무관(A/B), 5858 724건 중 579건이 SKBSpeedMeter. 사용자 계정 필드는 기록하지 않는다. 읽기 전용.
+    /// </summary>
+    private static object CaptureWmiClients()
+    {
+        const long dayMs = 24L * 3600 * 1000;
+        var q = new System.Diagnostics.Eventing.Reader.EventLogQuery("Microsoft-Windows-WMI-Activity/Operational",
+            System.Diagnostics.Eventing.Reader.PathType.LogName, $"*[System[EventID=5858 and TimeCreated[timediff(@SystemTime) <= {dayMs}]]]");
+        var counts = new Dictionary<int, (int Count, string? Operation)>();
+        int total = 0;
+        using (var reader = new System.Diagnostics.Eventing.Reader.EventLogReader(q))
+        {
+            for (var rec = reader.ReadEvent(); rec != null && total < 20000; rec = reader.ReadEvent())
+            {
+                using (rec)
+                {
+                    total++;
+                    var xml = rec.ToXml();
+                    // 5858 은 EventData 가 아니라 UserData/Operation_ClientFailure 아래 요소로 온다(10/29 XML 확인)
+                    var m = System.Text.RegularExpressions.Regex.Match(xml, "<ClientProcessId>(\\d+)</ClientProcessId>");
+                    if (!m.Success || !int.TryParse(m.Groups[1].Value, out int pid)) continue;
+                    var op = System.Text.RegularExpressions.Regex.Match(xml, "<Operation>([^<]{0,160})");
+                    counts[pid] = counts.TryGetValue(pid, out var c) ? (c.Count + 1, c.Operation) : (1, op.Success ? op.Groups[1].Value : null);
+                }
+            }
+        }
+        var top = counts.OrderByDescending(kv => kv.Value.Count).Take(5).Select(kv =>
+        {
+            string? name = null;
+            try { using var p = Process.GetProcessById(kv.Key); name = p.ProcessName; } catch { /* 이미 종료 */ }
+            return new { pid = kv.Key, name, errors = kv.Value.Count, sampleOperation = kv.Value.Operation };
+        }).ToList();
+        return new { errors5858 = total, topClients = top };
+    }
 
     /// <summary>SecurityCenter2에 등록된 실시간 보안 제품 (스파이크에서 비관리자 검증됨).</summary>
     private static object CaptureSecurityProducts(EngineFacts facts)

@@ -184,3 +184,14 @@ case-<id>/
 [10] Adobe Help, "Crash in Premiere Pro 15.2 and After Effects 18.2 on Windows laptops with older NVIDIA graphics card drivers" — https://helpx.adobe.com/x-productkb/multi/directX-crash.html
 [11] Blender Manual, "Troubleshooting Graphics Hardware" — https://docs.blender.org/manual/en/latest/troubleshooting/gpu/index.html
 [12] TouchEn nxKey·nProtect ↔ 게임 충돌: 10/28 검색에서 공식·학술·보도 출처 **없음**. 참고로 nxKey 1.0.0.87 이하 DLL 인젝션 취약점(AhnLab ASEC) — https://asec.ahnlab.com/en/82372/
+
+
+## 10/29 실행 결과 (v0.6.1)
+
+| # | 결과 |
+|---|---|
+| V2 (Defender, 제외 없는 쪽만) | 13분·293회 빌드, MsMpEng 기계 CPU 1.0~1.2% — 이 PC 에선 원인 아님(음성). "제외" A/B 는 사용자가 직접 |
+| 느려짐 A (Blender) | 공식 zip·SHA-256 확인 후 17분 메모리 누적 재현 → 엔진 1순위 정답, 첫 점검 "저장 후 재시작" |
+| 1002 | FaultLab hang-report 로 사람 없이 재현·수신 확인 |
+| V1 (OBS·Discord 오버레이) | 미실행 — 사용자 OBS 프로필·실제 게임 필요 |
+| Afterburner/RivaTuner | 설치 안 함 — RTCore64.sys 취약 드라이버 차단 목록 보고, 이 PC HVCI 꺼짐 |

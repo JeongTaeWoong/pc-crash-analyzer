@@ -70,11 +70,12 @@ $logWriter.Flush(); $logWriter.Close()
 $rows | Export-Csv -NoTypeInformation -Encoding UTF8 $csv
 $steady = $rows | Select-Object -Skip 12
 $cpu = $rows | Measure-Object cpuPct -Average -Maximum
-$cpuS = $steady | Measure-Object cpuPct -Average
+$steadyText = "샘플 부족"
+if (@($steady).Count -gt 0) { $steadyText = "{0:N3}%" -f ($steady | Measure-Object cpuPct -Average).Average }
 $priv = $rows | Measure-Object privMB -Average -Maximum
 $sources = Select-String -Path $logPath -Pattern '^\[source\]' | ForEach-Object { $_.Line }
 Write-Host ""
-Write-Host ("[result] 조건={0} 샘플={1} CPU평균={2:N3}% (기동 2분 제외 {3:N3}%) 최대={4:N2}% Private평균={5:N1}MB 최대={6:N1}MB" -f `
-    $cond, $rows.Count, $cpu.Average, $cpuS.Average, $cpu.Maximum, $priv.Average, $priv.Maximum)
+Write-Host ("[result] 조건={0} 샘플={1} CPU평균={2:N3}% (기동 2분 제외 {3}) 최대={4:N2}% Private평균={5:N1}MB 최대={6:N1}MB" -f `
+    $cond, $rows.Count, $cpu.Average, $steadyText, $cpu.Maximum, $priv.Average, $priv.Maximum)
 Write-Host "[result] CSV: $csv"
 Write-Host "[result] 소스 상태:"; $sources | ForEach-Object { Write-Host "  $_" }

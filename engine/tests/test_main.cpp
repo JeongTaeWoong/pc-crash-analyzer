@@ -279,6 +279,25 @@ void testScenarios() {
     check(!cleanBootCoversApp, "클린 부트 점검이 대상 프로그램 자체(app_memory)를 덮지 않음");
   }
   {
+    std::cout << "[s12d] 느려짐인데 추세 근거가 없으면 '근거 부족' 경고 (10/29 빌드 반복 실험)\n";
+    json::Value v = loadJson("s12_slow_app_memory.json");
+    json::Value rt = json::Value::makeObject();
+    rt.set("window_minutes", json::Value(60.0));
+    rt.set("samples", json::Value(14.0));
+    v.set("resource_trends", rt);
+    json::Value ev = json::Value::makeArray();
+    v.set("events", ev);
+    std::vector<std::string> warn;
+    const Snapshot s = parseSnapshot(v, &warn);
+    const Diagnosis d = diagnose(s, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool weak = false;
+    for (std::size_t i = 0; i < d.warnings.size(); i++) {
+      if (d.warnings[i].find("근거 부족") != std::string::npos) weak = true;
+    }
+    check(weak, "추세 근거 없는 느려짐 → '근거 부족' 경고");
+    check(Rules::defaults().isAutoUpdateNoise("Microsoft GameInput"), "Microsoft Store 자동 업데이트도 노이즈 목록");
+  }
+  {
     std::cout << "[s12b] 같은 스냅샷 + GPU 메모리 95% (B 메커니즘)\n";
     json::Value v = loadJson("s12_slow_app_memory.json");
     json::Value rt = v["resource_trends"];

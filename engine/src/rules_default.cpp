@@ -479,7 +479,8 @@ const char* const kDefaultRulesParts[] = {
 
   "autoupdate_noise": [
     "google chrome", "microsoft edge", "webview2", "copilot", "microsoft teams", "onedrive",
-    "visual studio code", "discord", "steam", "epic games launcher", "nvidia app", "zoom", "slack", "notion", "kakaotalk"
+    "visual studio code", "discord", "steam", "epic games launcher", "nvidia app", "zoom", "slack", "notion", "kakaotalk",
+    "microsoft gameinput", "xbox", "microsoft store", "windows app runtime", "microsoft visual c++"
   ],
 
   "baseline_checklist": [
