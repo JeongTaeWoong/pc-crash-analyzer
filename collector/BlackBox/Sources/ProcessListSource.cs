@@ -60,6 +60,8 @@ public sealed class ProcessListSource : PolledSourceBase
                         pid = p.Id,
                         name = p.ProcessName,
                         wsMB = Math.Round(p.WorkingSet64 / 1048576.0, 1),
+                        privMB = Math.Round(p.PrivateMemorySize64 / 1048576.0, 1), // 느려짐 A 메커니즘: 기울기 계산의 원천
+                        handles = p.HandleCount,
                         win = winPids.Contains(p.Id),
                     });
                     alive.Add(p.Id);

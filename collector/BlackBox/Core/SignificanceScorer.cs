@@ -29,6 +29,20 @@ public static class SignificanceScorer
         "clr.dll", "coreclr.dll", "clrjit.dll", "mscorlib.dll", "mscorwks.dll", "combase.dll", "rpcrt4.dll",
     };
 
+    // GPU 드라이버 사용자 모드 DLL (NVIDIA / AMD / Intel). Windows 폴더(DriverStore) 아래 있어도 "시스템"이 아니라 "드라이버" 단서다 (2026-10-28 발견, docs/slowdown-mechanisms.md S5).
+    private static readonly HashSet<string> GpuDriverModules = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // NVIDIA
+        "nvwgf2umx.dll", "nvwgf2um.dll", "nvoglv64.dll", "nvoglv32.dll", "nvd3dumx.dll", "nvd3dum.dll", "nvldumdx.dll", "nvldumd.dll",
+        "nvcuda.dll", "nvcuda64.dll", "nvapi64.dll", "nvapi.dll", "nvgpucomp64.dll", "nvlddmkm.sys",
+        // AMD
+        "atidxx64.dll", "atidxx32.dll", "atiumd64.dll", "atiumdag.dll", "amdxc64.dll", "amdxc32.dll", "aticfx64.dll", "aticfx32.dll",
+        "amdvlk64.dll", "atio6axx.dll", "atioglxx.dll", "amdkmdag.sys", "atikmdag.sys",
+        // Intel
+        "igd10iumd64.dll", "igd10iumd32.dll", "igd12umd64.dll", "igd12umd32.dll", "igdumdim64.dll", "igdumdim32.dll",
+        "igc64.dll", "igc32.dll", "ig9icd64.dll", "ig9icd32.dll", "igdkmd64.sys",
+    };
+
     private static readonly HashSet<string> NativeFaultCodes = new(StringComparer.OrdinalIgnoreCase)
     {
         "c0000005", // access violation
@@ -54,11 +68,18 @@ public static class SignificanceScorer
         {
             // coreclr.dll 등은 Program Files\dotnet 아래라도 런타임 — .NET 호스트에서 네이티브 DLL이 죽으면 CLR이 가로채 오류 모듈이 coreclr로 찍힌다(10/28 실측)
         }
+        else if (!string.IsNullOrEmpty(i.FaultingModuleName) && GpuDriverModules.Contains(i.FaultingModuleName))
+        {
+            // 경로가 \Windows\System32\DriverStore\ 아래라도 드라이버 단서 — 엔진 gpu_driver 범주로 이어진다 (M4/TDR 메커니즘)
+            score += 20; factors["gpuDriverModule"] = 20; tags.Add("gpu-driver-module");
+        }
         else if (!string.IsNullOrEmpty(i.FaultingModulePath))
         {
+            bool driverStore = i.FaultingModulePath.Contains(@"\DriverStore\", StringComparison.OrdinalIgnoreCase);
             bool systemPath = i.FaultingModulePath.Contains(@"\Windows\", StringComparison.OrdinalIgnoreCase)
                               || i.FaultingModulePath.Contains(@"\dotnet\", StringComparison.OrdinalIgnoreCase);
-            if (!systemPath) { score += 20; factors["thirdPartyModule"] = 20; tags.Add("third-party-module"); }
+            if (driverStore) { score += 20; factors["driverStoreModule"] = 20; tags.Add("driver-store-module"); }
+            else if (!systemPath) { score += 20; factors["thirdPartyModule"] = 20; tags.Add("third-party-module"); }
         }
         else if (!string.IsNullOrEmpty(i.FaultingModuleName))
         {

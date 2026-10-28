@@ -100,6 +100,48 @@ public class SignificanceScorerTests
     }
 
     [Fact]
+    public void Gpu_driver_dll_under_driverstore_is_a_driver_clue_not_system()
+    {
+        var r = SignificanceScorer.Compute(Base() with
+        {
+            UserFacing = true,
+            FaultingModuleName = "nvwgf2umx.dll",
+            FaultingModulePath = @"C:\WINDOWS\System32\DriverStore\FileRepository
+v_dispi.inf_amd64_123
+vwgf2umx.dll",
+            ExceptionCode = "c0000005",
+        });
+        Assert.Contains("gpu-driver-module", r.Tags);
+        Assert.DoesNotContain("third-party-module", r.Tags);
+        Assert.Equal(90, r.Score); // 30 + userFacing 30 + gpuDriver 20 + nativeFault 10
+        Assert.Equal("major", r.Tier);
+    }
+
+    [Fact]
+    public void Unknown_dll_under_driverstore_is_tagged_driver_store()
+    {
+        var r = SignificanceScorer.Compute(Base() with
+        {
+            FaultingModuleName = "RTKVHD64.dll",
+            FaultingModulePath = @"C:\WINDOWS\System32\DriverStore\FileRepositoryealtek.inf_amd64_1\RTKVHD64.dll",
+        });
+        Assert.Contains("driver-store-module", r.Tags);
+        Assert.Equal(50, r.Score);
+    }
+
+    [Fact]
+    public void Plain_system32_module_gets_no_module_credit()
+    {
+        var r = SignificanceScorer.Compute(Base() with
+        {
+            FaultingModuleName = "d3d11.dll",
+            FaultingModulePath = @"C:\WINDOWS\System32\d3d11.dll",
+        });
+        Assert.Equal(30, r.Score);
+        Assert.Empty(r.Tags);
+    }
+
+    [Fact]
     public void Dotnet_runtime_module_under_program_files_is_not_third_party()
     {
         var r = SignificanceScorer.Compute(Base() with

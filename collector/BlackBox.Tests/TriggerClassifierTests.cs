@@ -50,6 +50,13 @@ public class TriggerClassifierTests
     }
 
     [Fact]
+    public void Processor_power_37_is_buffered_but_not_a_trigger()
+    {
+        var c = TriggerClassifier.Classify("System", 37, "Microsoft-Windows-Kernel-Processor-Power", null);
+        Assert.False(c.IsTrigger);
+    }
+
+    [Fact]
     public void Application_hang_1002_is_freeze()
     {
         var c = TriggerClassifier.Classify("Application", 1002, "Application Hang", null);

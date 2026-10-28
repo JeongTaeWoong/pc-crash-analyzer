@@ -16,7 +16,8 @@ public sealed class EventLogSource : ISignalSource
     private const string SysCond =
         "(EventID=41 or EventID=4101) " +
         "or (Provider[@Name='Microsoft-Windows-WHEA-Logger'] and (EventID>=17 and EventID<=20)) " +
-        "or (Provider[@Name='Microsoft-Windows-WER-SystemErrorReporting'] and EventID=1001)";
+        "or (Provider[@Name='Microsoft-Windows-WER-SystemErrorReporting'] and EventID=1001) " +
+        "or (Provider[@Name='Microsoft-Windows-Kernel-Processor-Power'] and EventID=37)"; // CPU 속도 제한(펌웨어) — 버퍼만, 트리거 아님 (느려짐 C 메커니즘)
 
     private readonly List<EventLogWatcher> _watchers = new();
 
@@ -56,7 +57,7 @@ public sealed class EventLogSource : ISignalSource
 
         if (_watchers.Count == 0)
             return SourceStatus.Unavailable(Name, string.Join(" / ", errors));
-        return SourceStatus.Ok(Name, errors.Count > 0 ? "부분 구독: " + string.Join(" / ", errors) : "Application 1000/1001/1002 + System 41/4101/WHEA/BugCheck 구독 중");
+        return SourceStatus.Ok(Name, errors.Count > 0 ? "부분 구독: " + string.Join(" / ", errors) : "Application 1000/1001/1002 + System 41/4101/WHEA/BugCheck + Kernel-Processor-Power 37 구독 중");
     }
 
     private void Handle(string logName, EventRecord rec)
