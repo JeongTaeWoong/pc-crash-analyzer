@@ -15,3 +15,6 @@ dumps_archive/
 
 # 개인 화면 녹화 (데모 영상) — 커밋 금지
 recordings/
+
+# 배포 빌드 산출물 (tools/publish-collector.ps1)
+dist/

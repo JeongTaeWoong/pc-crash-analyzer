@@ -486,3 +486,9 @@ Process 카운터 인스턴스 재배정(chrome#3) 시 PID 불일치면 차분 �
 **인라인 패치의 백슬래시 깨짐**으로 점수기 테스트의 DriverStore 경로 문자열에 줄바꿈이 들어가 있었음(테스트는 우연히 통과) → 파일 재작성 + 회귀 assert.
 
 엔진 발견(미해결, 노이즈): 실덤프 진단에서 Chrome·Edge·WebView2·Copilot 의 **자동 업데이트가 "증상 직전 설치"로 잡혀 1~3순위를 차지**함. 브라우저류 자동 업데이트는 시간 상관 가중을 낮춰야 함 — 엔진 TODO.
+
+### 배포 빌드 (10/29)
+
+`tools/publish-collector.ps1` → `dist/BlackBox-0.6.0-win-x64.zip` 35.9MB, 213 파일(self-contained win-x64). 배포본 단독 기동 20초 확인: 소스 상태 동일(etw-kernel 은 비관리자 unavailable).
+함정: PowerShell 5.1 은 BOM 없는 UTF-8 스크립트의 한글을 깨뜨림 → ps1 에 BOM 필요. 참여자 안내문 `docs/participant-guide.md`.
+30분 조용한 조건 오버헤드는 배포본으로 측정 중(결과는 아래에 추가).

@@ -61,3 +61,13 @@ dotnet build ui/wpf/CrashAnalyzer.UI -c Release            # 또는 ui\prototype
 | `FaultLab hang 20` | 창이 응답 없음 → **직접 창을 클릭하고 닫기** | 1002 `hang-1002` |
 | `FaultLab cpu 30` / `disk 30 512` / `leak 2048 60` | CPU·디스크 과부하·메모리 점유 | 크래시 없음 — `slow` 수동 마킹과 함께 사용 |
 | `FaultLab crash-a/b/c` | CrashDummy와 동일 | 1000 |
+
+## 지인 PC 배포 빌드 (2026-10-29)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\publish-collector.ps1 -Version 0.6.0
+# → dist\BlackBox-0.6.0-win-x64.zip (약 36MB, .NET 런타임 포함, 설치 불필요)
+```
+
+zip 안에 `읽어주세요.md`(= `docs/participant-guide.md`), `blackbox.config.json`, `수집기 시작.bat` 이 함께 들어간다.
+코드 서명이 없어 SmartScreen 경고가 뜨며, 안내문에 그 사실을 적어 두었다. `dist/` 는 커밋하지 않는다.
