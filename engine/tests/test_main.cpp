@@ -233,6 +233,20 @@ void testScenarios() {
     check(finsec, "배경 CPU 13.9% 상주물(SignKoreaWD)이 금융보안 후보로 올라옴");
     check(powerEvt, "프로세서 속도 제한 이벤트(37)가 전원 후보 근거로 붙음");
   }
+  {
+    std::cout << "[s13] 브라우저 자동 업데이트가 '증상 직전 설치'로 보이는 노이즈 (2026-10-29 실덤프 재현)\n";
+    const Rules r = Rules::defaults();
+    check(r.isAutoUpdateNoise("Google Chrome") && r.isAutoUpdateNoise("Microsoft Edge WebView2 런타임") &&
+              !r.isAutoUpdateNoise("Riot Vanguard"),
+          "자동 업데이트 목록 판정 (Chrome·WebView2 O, Vanguard X)");
+    const Diagnosis d = diagnoseFile("s13_autoupdate_noise.json", guide);
+    check(d.top() && d.top()->category == "antivirus", "1순위 = 오류 모듈의 백신 훅(브라우저 업데이트가 아님)", topLabel(d));
+    double chromeProb = 0;
+    for (std::size_t i = 0; i < d.candidates.size(); i++) {
+      if (containsNoCase(d.candidates[i].subject, "chrome")) chromeProb = d.candidates[i].probability;
+    }
+    check(chromeProb < 0.15, "Chrome 자동 업데이트 후보 확률 < 15%", std::to_string(chromeProb));
+  }
 }
 
 // ---------------------------------------------------------------- 2차(드라이버)·3차(하드웨어) 시나리오

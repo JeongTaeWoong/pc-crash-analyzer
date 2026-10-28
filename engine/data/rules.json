@@ -96,6 +96,7 @@
     {"match": "mcafee",             "category": "antivirus",         "label": "McAfee"},
     {"match": "astx",               "category": "fin_security",      "label": "AhnLab Safe Transaction"},
     {"match": "safe transaction",   "category": "fin_security",      "label": "AhnLab Safe Transaction"},
+    {"match": "safetransaction",    "category": "fin_security",      "label": "AhnLab Safe Transaction"},
     {"match": "veraport",           "category": "fin_security",      "label": "VeraPort"},
     {"match": "wizvera",            "category": "fin_security",      "label": "WIZVERA"},
     {"match": "delfino",            "category": "fin_security",      "label": "Delfino"},
@@ -462,6 +463,11 @@
      "description": "진단에서 오류가 난 모듈을 빼거나 교체합니다.", "actions": ["a_memory_test"], "success_seed": 0.6},
     {"id": "r_xmp_off", "label": "메모리 XMP 끄고 쓰기", "categories": ["memory"],
      "description": "메모리 오버클럭(XMP)이 불안정한 경우입니다. 끄면 속도는 조금 줄지만 오류가 사라집니다.", "actions": ["a_xmp_off"], "success_seed": 0.6}
+  ],
+
+  "autoupdate_noise": [
+    "google chrome", "microsoft edge", "webview2", "copilot", "microsoft teams", "onedrive",
+    "visual studio code", "discord", "steam", "epic games launcher", "nvidia app", "zoom", "slack", "notion", "kakaotalk"
   ],
 
   "baseline_checklist": [

@@ -117,6 +117,10 @@ struct Rules {
   std::vector<RemedyTemplate> remedies;
   std::vector<CaseEntry> cases;
   std::vector<std::string> baseline_checklist;  // 비교 기준(커뮤니티 표준 순서)
+  // 스스로 조용히 업데이트되는 프로그램(브라우저·런처·메신저). 설치 이력의 "증상 직전 설치"가 사용자 행동이 아니라
+  // 자동 업데이트일 가능성이 커서 시간 상관 가중을 낮춘다 (2026-10-29 실덤프에서 Chrome·Edge·WebView2·Copilot 이 1~3순위를 차지한 노이즈).
+  std::vector<std::string> autoupdate_noise;
+  bool isAutoUpdateNoise(const std::string& subject) const;  // 소문자 부분 일치
 
   double layerWeight(const std::string& name, double def) const;
   double prior(const std::string& symptom, const std::string& category) const;

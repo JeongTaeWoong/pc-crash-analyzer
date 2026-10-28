@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.1",
+  "snapshot_id": "s13-autoupdate-noise",
+  "marked_at": "2026-10-29T00:20:00+09:00",
+  "trigger": {
+    "kind": "auto_app_crash",
+    "event_id": 1000
+  },
+  "host": {
+    "os": "Windows 10 22H2",
+    "sensor_support": true
+  },
+  "symptom": {
+    "type": "app_crash",
+    "target_process": "game.exe",
+    "scope": "single_app",
+    "started_at": "2026-10-29T00:19:30+09:00",
+    "faulting_modules": ["aswhook.dll"]
+  },
+  "processes": ["game.exe", "chrome.exe", "msedge.exe", "AvastSvc.exe", "explorer.exe"],
+  "modules": [
+    {"process": "game.exe", "name": "aswhook.dll", "path": "C:\\Program Files\\Avast Software\\Avast\\aswhook.dll", "company": "Avast Software", "microsoft_signed": false}
+  ],
+  "security": {
+    "realtime_av": ["Avast Antivirus"]
+  },
+  "change_history": [
+    {"time": "2026-10-28T00:00:00+09:00", "kind": "install", "subject": "Google Chrome", "version": "156.0.8078.73"},
+    {"time": "2026-10-28T00:00:00+09:00", "kind": "install", "subject": "Microsoft Edge", "version": "156.0.4314.50"},
+    {"time": "2026-10-28T00:00:00+09:00", "kind": "install", "subject": "Microsoft Edge WebView2 런타임", "version": "156.0.4314.50"},
+    {"time": "2026-10-28T00:00:00+09:00", "kind": "install", "subject": "Copilot", "version": "156.0.4314.50"}
+  ],
+  "events": [
+    {"time": "2026-10-29T00:19:30+09:00", "provider": "Application Error", "id": 1000, "subject": "game.exe", "faulting_module": "aswhook.dll"}
+  ],
+  "ground_truth": {
+    "layer": "software",
+    "category": "antivirus",
+    "subject": "aswhook.dll"
+  }
+}

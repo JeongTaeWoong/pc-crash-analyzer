@@ -105,6 +105,7 @@ const char* const kDefaultRulesParts[] = {
     {"match": "mcafee",             "category": "antivirus",         "label": "McAfee"},
     {"match": "astx",               "category": "fin_security",      "label": "AhnLab Safe Transaction"},
     {"match": "safe transaction",   "category": "fin_security",      "label": "AhnLab Safe Transaction"},
+    {"match": "safetransaction",    "category": "fin_security",      "label": "AhnLab Safe Transaction"},
     {"match": "veraport",           "category": "fin_security",      "label": "VeraPort"},
     {"match": "wizvera",            "category": "fin_security",      "label": "WIZVERA"},
     {"match": "delfino",            "category": "fin_security",      "label": "Delfino"},
@@ -476,6 +477,11 @@ const char* const kDefaultRulesParts[] = {
      "description": "메모리 오버클럭(XMP)이 불안정한 경우입니다. 끄면 속도는 조금 줄지만 오류가 사라집니다.", "actions": ["a_xmp_off"], "success_seed": 0.6}
   ],
 
+  "autoupdate_noise": [
+    "google chrome", "microsoft edge", "webview2", "copilot", "microsoft teams", "onedrive",
+    "visual studio code", "discord", "steam", "epic games launcher", "nvidia app", "zoom", "slack", "notion", "kakaotalk"
+  ],
+
   "baseline_checklist": [
     "rollback_gpu_driver",
     "clean_boot",
@@ -499,7 +505,8 @@ const char* const kDefaultRulesParts[] = {
     {"symptom": "fps_drop",     "category": "thermal",           "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
     {"symptom": "unexpected_reboot", "category": "power",        "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
     {"symptom": "slow",         "category": "app_memory",        "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0},
-    {"symptom": "slow",         "category": "fin_security",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0}
+)JSON",
+    R"JSON(    {"symptom": "slow",         "category": "fin_security",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0}
   ]
 }
 )JSON",

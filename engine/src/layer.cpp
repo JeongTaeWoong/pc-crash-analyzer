@@ -202,7 +202,8 @@ LayerResult classifyLayer(const Snapshot& s, const Rules& r) {
   // (6) 증상 직전의 변경 이력 (시간 상관)
   for (std::size_t i = 0; i < s.changes.size(); i++) {
     const ChangeItem& c = s.changes[i];
-    const double corr = signals::timeCorrelation(c.time, ref, r);
+    double corr = signals::timeCorrelation(c.time, ref, r);
+    if (r.isAutoUpdateNoise(c.subject)) corr *= 0.25;  // 브라우저·런처 자동 업데이트는 약한 단서
     if (corr < 0.3) continue;
     const bool driverish = isDriverChange(c, r);
     double w = 0;

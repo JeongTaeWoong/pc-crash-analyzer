@@ -235,10 +235,13 @@ void addFromChanges(const Snapshot& s, const Rules& r, CandidateBag& bag) {
   const long long ref = signals::referenceTime(s);
   for (std::size_t i = 0; i < s.changes.size(); i++) {
     const ChangeItem& ch = s.changes[i];
-    const double corr = signals::timeCorrelation(ch.time, ref, r);
+    double corr = signals::timeCorrelation(ch.time, ref, r);
     if (corr <= 0.05) continue;
     // 대상 프로그램 자신의 업데이트는 충돌 '상대'가 아니다(엔진 노트로 따로 안내한다).
     if (!s.target_process.empty() && sameSubject(ch.subject, s.target_process)) continue;
+    // 브라우저·런처처럼 스스로 업데이트되는 프로그램의 '설치' 기록은 사용자 행동이 아닐 가능성이 커 가중을 1/4 로
+    const bool autoNoise = r.isAutoUpdateNoise(ch.subject);
+    if (autoNoise) corr *= 0.25;
     std::string fallback = "other_sw";
     if (ch.kind == "os_update") {
       fallback = "os_update";
@@ -261,6 +264,7 @@ void addFromChanges(const Snapshot& s, const Rules& r, CandidateBag& bag) {
     std::string detail = "증상 시작 직전에 " + verb + "되었습니다 (" + when;
     if (!ch.version.empty()) detail += ", " + ch.version;
     detail += ").";
+    if (autoNoise) detail += " 자동 업데이트 프로그램이라 시간 상관 가중을 낮췄습니다.";
     bag.addEvidence(idx, "time_corr", detail, corr, ch.time);
   }
   // 베이스라인 대비 추가된 항목도 동일하게 다룬다(설치 이력 레지스트리 누락 대비).
