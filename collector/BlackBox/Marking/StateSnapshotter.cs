@@ -28,7 +28,7 @@ public sealed class StateSnapshotter
     {
         var sw = Stopwatch.StartNew();
         var facts = new EngineFacts();
-        int fgPid = ForegroundPid();
+        int fgPid = ProcessListSource.GetForegroundPid();
         var snapshot = new Dictionary<string, object?>
         {
             ["capturedAt"] = DateTimeOffset.Now,
@@ -43,23 +43,6 @@ public sealed class StateSnapshotter
         return new SnapshotResult(snapshot, facts, fgPid);
     }
 
-    private static int ForegroundPid()
-    {
-        try
-        {
-            var h = GetForegroundWindow();
-            if (h == IntPtr.Zero) return -1;
-            GetWindowThreadProcessId(h, out uint pid);
-            return (int)pid;
-        }
-        catch { return -1; }
-    }
-
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    private static extern IntPtr GetForegroundWindow();
-
-    [System.Runtime.InteropServices.DllImport("user32.dll")]
-    private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
     /// <summary>SecurityCenter2에 등록된 실시간 보안 제품 (스파이크에서 비관리자 검증됨).</summary>
     private static object CaptureSecurityProducts(EngineFacts facts)

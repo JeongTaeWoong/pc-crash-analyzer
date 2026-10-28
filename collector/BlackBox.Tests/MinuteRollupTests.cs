@@ -82,6 +82,78 @@ public class MinuteRollupTests
     }
 
     [Fact]
+    public void Stale_window_after_sleep_exports_unavailable_trends_not_exception()
+    {
+        var r = new MinuteRollup(TimeSpan.FromHours(24));
+        for (int i = 0; i < 30; i++) r.Ingest(T0.AddMinutes(i), Res(T0.AddMinutes(i), 50), null, null);
+        // 2시간 절전 뒤 첫 롤업 틱 전에 마킹
+        var export = r.Export(T0.AddMinutes(30 + 120), 1, "x.exe");
+        Assert.Null(export.Trends);
+        var full = JsonDocument.Parse(JsonSerializer.Serialize(export.Full)).RootElement;
+        Assert.Equal(30, full.GetProperty("minutes").GetInt32());
+        Assert.Equal("unavailable", full.GetProperty("trends").GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public void Repeated_identical_sample_from_stalled_source_is_treated_as_missing()
+    {
+        var r = new MinuteRollup(TimeSpan.FromHours(24));
+        var stale = Res(T0, 50); // 소스가 멈춰 같은 At 의 샘플이 계속 들어오는 상황
+        for (int i = 0; i < 20; i++) r.Ingest(T0.AddMinutes(i), stale, null, null);
+        var trends = JsonDocument.Parse(JsonSerializer.Serialize(r.Export(T0.AddMinutes(19), null, null).Trends)).RootElement;
+        Assert.Equal(1, trends.GetProperty("cpu_samples").GetInt32()); // 첫 1분만 유효
+        Assert.Equal(JsonValueKind.Null, trends.GetProperty("commit_slope_pct_per_hour").ValueKind);
+    }
+
+    [Fact]
+    public void Focus_prefers_pid_match_over_same_name_process()
+    {
+        var r = new MinuteRollup(TimeSpan.FromHours(24));
+        for (int i = 0; i < 30; i++)
+        {
+            var at = T0.AddMinutes(i);
+            r.Ingest(at, Res(at, 50), null, Procs(at, -1,
+                new ProcSummary(4242, "Unity", 4000 + 12 * i, 100, true),   // 진짜(증가)
+                new ProcSummary(5100, "Unity", 800, 100, false)));           // 동명 다른 인스턴스(평탄)
+        }
+        var trends = JsonDocument.Parse(JsonSerializer.Serialize(r.Export(T0.AddMinutes(29), 4242, "Unity.exe").Trends)).RootElement;
+        Assert.Equal(4242, trends.GetProperty("focus_process").GetProperty("pid").GetInt32());
+        Assert.Equal(12.0, trends.GetProperty("focus_process").GetProperty("privSlopeMBPerMin").GetDouble(), 1);
+    }
+
+    [Fact]
+    public void Cpu_average_counts_minutes_outside_top_list_as_zero()
+    {
+        var r = new MinuteRollup(TimeSpan.FromHours(24));
+        for (int i = 0; i < 60; i++)
+        {
+            var at = T0.AddMinutes(i);
+            // big: 항상 메모리 상위, CPU 상위에는 2분만(15%) 등장
+            var top = i < 2 ? new[] { new ProcUsage(9, "big", 15, 3000, 100, 0) } : Array.Empty<ProcUsage>();
+            r.Ingest(at, Res(at, 50, top), null, Procs(at, -1, new ProcSummary(9, "big", 3000, 100, false)));
+        }
+        var trends = JsonDocument.Parse(JsonSerializer.Serialize(r.Export(T0.AddMinutes(59), null, null).Trends)).RootElement;
+        Assert.Equal(0, trends.GetProperty("top_cpu_60").GetArrayLength()); // 평균 0.5% → 상위 목록에 못 든다
+        var grower = trends.GetProperty("top_memory_growers")[0];
+        Assert.Equal(0.5, grower.GetProperty("cpuAvg").GetDouble(), 1);
+        Assert.Equal(60, grower.GetProperty("cpuSamples").GetInt32());
+    }
+
+    [Fact]
+    public void Reused_pid_with_different_name_is_a_separate_series()
+    {
+        var r = new MinuteRollup(TimeSpan.FromHours(24));
+        for (int i = 0; i < 20; i++) { var at = T0.AddMinutes(i); r.Ingest(at, Res(at, 50), null, Procs(at, -1, new ProcSummary(1234, "A", 3000, 10, false))); }
+        for (int i = 20; i < 50; i++) { var at = T0.AddMinutes(i); r.Ingest(at, Res(at, 50), null, Procs(at, -1, new ProcSummary(1234, "B", 200, 10, false))); }
+        var trends = JsonDocument.Parse(JsonSerializer.Serialize(r.Export(T0.AddMinutes(49), null, null).Trends)).RootElement;
+        foreach (var g in trends.GetProperty("top_memory_growers").EnumerateArray())
+        {
+            // A(20) 와 B(30) 가 따로 집계되어 어느 쪽도 큰 음의 기울기를 갖지 않는다
+            Assert.InRange(g.GetProperty("privSlopeMBPerMin").GetDouble(), -0.01, 0.01);
+        }
+    }
+
+    [Fact]
     public void Memory_footprint_for_24h_stays_under_two_mb()
     {
         var r = new MinuteRollup(TimeSpan.FromHours(24));

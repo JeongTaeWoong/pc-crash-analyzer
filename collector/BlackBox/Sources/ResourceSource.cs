@@ -67,6 +67,7 @@ public sealed class ResourceSource : PolledSourceBase
         catch (Exception ex)
         {
             _gpu = null; // 어댑터 구성이 바뀌면 다음 샘플에서 다시 열거
+            gpuDed = double.NaN; gpuShared = double.NaN; gpuRows.Clear(); // 부분합을 값으로 내보내지 않는다
             notes.Add($"gpu: {ex.GetType().Name}: {ex.Message}");
         }
 
@@ -81,13 +82,15 @@ public sealed class ResourceSource : PolledSourceBase
             if (_prevProc != null)
             {
                 var cpuA = _prevProc["% Processor Time"]; var cpuB = cur["% Processor Time"];
-                var pid = cur["ID Process"]; var priv = cur["Private Bytes"]; var hnd = cur["Handle Count"];
+                var pidA = _prevProc["ID Process"]; var pid = cur["ID Process"]; var priv = cur["Private Bytes"]; var hnd = cur["Handle Count"];
                 var ioA = _prevProc["IO Data Bytes/sec"]; var ioB = cur["IO Data Bytes/sec"];
                 var rows = new List<ProcUsage>();
                 foreach (System.Collections.DictionaryEntry e in cpuB)
                 {
                     var inst = (string)e.Key;
                     if (!cpuA.Contains(inst)) continue;
+                    // 인스턴스 이름(chrome#3)은 30초 사이 다른 프로세스로 재배정될 수 있다 — PID 가 같을 때만 차분한다
+                    if (pidA.Contains(inst) && pid.Contains(inst) && pidA[inst].RawValue != pid[inst].RawValue) continue;
                     double cpu = CounterSample.Calculate(cpuA[inst].Sample, cpuB[inst].Sample) / _cpuCount;
                     if (inst.Equals("Idle", StringComparison.OrdinalIgnoreCase)) { cpuTotal = Math.Clamp(100 - cpu, 0, 100); continue; }
                     if (inst.Equals("_Total", StringComparison.OrdinalIgnoreCase)) continue;

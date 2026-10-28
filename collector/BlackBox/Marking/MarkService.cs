@@ -118,10 +118,18 @@ public sealed class MarkService
                 object? resourceTrends = null;
                 if (_rollup != null)
                 {
-                    int? focusPid = crashPid ?? (snapResult.ForegroundPid > 0 ? snapResult.ForegroundPid : null);
-                    var export = _rollup.Export(markTime, focusPid, crashProcessName);
-                    snapshot["rollup24h"] = export.Full;
-                    resourceTrends = export.Trends;
+                    try
+                    {
+                        int? focusPid = crashPid ?? (snapResult.ForegroundPid > 0 ? snapResult.ForegroundPid : null);
+                        var export = _rollup.Export(markTime, focusPid, crashProcessName);
+                        snapshot["rollup24h"] = export.Full;
+                        resourceTrends = export.Trends;
+                    }
+                    catch (Exception ex)
+                    {
+                        // 롤업 요약 실패가 덤프 전체를 잃게 하면 안 된다 (CLAUDE.md 4)
+                        snapshot["rollup24h"] = new { status = "unavailable", reason = $"{ex.GetType().Name}: {ex.Message}" };
+                    }
                 }
 
                 SignificanceResult? significance = null;

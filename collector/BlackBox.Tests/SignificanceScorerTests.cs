@@ -102,13 +102,14 @@ public class SignificanceScorerTests
     [Fact]
     public void Gpu_driver_dll_under_driverstore_is_a_driver_clue_not_system()
     {
+        var path = @"C:\WINDOWS\System32\DriverStore\FileRepository\nv_dispi.inf_amd64_123\nvwgf2umx.dll";
+        Assert.DoesNotContain('\n', path); // 2026-10-29: 인라인 패치 때 백슬래시가 깨져 줄바꿈이 들어갔던 사고 재발 방지
+        Assert.Equal(7, path.Split('\\').Length);
         var r = SignificanceScorer.Compute(Base() with
         {
             UserFacing = true,
             FaultingModuleName = "nvwgf2umx.dll",
-            FaultingModulePath = @"C:\WINDOWS\System32\DriverStore\FileRepository
-v_dispi.inf_amd64_123
-vwgf2umx.dll",
+            FaultingModulePath = path,
             ExceptionCode = "c0000005",
         });
         Assert.Contains("gpu-driver-module", r.Tags);
@@ -120,10 +121,13 @@ vwgf2umx.dll",
     [Fact]
     public void Unknown_dll_under_driverstore_is_tagged_driver_store()
     {
+        var path = @"C:\WINDOWS\System32\DriverStore\FileRepository\realtek.inf_amd64_1\RTKVHD64.dll";
+        Assert.DoesNotContain('\r', path);
+        Assert.Equal("RTKVHD64.dll", Path.GetFileName(path));
         var r = SignificanceScorer.Compute(Base() with
         {
             FaultingModuleName = "RTKVHD64.dll",
-            FaultingModulePath = @"C:\WINDOWS\System32\DriverStore\FileRepositoryealtek.inf_amd64_1\RTKVHD64.dll",
+            FaultingModulePath = path,
         });
         Assert.Contains("driver-store-module", r.Tags);
         Assert.Equal(50, r.Score);

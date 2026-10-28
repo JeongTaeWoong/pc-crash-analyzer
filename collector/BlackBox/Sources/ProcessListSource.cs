@@ -146,12 +146,17 @@ public sealed class ProcessListSource : PolledSourceBase
         }
     }
 
-    private static int GetForegroundPid()
+    /// <summary>전경 창의 PID (없으면 -1). StateSnapshotter 도 같은 구현을 쓴다.</summary>
+    internal static int GetForegroundPid()
     {
-        var hwnd = GetForegroundWindow();
-        if (hwnd == IntPtr.Zero) return -1;
-        GetWindowThreadProcessId(hwnd, out uint pid);
-        return (int)pid;
+        try
+        {
+            var hwnd = GetForegroundWindow();
+            if (hwnd == IntPtr.Zero) return -1;
+            GetWindowThreadProcessId(hwnd, out uint pid);
+            return (int)pid;
+        }
+        catch { return -1; }
     }
 
     private static HashSet<int> VisibleWindowPids()
