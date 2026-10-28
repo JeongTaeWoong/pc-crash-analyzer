@@ -415,3 +415,19 @@ FaultLab(`collector/experiments/FaultLab`): crash-a/b/c · plugin(네이티브 �
 **한국 금융보안 모듈↔게임 충돌은 공식·학술·보도 출처 없음** → "알려진 충돌"이 아닌 "우리가 측정한 자원 점유"로만 기술.
 
 상태 분류: 검증됨(인벤토리 수집 자체) / 미확인(ACE-BASE 출처, Vanguard·EAC 재현, 1002·BugCheck 실수신) / 미지원(Photoshop·Premiere 재현 — 미설치).
+
+## 느려짐 메커니즘 스파이크 (2026-10-28, 비관리자, 읽기 전용 5초 — `docs/slowdown-mechanisms.md`)
+
+| 신호 | 결과 | 분류 |
+|---|---|---|
+| `\Memory\Committed Bytes`·`Commit Limit`·`% Committed Bytes In Use`·`Available MBytes`·`Pages/sec` | 전부 값 반환 | 검증됨 |
+| `\Process(*)\Private Bytes`·`Handle Count` | 값 반환 (Unity 4,697 MB, NVIDIA Overlay 3,308 MB) | 검증됨 |
+| `\GPU Adapter Memory(*)\Dedicated Usage` | 3 인스턴스, 주 어댑터 2,796 MB | 검증됨 |
+| `\GPU Process Memory(*)\Dedicated Usage` | 한 PID가 8,646,276 MB — Microsoft가 인정한 카운터 오류(Win10 1709+) | **미지원**(어댑터 총량만 사용) |
+| `\GPU Engine(*)\Utilization Percentage` | 값 반환 | 검증됨 |
+| System Kernel-Processor-Power **Event 37**(CPU 속도 제한) | 구독 가능, 30일 0건 | 검증됨(수신은 미확인) |
+| System 4101 | 30일 0건; TdrDelay/TdrDdiDelay/TdrLevel 레지스트리 값 없음 = 기본 2/5/3 | 실수신 미확인 |
+| LHM GPU Memory·스로틀 사유 센서 | 스파이크 E 미빌드 | 미확인 |
+| 앱 자체 크래시 로그 | Unity `%TMP%\Unity\Editor\Crashes\Crash_2026-10-10_072938424` (crash.dmp 1.9 MB + Editor.log) ↔ Application 1000 10/10 16:29 Unity.exe 6000.4.9 / 오류 모듈 Unity.dll **1:1 대응 확인**. Blender crash.txt 0, WER ReportArchive 0 | 검증됨 |
+
+발견: 점수기가 `\Windows\System32\DriverStore\` 아래 GPU 드라이버 DLL을 시스템 모듈로 취급해 가산이 없음 → `gpu-driver-module` 범주 신설 필요(S5).

@@ -57,14 +57,17 @@
 
 ## 2. 이 PC에서 바로 할 수 있는 1차 검증 4건 (10/29~11/5)
 
-추가 설치 없이, 읽기 전용으로, 설정 변경 없이 되는 것만 골랐다. Defender 제외 추가도 **하지 않는다**(설정 변경 금지) — 대신 "제외 없는 상태"의 비용을 측정해 보고한다.
+추가 설치 없이 되는 것만 골랐다. **설정 변경 금지는 수집기 코드에 대한 원칙**이다. 실험자가 자기 PC에서 Defender 제외를 손으로 켜고 끄는 A/B는 통제 실험으로 허용하되, 실험 후 반드시 되돌리고 NOTES에 기록한다(10/28 수정 — 이전 문구는 과도했음).
 
 | # | 시나리오 | 절차 | 기대 증거 | 아직 모르는 것 |
 |---|---|---|---|---|
 | V1 | **M1: 게임 + OBS 게임캡처 + Discord 오버레이** | 수집기(관리자) → Lost Ark 또는 Steam 게임 → OBS 게임 캡처 ON → Discord 오버레이 ON → 20분 플레이. 크래시 없으면 `m` 수동 마킹 | 게임 프로세스 모듈에 `graphics-hook64.dll` + `DiscordHook64.dll` 공존 기록(크래시 안 나도 **공존 데이터는 남음**) | 실제 크래시 발생률 — 공식 KB는 "할 수 있다"지 확률은 아님 |
-| V2 | **M3: Defender 실시간 검사 vs 빌드** | 수집기 → `dotnet build collector/BlackBox -c Release` 3회(클린 빌드) → `MsMpEng.exe` CPU·IO를 `PerfProc`로 기록. 비교군: 빌드 없이 유휴 | `resource_top`에 MsMpEng 상위 등장, 빌드 시간 | 제외 추가 시 개선폭(설정을 바꾸지 않으니 **측정 안 함** — JetBrains 공식 문서 인용으로 대신) |
+| V2 | **M3: Defender 실시간 검사 vs 빌드 (A/B)** | 수집기 → `dotnet build collector/BlackBox -c Release` 클린 빌드 3회 → 저장소 폴더를 Defender 제외에 **손으로** 추가 → 3회 → 제외 **제거**. `MsMpEng.exe` CPU·IO를 `PerfProc`로 기록 | 빌드 시간 차이, `resource_top`에 MsMpEng 상위 등장. Rider(비상업 무료)로 같은 실험 반복 → IDE 자체 백신 알림과 교차 검증 | 차이가 측정 오차 안이면 이 PC(RAM 94GB·NVMe)에선 재현 안 됨으로 기록 |
 | V3 | **M3: 금융보안 상주물 24시간** | 수집기 24시간 유휴 가동 → 분 단위 롤업(11/13 구현 후) | SignKoreaWD·Goji·SKBspmtmon CPU 시계열, 어떤 시간대에 튀는지 | 롤업 미구현 — 그 전엔 10초 스냅샷 수동 집계 |
 | V4 | **M4: 게임 중 GPU 열·클럭** | 수집기 → 게임 30분 → GPU 온도·클럭·전력·스로틀 플래그 | "온도↑ → 클럭↓" 구간 존재 여부 | 프레임 저하와의 연결은 PresentMon 미연동 |
+
+실행 순서(수율순, 10/28 질의 결과): **Rider(무료) A/B → OBS + Afterburner/RivaTuner(비안티치트 Steam 게임: Balatro·Skul·Palworld) → 일부러 크래시하는 OBS/Unity 네이티브 플러그인(실제 호스트 + 서드파티 모듈 패턴을 매번 재현, 라벨은 official 아닌 `injected`) → Adobe 체험판 7일(11월 중순 이후, OBS 공식 목록의 "Adobe Dynamic Link" 충돌과 묶어서)**.
+OBS 공식 알려진 충돌 목록 [1]에 있는 것 중 이 PC에 이미 있는 가해자: Discord 오버레이(`DiscordHook64.dll` 확인), Adobe Dynamic Link(CC 데스크톱). 같은 메커니즘: Lossless Scaling(Steam, 설치됨).
 
 V1은 **"크래시가 안 나도 가치가 있다"**가 핵심이다. 수집기가 하는 일은 공존 기록이고, 실제 충돌은 외부 PC 데이터에서 온다.
 
