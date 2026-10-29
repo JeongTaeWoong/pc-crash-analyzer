@@ -89,7 +89,7 @@ internal sealed class TrayApp : ApplicationContext
         // 자동 실행 바로가기: 폴더를 옮겼으면 경로만 고친다. 참여자가 지운 바로가기는 되살리지 않는다.
         try
         {
-            bool exists = StartupShortcut.RepairIfMoved(Installation.ExePath, opt.StartupDir);
+            bool exists = StartupShortcut.RepairIfMoved(Installation.ExePath, opt.StartupDir, opt.ShortcutDataDir);
             if (_state.Autostart != exists) { _state.Autostart = exists; SaveState(); }
         }
         catch (Exception ex) { OpsLog.Write($"[autostart] 확인 실패: {ex.Message}"); }
@@ -271,7 +271,7 @@ internal sealed class TrayApp : ApplicationContext
         try
         {
             if (StartupShortcut.Exists(_opt.StartupDir)) StartupShortcut.Remove(_opt.StartupDir);
-            else StartupShortcut.Create(Installation.ExePath, _opt.StartupDir);
+            else StartupShortcut.Create(Installation.ExePath, _opt.StartupDir, _opt.ShortcutDataDir);
             _state.Autostart = StartupShortcut.Exists(_opt.StartupDir);
             SaveState();
         }

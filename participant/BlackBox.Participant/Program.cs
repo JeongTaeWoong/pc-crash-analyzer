@@ -106,7 +106,7 @@ internal static class Program
             state.Save(opt.DataDir);
             if (state.Autostart)
             {
-                try { StartupShortcut.Create(Installation.ExePath, opt.StartupDir); }
+                try { StartupShortcut.Create(Installation.ExePath, opt.StartupDir, opt.ShortcutDataDir); }
                 catch (Exception ex)
                 {
                     state.Autostart = false;

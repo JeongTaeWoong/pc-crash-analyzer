@@ -19,13 +19,18 @@ public static class StartupShortcut
 
     public static bool Exists(string? folder = null) => File.Exists(PathIn(folder));
 
-    public static void Create(string exePath, string? folder = null)
+    /// <summary>바로가기 인자. 시험 실행(--data-dir 로 별도 폴더)이면 그 폴더도 넘긴다 — 빠지면 로그인 때 기본 폴더로 떠서 시험 설정 경고가 난다(10/29 실사용 발견).</summary>
+    public static string ArgsFor(string? dataDir) =>
+        dataDir == null ? "--autostart" : $"--autostart --data-dir \"{Path.TrimEndingDirectorySeparator(dataDir)}\"";
+
+    /// <param name="dataDir">기본 데이터 폴더가 아닐 때만(시험 실행). 참여자 실행은 null.</param>
+    public static void Create(string exePath, string? folder = null, string? dataDir = null)
     {
         var link = (IShellLinkW)new ShellLink();
         try
         {
             link.SetPath(exePath);
-            link.SetArguments("--autostart");
+            link.SetArguments(ArgsFor(dataDir));
             link.SetWorkingDirectory(Path.GetDirectoryName(exePath)!);
             link.SetDescription("PC 블랙박스 — 중앙대 캡스톤 연구용 문제 상황 기록기 (트레이 메뉴 '참여 그만두기'로 끌 수 있음)");
             link.SetIconLocation(exePath, 0);
@@ -38,7 +43,10 @@ public static class StartupShortcut
         }
     }
 
-    public static string? Target(string? folder = null)
+    public static string? Target(string? folder = null) => Read(folder)?.Path;
+
+    /// <summary>바로가기의 대상 exe 와 인자. 없거나 못 읽으면 null.</summary>
+    public static (string Path, string Args)? Read(string? folder = null)
     {
         var path = PathIn(folder);
         if (!File.Exists(path)) return null;
@@ -48,7 +56,9 @@ public static class StartupShortcut
             ((IPersistFile)link).Load(path, 0);
             var sb = new StringBuilder(1024);
             link.GetPath(sb, sb.Capacity, IntPtr.Zero, 0);
-            return sb.ToString();
+            var args = new StringBuilder(2048);
+            link.GetArguments(args, args.Capacity);
+            return (sb.ToString(), args.ToString());
         }
         catch { return null; }
         finally
@@ -63,13 +73,14 @@ public static class StartupShortcut
         if (File.Exists(path)) File.Delete(path);
     }
 
-    /// <summary>바로가기가 있는데 다른 exe 를 가리키면(폴더를 옮김) 현재 exe 로 고친다. 없으면 만들지 않는다. 반환: 지금 바로가기가 있는가.</summary>
-    public static bool RepairIfMoved(string exePath, string? folder = null)
+    /// <summary>바로가기가 있는데 다른 exe 를 가리키거나(폴더를 옮김) 인자가 다르면 고친다. 없으면 만들지 않는다. 반환: 지금 바로가기가 있는가.</summary>
+    public static bool RepairIfMoved(string exePath, string? folder = null, string? dataDir = null)
     {
-        var target = Target(folder);
-        if (target == null) return Exists(folder);
-        if (!string.Equals(Path.GetFullPath(target), Path.GetFullPath(exePath), StringComparison.OrdinalIgnoreCase))
-            Create(exePath, folder);
+        var cur = Read(folder);
+        if (cur == null) return Exists(folder);
+        if (!string.Equals(Path.GetFullPath(cur.Value.Path), Path.GetFullPath(exePath), StringComparison.OrdinalIgnoreCase)
+            || cur.Value.Args != ArgsFor(dataDir))
+            Create(exePath, folder, dataDir);
         return true;
     }
 

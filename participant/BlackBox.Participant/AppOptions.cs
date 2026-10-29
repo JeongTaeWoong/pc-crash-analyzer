@@ -11,6 +11,8 @@ public sealed class AppOptions
 
     public string DataDir { get; private set; } = DefaultDataDir;
 
+    /// <summary>자동 실행 바로가기에 넘길 데이터 폴더 — 기본 폴더면 null(참여자 실행).</summary>
+    public string? ShortcutDataDir => DataDirIsDefault ? null : DataDir;
     public bool DataDirIsDefault => string.Equals(Path.GetFullPath(DataDir).TrimEnd('\\'), Path.GetFullPath(DefaultDataDir).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase);
 
     public string StudyConfigPath { get; private set; } = Path.Combine(AppContext.BaseDirectory, "study.json");
