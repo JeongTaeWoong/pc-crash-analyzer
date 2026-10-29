@@ -62,7 +62,7 @@ public static class Texts
 
     public static string EndpointHost(StudyConfig s) => s.EndpointUri?.Host ?? "(설정 없음)";
 
-    public static string Consent(StudyConfig s, string participantId) => $@"중앙대학교 캡스톤디자인 5조(정태웅·송민석·남건호)가 만든 연구용 프로그램입니다.
+    public static string Consent(StudyConfig s, string participantId) => $@"중앙대학교 캡스톤디자인 7조(정태웅·송민석·남건호)가 만든 연구용 프로그램입니다.
 PC에서 프로그램이 꺼지거나 멈추거나 느려지는 순간의 ""주변 상황""을 기록해, 원인을 찾아 주는 엔진을 검증하는 데 씁니다.
 완성된 제품이 아닌 시험판이며, 참여는 언제든 그만둘 수 있습니다.
 

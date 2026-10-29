@@ -62,8 +62,8 @@ PcBlackBox.exe --selftest
 ### 2-4. 배포 빌드
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.7.0
-# → dist\PcBlackBox-0.7.0-win-x64.zip (+ .zip.sha256.txt)
+powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.7.1
+# → dist\PcBlackBox-0.7.1-win-x64.zip (+ .zip.sha256.txt)
 ```
 
 - 127.0.0.1 시험 설정이면 거부한다(시험 빌드는 `-AllowLoopback`, 이름에 `-LOCALTEST`).

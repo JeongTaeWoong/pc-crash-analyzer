@@ -1,12 +1,12 @@
 ﻿# 참여자판 배포 빌드 — 지인 PC 에 .NET 설치 없이 풀어서 바로 쓰는 폴더(self-contained, win-x64)와 zip 을 만든다.
-# 사용: powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 [-Version 0.7.0] [-Config participant\study.local.json] [-AllowLoopback]
+# 사용: powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 [-Version 0.7.1] [-Config participant\study.local.json] [-AllowLoopback]
 # 결과: dist\PcBlackBox-<Version>-win-x64.zip (+ .sha256.txt). dist\ 는 커밋하지 않는다.
 # 안전장치:
 #  - 설정 검증(StudyTools check): https 수신 주소, 3072비트 이상 공개키, keyId 일치, 개인키가 섞여 있으면 거부
 #  - 127.0.0.1 시험 수신기 설정은 -AllowLoopback 일 때만(시험 빌드) — 실수로 시험 설정을 지인에게 보내지 않게
 #  - 배포 폴더에 *.pem·*.pdb·study.local.json 이 들어가면 실패
 param(
-    [string]$Version = "0.7.0",
+    [string]$Version = "0.7.1",
     [string]$Config = "participant\study.local.json",
     [switch]$AllowLoopback
 )
