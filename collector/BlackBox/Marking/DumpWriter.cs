@@ -9,8 +9,15 @@ namespace BlackBox.Marking;
 public sealed class DumpWriter
 {
     private readonly string _dumpRoot;
+    private readonly string _edition;
+    private readonly string _version;
 
-    public DumpWriter(string dumpRoot) => _dumpRoot = dumpRoot;
+    public DumpWriter(string dumpRoot, string edition = "console", string version = "0.7")
+    {
+        _dumpRoot = dumpRoot;
+        _edition = edition;
+        _version = version;
+    }
 
     public string Write(
         DateTimeOffset markTime,
@@ -38,7 +45,8 @@ public sealed class DumpWriter
         var meta = new
         {
             collector = "BlackBox",
-            version = "0.6",
+            version = _version,
+            edition = _edition,
             os = Environment.OSVersion.VersionString,
             isElevated,
             markTime,

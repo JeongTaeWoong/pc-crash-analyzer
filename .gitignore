@@ -21,3 +21,9 @@ dist/
 
 # 골든 셋 케이스(개인 PC 덤프 파생) — FaultLab 합성 케이스만 검토 후 수동 커밋
 cases/
+
+# 참여자판 연구 설정·키·받은 데이터 (participant/, docs/study-operations.md) — 커밋 금지
+participant/study.local.json
+*.private.pem
+study-inbox/
+study-decrypted/

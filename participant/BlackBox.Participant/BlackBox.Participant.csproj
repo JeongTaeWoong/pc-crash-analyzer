@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    참여자판 (지인 배포용). 콘솔 수집기와 같은 소스(collector/BlackBox 의 Core·Sources·Marking·Hosting)를 링크해 한 실행 파일로 만든다.
+    여기서 더하는 것: 트레이 아이콘, 동의 화면, 증상 대화상자, 암호화 자동 전송(StudyCore). 수집 로직은 collector/ 에만 있다.
+    관리자 권한을 요구하지 않는다(app.manifest asInvoker). 커널 드라이버를 싣지 않는다.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>PcBlackBox</AssemblyName>
+    <RootNamespace>BlackBox.Participant</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <Version>0.7.0</Version>
+    <Product>PC 블랙박스 (중앙대 캡스톤 연구용)</Product>
+    <Company>중앙대학교 캡스톤디자인 5조</Company>
+    <Description>PC 문제 순간 전후 상황을 기록해 연구팀에 암호화 전송하는 참여자용 블랙박스</Description>
+    <Copyright>연구용 시험판 — 읽기 전용, 자동 조치 없음</Copyright>
+    <SatelliteResourceLanguages>ko</SatelliteResourceLanguages>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- 수집기 소스의 이름(Timer 등)과 겹치지 않게 WinForms 암묵 using 은 빼고 파일마다 명시한다 -->
+    <Using Remove="System.Drawing" />
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\collector\BlackBox\Core\**\*.cs" LinkBase="Collector\Core" />
+    <Compile Include="..\..\collector\BlackBox\Sources\**\*.cs" LinkBase="Collector\Sources" />
+    <Compile Include="..\..\collector\BlackBox\Marking\**\*.cs" LinkBase="Collector\Marking" />
+    <Compile Include="..\..\collector\BlackBox\Hosting\**\*.cs" LinkBase="Collector\Hosting" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- collector/BlackBox/BlackBox.csproj 와 같은 버전으로 맞춘다 -->
+    <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.0" />
+    <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.7-pre749" />
+    <PackageReference Include="System.Management" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.8" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\StudyCore\StudyCore.csproj" />
+  </ItemGroup>
+</Project>

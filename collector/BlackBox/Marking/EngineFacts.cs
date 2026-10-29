@@ -17,7 +17,7 @@ public sealed class EngineFacts
 public sealed record SnapshotResult(Dictionary<string, object?> Json, EngineFacts Facts, int ForegroundPid = -1);
 
 /// <summary>수동 마킹에 사용자가 지정한 증상(엔진 symptom.type)과 대상 프로그램(…exe). 둘 다 선택.</summary>
-public sealed record ManualMark(string? Symptom, string? Target)
+public sealed record ManualMark(string? Symptom, string? Target, string? Memo = null)
 {
     /// <summary>엔진 스키마의 증상 값(snapshot_schema.md 1.2).</summary>
     public static readonly string[] KnownSymptoms =

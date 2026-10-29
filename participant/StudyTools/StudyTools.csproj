@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 팀 전용 도구: 키 만들기, 시험 수신기, 복호화, 요약. 참여자 배포본에는 들어가지 않는다. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>StudyTools</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\StudyCore\StudyCore.csproj" />
+  </ItemGroup>
+</Project>

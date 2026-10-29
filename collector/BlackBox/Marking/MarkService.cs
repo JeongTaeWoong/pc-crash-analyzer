@@ -4,6 +4,10 @@ using BlackBox.Sources;
 
 namespace BlackBox.Marking;
 
+/// <summary>덤프 1건 완료 알림. 참여자판이 전송 대기열에 넣고 알림을 띄운다 — 수집기 자신은 업로드하지 않는다(CLAUDE.md 1).</summary>
+public sealed record DumpRecord(string Dir, string Kind, DateTimeOffset MarkTime, bool Auto, string? ProcessName,
+    int? Score, string? Tier, string? Symptom, string? Target);
+
 /// <summary>
 /// 마킹 처리: T 시점에 상태 스냅샷을 뜨기 시작하고, T+post까지 수집을 계속한 뒤
 /// 버퍼의 [T-pre, T+post] 구간과 스냅샷을 덤프한다.
@@ -14,6 +18,11 @@ public sealed class MarkService
 {
     private static readonly TimeSpan AutoCooldown = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan DedupeWindow = TimeSpan.FromSeconds(180);
+    /// <summary>
+    /// 같은 대상(프로그램 이름, 없으면 종류)의 자동 덤프는 1시간에 6건까지. 크래시 반복(10초마다 재시작·크래시)이
+    /// 하루 수천 개 덤프로 디스크·전송을 채우는 것을 막는다(10/29 검토 지적). 넘친 것은 트리거 줄에 suppressed 로 남는다.
+    /// </summary>
+    public const int AutoPerTargetPerHour = 6;
 
     private readonly RingBuffer _buffer;
     private readonly StateSnapshotter _snapshotter;
@@ -26,8 +35,12 @@ public sealed class MarkService
     private readonly object _lock = new();
     private readonly List<Task> _pending = new();
     private readonly Dictionary<string, (string Kind, DateTimeOffset At)> _recentByProcess = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, List<DateTimeOffset>> _autoByTarget = new(StringComparer.OrdinalIgnoreCase);
     private DateTimeOffset _lastAutoMark = DateTimeOffset.MinValue;
     private List<EventLogTrigger>? _mergeTarget;
+
+    /// <summary>덤프를 디스크에 다 쓴 직후(작업 스레드에서) 호출된다. 처리기 예외는 삼킨다.</summary>
+    public event Action<DumpRecord>? DumpWritten;
 
     public MarkService(RingBuffer buffer, StateSnapshotter snapshotter, DumpWriter writer,
         TimeSpan pre, TimeSpan post, IReadOnlyList<SourceStatus> statuses, BlackBoxConfig config, MinuteRollup? rollup = null)
@@ -49,13 +62,37 @@ public sealed class MarkService
     /// 증상·대상을 지정한 수동 마킹 (콘솔 `m slow blender`, 이후 UI 증상 대화상자가 같은 경로를 쓴다).
     /// 대상이 있으면 롤업 초점·마지막 모듈 목록을 그 프로그램 이름으로 잡는다 — 전경(콘솔 창)이 초점이 되는 문제(10/29) 해결.
     /// </summary>
-    public void MarkManual(string via, ManualMark manual)
+    public void MarkManual(string via, ManualMark manual, int? fgPidHint = null)
     {
-        string? target = manual.Target is { Length: > 0 } t
+        var m = NormalizeManual(manual);
+        StartMark("manual", new { type = "manual", via, symptom = m.Symptom, target = m.Target, memo = m.Memo }, null, null, m.Target, null, m, fgPidHint);
+    }
+
+    /// <summary>
+    /// 증상 대화상자용 마킹(참여자판): 마킹 시각·전경 PID 는 지금 고정하고, 증상·대상·메모는 대화상자 답을 덤프 직전까지 기다린다.
+    /// 버퍼 구간은 T+post 에 먼저 잘라 두므로 답이 늦어도 T-pre 이벤트가 밀려나지 않는다. maxWait(마킹 기준) 안에 답이 없으면 증상 없이 덤프한다.
+    /// </summary>
+    public DateTimeOffset MarkManualDeferred(string via, int? fgPidHint, Task<ManualMark?> details, TimeSpan maxWait) =>
+        StartMark("manual", new { type = "manual", via }, null, null, null, null, null, fgPidHint, details, maxWait, via);
+
+    /// <summary>대상 이름에 .exe 를 붙이고, 알려진 증상만 남기고, 메모는 제어 문자를 지워 300자로 자른다.</summary>
+    public static ManualMark NormalizeManual(ManualMark m)
+    {
+        string? target = m.Target?.Trim() is { Length: > 0 } t
             ? (t.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? t : t + ".exe")
             : null;
-        var m = manual with { Target = target };
-        StartMark("manual", new { type = "manual", via, symptom = m.Symptom, target = m.Target }, null, null, target, null, m);
+        string? symptom = m.Symptom?.Trim() is { Length: > 0 } sy && ManualMark.KnownSymptoms.Contains(sy, StringComparer.OrdinalIgnoreCase)
+            ? sy.ToLowerInvariant()
+            : null;
+        string? memo = null;
+        if (m.Memo != null)
+        {
+            var chars = m.Memo.Where(c => !char.IsControl(c) || c == ' ').ToArray();
+            var s = new string(chars).Trim();
+            if (s.Length > 300) s = s[..300];
+            memo = s.Length > 0 ? s : null;
+        }
+        return new ManualMark(symptom, target, memo);
     }
 
     public void OnAutoTrigger(EventLogTrigger t)
@@ -84,6 +121,16 @@ public sealed class MarkService
             if (t.Kind is "crash-1000" or "hang-1002" && t.ProcessName != null)
                 _recentByProcess[t.ProcessName] = (t.Kind, now);
 
+            var targetKey = t.ProcessName ?? t.Kind;
+            if (!_autoByTarget.TryGetValue(targetKey, out var times)) _autoByTarget[targetKey] = times = new List<DateTimeOffset>();
+            times.RemoveAll(x => now - x > TimeSpan.FromHours(1));
+            if (times.Count >= AutoPerTargetPerHour)
+            {
+                Console.WriteLine($"[trigger] {Json.Serialize(new { receivedAt = t.ReceivedAt, kind = t.Kind, processName = t.ProcessName, suppressed = true, reason = $"같은 대상 1시간 {AutoPerTargetPerHour}건 초과(반복 크래시) — 덤프 생략" })}");
+                return;
+            }
+            times.Add(now);
+
             if (now - _lastAutoMark < AutoCooldown && _mergeTarget != null)
             {
                 _mergeTarget.Add(t);
@@ -99,8 +146,8 @@ public sealed class MarkService
         StartMark(t.Kind, t, t, t.Pid, t.ProcessName, merged);
     }
 
-    private void StartMark(string kind, object trigger, EventLogTrigger? autoTrigger, int? crashPid, string? crashProcessName, List<EventLogTrigger>? mergedTriggers,
-        ManualMark? manual = null)
+    private DateTimeOffset StartMark(string kind, object trigger, EventLogTrigger? autoTrigger, int? crashPid, string? crashProcessName, List<EventLogTrigger>? mergedTriggers,
+        ManualMark? manual = null, int? fgPidHint = null, Task<ManualMark?>? lateDetails = null, TimeSpan? lateWait = null, string? via = null)
     {
         var markTime = DateTimeOffset.Now;
         Console.WriteLine($"[mark] {markTime:HH:mm:ss.fff} kind={kind} — {_post.TotalSeconds:0}초 후 덤프 예정");
@@ -110,15 +157,30 @@ public sealed class MarkService
             try
             {
                 // 마킹 "시점"의 상태를 담아야 하므로 스냅샷은 지금 시작, post 대기와 병행
-                var snapshotTask = Task.Run(_snapshotter.Capture);
+                var snapshotTask = Task.Run(() => _snapshotter.Capture(fgPidHint));
                 await Task.Delay(_post);
 
                 var from = markTime - _pre;
                 var to = markTime + _post;
+                // 대화상자 답을 기다리기 전에 구간을 잘라 둔다 — 버퍼 보존(pre+post+30초)을 넘겨 T-pre 가 밀려나지 않게
                 var events = _buffer.Snapshot(from, to);
+
+                if (lateDetails != null)
+                {
+                    var remaining = markTime + (lateWait ?? _post) - DateTimeOffset.Now;
+                    if (!lateDetails.IsCompleted && remaining > TimeSpan.Zero)
+                        await Task.WhenAny(lateDetails, Task.Delay(remaining));
+                    ManualMark? answer = lateDetails.IsCompletedSuccessfully ? lateDetails.Result : null;
+                    manual = answer is null ? null : NormalizeManual(answer);
+                    crashProcessName = manual?.Target;
+                    trigger = new { type = "manual", via, symptom = manual?.Symptom, target = manual?.Target, memo = manual?.Memo, answered = answer != null };
+                }
+
                 var snapResult = await snapshotTask;
                 var snapshot = snapResult.Json;
                 snapshot["etwImageLoadTopPids"] = TopImageLoadPids(events);
+                if (manual != null)
+                    snapshot["userReport"] = new { symptom = manual.Symptom, target = manual.Target, memo = manual.Memo };
 
                 List<string>? crashModulePaths = null;
                 if (crashPid.HasValue || crashProcessName != null)
@@ -162,6 +224,15 @@ public sealed class MarkService
                 var engineSnapshot = EngineSnapshotBuilder.Build(markTime, kind, autoTrigger, events, snapResult.Facts, crashModulePaths, significance, resourceTrends, manual);
                 var dir = _writer.Write(markTime, kind, triggerObj, from, to, events, snapshot, engineSnapshot, significance, _buffer.Stats, _statuses);
                 Console.WriteLine($"[dump] {Json.Serialize(new { dir, completedAt = DateTimeOffset.Now, kind, events = events.Count, significance = significance?.Score, tier = significance?.Tier })}");
+                try
+                {
+                    DumpWritten?.Invoke(new DumpRecord(dir, kind, markTime, autoTrigger != null, autoTrigger?.ProcessName ?? manual?.Target,
+                        significance?.Score, significance?.Tier, manual?.Symptom, manual?.Target));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[dump-notify-error] {ex.GetType().Name}: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
@@ -170,6 +241,7 @@ public sealed class MarkService
         });
 
         lock (_lock) { _pending.Add(task); _pending.RemoveAll(x => x.IsCompleted); }
+        return markTime;
     }
 
     /// <summary>

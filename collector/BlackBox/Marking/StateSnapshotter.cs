@@ -25,11 +25,12 @@ public sealed class StateSnapshotter
 
     public StateSnapshotter(SensorSource sensorSource) => _sensorSource = sensorSource;
 
-    public SnapshotResult Capture()
+    /// <param name="fgPidHint">단축키를 누른 순간의 전경 PID (참여자판: 증상 대화상자가 초점을 가져가기 전에 잡는다). 없으면 지금 전경.</param>
+    public SnapshotResult Capture(int? fgPidHint = null)
     {
         var sw = Stopwatch.StartNew();
         var facts = new EngineFacts();
-        int fgPid = ProcessListSource.GetForegroundPid();
+        int fgPid = fgPidHint is > 0 ? fgPidHint.Value : ProcessListSource.GetForegroundPid();
         // 항목별 소요 시간 — 중간발표 14쪽 "마킹 순간 1코어 ~10%" 원인 분석용(10/29)
         var timings = new Dictionary<string, long>();
         object Timed(string name, Func<object> f)

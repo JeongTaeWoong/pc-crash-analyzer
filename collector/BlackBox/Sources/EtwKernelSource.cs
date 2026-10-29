@@ -28,6 +28,10 @@ public sealed class EtwKernelSource : ISignalSource
     private long _imageLoadTotal;
     private long _imageLoadKept;
     private long _processEvents;
+    private readonly bool _stripArgs;
+
+    /// <param name="stripCommandLineArgs">true 면 processStart 명령줄에서 인자를 지우고 실행 파일만 남긴다(참여자판).</param>
+    public EtwKernelSource(bool stripCommandLineArgs = false) => _stripArgs = stripCommandLineArgs;
 
     public string Name => "etw-kernel";
 
@@ -85,6 +89,7 @@ public sealed class EtwKernelSource : ISignalSource
     {
         Interlocked.Increment(ref _processEvents);
         string cmd = data.CommandLine ?? "";
+        if (_stripArgs) cmd = CommandLineText.ExecutableOnly(cmd);
         if (cmd.Length > 200) cmd = cmd[..200] + "...";
         OnSignal?.Invoke(SignalEvent.Create(Name, new
         {

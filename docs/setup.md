@@ -73,6 +73,16 @@ powershell -ExecutionPolicy Bypass -File tools\publish-collector.ps1 -Version 0.
 zip 안에 `읽어주세요.md`(= `docs/participant-guide.md`), `blackbox.config.json`, `수집기 시작.bat` 이 함께 들어간다.
 코드 서명이 없어 SmartScreen 경고가 뜨며, 안내문에 그 사실을 적어 두었다. `dist/` 는 커밋하지 않는다.
 
+## 참여자판 — 지인 배포·자동 전송 (v0.7, 2026-10-29)
+
+일반인용 트레이 앱 `PcBlackBox.exe` 와 암호화 자동 전송. 절차 전체는 [`study-operations.md`](study-operations.md).
+
+```powershell
+dotnet test participant\StudyCore.Tests                       # 봉투·서명·대기열·수신 규칙 48건
+participant\StudyTools\bin\Release\net8.0\StudyTools.exe check --config participant\study.local.json
+powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.7.0
+```
+
 ## 수집기 콘솔 명령과 검증 모드 (v0.6.1, 2026-10-29)
 
 | 입력 | 하는 일 |

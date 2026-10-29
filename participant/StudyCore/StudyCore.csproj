@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- 참여자판·팀 도구 공용: 연구 설정, 암호 봉투, 전송 대기열, 수신 규칙. 수집 코드는 없다. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>StudyCore</RootNamespace>
+  </PropertyGroup>
+</Project>

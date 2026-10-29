@@ -142,6 +142,7 @@ build\Release\crash_engine.exe diagnose data\samples\s1_anticheat_crash.json
 
 ```
 collector/     블랙박스 수집기 (ETW·이벤트 로그·센서·마킹·덤프)
+participant/   참여자판(지인 배포용 트레이 앱)·암호화 자동 전송·팀 복호화 도구 — docs/study-operations.md
 engine/        추론 엔진 (층 판정·점수화·시도 순서·피드백)
 knowledge/     사례 DB 스키마, 시드 규칙, 점검 비용 표
 experiments/   fault injection 더미 앱·DLL, 측정 스크립트, 결과

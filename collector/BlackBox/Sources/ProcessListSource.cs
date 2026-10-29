@@ -31,6 +31,7 @@ public sealed class ProcessListSource : PolledSourceBase
 
     private readonly SnapshotStrategy _strategy;
     private readonly Dictionary<int, DateTime> _seen = new(); // pid → 처음 관측한 시각
+    private readonly HashSet<int> _deniedPids = new(); // 모듈 열거가 거부된 PID — 살아 있는 동안 다시 시도하지 않는다
     private readonly Dictionary<int, double> _privMinuteAgo = new(); // pid → 60초 전 Private MB
     private readonly Dictionary<int, double> _growthMB = new();
     private HashSet<int> _stickyGrowers = new();
@@ -129,22 +130,25 @@ public sealed class ProcessListSource : PolledSourceBase
             }
 
             var modules = new List<object>();
-            int moduleDenied = 0;
+            int moduleDenied = 0, moduleSkippedDenied = 0;
             foreach (var p in targets.DistinctBy(x => x.Id))
             {
+                // 한 번 거부된 PID(안티치트·보호 프로세스)는 살아 있는 동안 다시 열지 않는다 — 10초마다 접근 시도를 반복하지 않게(10/29 검토 지적)
+                if (_deniedPids.Contains(p.Id)) { moduleSkippedDenied++; continue; }
                 try
                 {
                     var all = ModuleEnumerator.ModulePaths(p.Id); // Toolhelp32 (스파이크 J)
-                    if (all == null) { moduleDenied++; continue; }
+                    if (all == null) { moduleDenied++; _deniedPids.Add(p.Id); continue; }
                     var nonSystem = all.Where(file => !SystemRoots.Any(r => file.StartsWith(r, StringComparison.OrdinalIgnoreCase))).ToList();
                     modules.Add(new { pid = p.Id, name = p.ProcessName, mods = nonSystem.Take(40).ToList() });
                 }
-                catch { moduleDenied++; }
+                catch { moduleDenied++; _deniedPids.Add(p.Id); }
             }
 
             // seen 갱신: 죽은 pid 제거(재사용 대비) 후 현재 pid 추가
             foreach (var dead in _seen.Keys.Where(k => !alive.Contains(k)).ToList())
                 _seen.Remove(dead);
+            _deniedPids.RemoveWhere(id => !alive.Contains(id));
             foreach (var id in alive)
                 _seen.TryAdd(id, DateTime.Now);
 
@@ -156,6 +160,7 @@ public sealed class ProcessListSource : PolledSourceBase
                 fgPid,
                 moduleScanned = modules.Count,
                 moduleDenied,
+                moduleSkippedDenied,
                 processes = basic,
                 modules,
             };
