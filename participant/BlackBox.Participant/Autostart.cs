@@ -7,6 +7,9 @@ namespace BlackBox.Participant;
 /// <summary>
 /// "Windows 로그인 시 자동 실행" 켜기·끄기·점검. 참여자가 동의 화면·트레이 메뉴에서 켰을 때만 만든다.
 /// 관리자로 돌면 작업 스케줄러 + Program Files 복사본(ElevatedAutostart), 아니면 시작 프로그램 폴더 바로가기(StartupShortcut).
+/// 관리자 프로세스는 사용자의 시작 프로그램 폴더를 건드리지 않는다 — 같은 사용자의 일반 권한 프로그램이 그 폴더에 링크를 심어
+/// 관리자 권한 삭제를 엉뚱한 파일로 돌릴 수 있고, 그 폴더의 파일을 "참여자가 켜 둔 것"으로 믿으면 동의 없이 켜진다(10/30 보안 검토).
+/// 시험(--startup-dir, 명령줄로만 줌)은 예외.
 /// </summary>
 public static class Autostart
 {
@@ -24,27 +27,30 @@ public static class Autostart
             return;
         }
         Elevated(o).Enable(o.ShortcutDataDir);
-        // 예전(0.7, 비관리자)에 만든 바로가기는 정리한다 — 둘 다 있으면 로그인 때 두 번 뜬다
-        try { StartupShortcut.Remove(o.StartupDir); } catch { }
     }
 
     public static void Disable(AppOptions o)
     {
-        try { StartupShortcut.Remove(o.StartupDir); } catch { }
-        if (Elevation.IsElevated) Elevated(o).Disable();
+        if (!Elevation.IsElevated)
+        {
+            try { StartupShortcut.Remove(o.StartupDir); } catch { }
+            return;
+        }
+        Elevated(o).Disable();
+        if (o.StartupDir != null) try { StartupShortcut.Remove(o.StartupDir); } catch { } // 시험 폴더만
     }
 
     /// <summary>
-    /// 시작할 때: 켜져 있으면 경로·인자·설치본을 지금 실행 파일에 맞춘다. 참여자가 끈 것은 되살리지 않는다.
-    /// 관리자 실행에서 0.7 바로가기가 남아 있으면 참여자가 켜 둔 것이므로 작업 스케줄러 방식으로 옮긴다. 반환: 켜져 있는가.
+    /// 시작할 때: 켜져 있으면 경로·인자·설치본을 지금 실행 파일에 맞춘다. 참여자가 끈 것(지운 것)은 되살리지 않는다. 반환: 켜져 있는가.
+    /// 관리자 실행은 사용자가 쓸 수 있는 곳의 흔적이 아니라 보호된 기록 폴더의 participant.json 에 남은 참여자 선택(wanted)만 믿는다.
     /// </summary>
-    public static bool Repair(AppOptions o)
+    public static bool Repair(AppOptions o, bool wanted)
     {
         if (!Elevation.IsElevated) return StartupShortcut.RepairIfMoved(Installation.ExePath, o.StartupDir, o.ShortcutDataDir);
+        if (!wanted) return false;
         var t = Elevated(o);
-        bool legacy = StartupShortcut.Exists(o.StartupDir);
-        if (!t.Exists() && !legacy) return false;
-        Enable(o);
+        if (!t.Exists()) return false; // 참여자가 작업 스케줄러에서 직접 지움 — 되살리지 않는다
+        t.Enable(o.ShortcutDataDir);   // 설치본·인자를 지금 실행 파일에 맞춘다
         return true;
     }
 }
@@ -109,7 +115,10 @@ public sealed class ElevatedAutostart
         if (SameDir(src, dst)) return;
         if (File.Exists(InstalledExe) && Version(InstalledExe) == Version(Installation.ExePath)) return;
 
-        var files = Directory.EnumerateFiles(src, "*", SearchOption.AllDirectories).Take(MaxFiles + 1).ToList();
+        // 원본 폴더는 사용자가 쓸 수 있는 곳이다 — 그 안의 링크(정션·심볼릭 링크)를 따라가면 관리자 권한으로 남의 파일을
+        // 누구나 읽을 수 있는 Program Files 로 복사하게 된다. 링크는 건너뛴다(배포 zip 에는 링크가 없다).
+        var walk = new EnumerationOptions { RecurseSubdirectories = true, AttributesToSkip = FileAttributes.ReparsePoint, IgnoreInaccessible = false };
+        var files = Directory.EnumerateFiles(src, "*", walk).Take(MaxFiles + 1).ToList();
         if (files.Count > MaxFiles || files.Sum(f => new FileInfo(f).Length) > MaxBytes || !File.Exists(Path.Combine(src, "study.json")))
             throw new InvalidOperationException("프로그램 폴더가 zip 을 푼 폴더 그대로가 아니에요. zip 을 새 폴더에 다시 풀어 주세요.");
 

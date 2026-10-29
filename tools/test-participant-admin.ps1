@@ -13,6 +13,7 @@ param(
     [switch]$Elevated
 )
 $ErrorActionPreference = 'Continue'
+[Console]::OutputEncoding = [Text.Encoding]::UTF8   # 앱(UTF-8) 출력을 한글 그대로 받기
 $repo = Split-Path $PSScriptRoot -Parent
 if (-not $Exe) {
     $d = Get-ChildItem (Join-Path $repo 'dist') -Directory -Filter '*-LOCALTEST' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
@@ -47,7 +48,8 @@ if (-not $Elevated) {
     try {
         $p = Start-Process powershell.exe -Verb RunAs -Wait -PassThru -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$PSCommandPath`"", '-Exe', "`"$Exe`"", '-WorkDir', "`"$WorkDir`"", '-Elevated')
     } catch { L "관리자 쪽 실행 안 됨: $($_.Exception.Message)" }
-    if ($squatted -and (Test-Path $root) -and ((Get-Acl $root).Owner -notmatch 'Administrators|SYSTEM')) { Remove-Item $root -Recurse -Force; L "선점 폴더 정리(관리자 쪽이 돌지 않음)" }
+    $rootOwner = try { (Get-Acl $root -ErrorAction Stop).Owner } catch { '(일반 권한으로 못 읽음 — 관리자 소유)' }
+    if ($squatted -and (Test-Path $root) -and ($rootOwner -match [regex]::Escape($env:USERNAME))) { Remove-Item $root -Recurse -Force; L "선점 폴더 정리(관리자 쪽이 돌지 않음)" }
     L "== 6. 일반 권한으로 기록 폴더 쓰기·권한 변경 시도"
     $udir = Join-Path $root $sid
     if (Test-Path $udir) {
@@ -77,6 +79,7 @@ public static class Tok {
 }
 '@
 function Etw { L ("  커널 ETW 세션: " + (((logman query -ets | Select-String 'PcBlackBox|CrashCollector' | ForEach-Object { ($_.Line.Trim() -split '\s+')[0] }) -join ', ') -replace '^$', '(없음)')) }
+function WaitEtw($sec) { $sw = [Diagnostics.Stopwatch]::StartNew(); while ($sw.Elapsed.TotalSeconds -lt $sec) { if (logman query -ets | Select-String 'PcBlackBox-Kernel') { return [math]::Round($sw.Elapsed.TotalSeconds, 1) }; Start-Sleep -Milliseconds 500 }; return $null }
 function Check($label) { L ("  [$label] " + ((& $Exe --check-data-dir 2>&1 | Out-String).Trim() -replace "`r?`n", ' | ') + " (exit $LASTEXITCODE)") }
 
 L "== 1. 기록 폴더 보호 ($(Get-Date -Format s))"
@@ -86,6 +89,7 @@ if ((Get-Acl $root -ErrorAction SilentlyContinue).Owner -notmatch 'Administrator
 Check '새로 만듦'
 Check '다시 확인'
 L "  루트 ACL:"; (icacls $root) | Where-Object { $_ -match '\S' } | ForEach-Object { L "    $_" }
+L "  사용자 폴더 ACL:"; (icacls (Join-Path $root $sid)) | Where-Object { $_ -match '\S' } | ForEach-Object { L "    $_" }
 
 L "== 2. 관리자 화면 캡처"
 & $Exe --render-forms (Join-Path $WorkDir 'render-admin') 2>&1 | Out-Null
@@ -94,8 +98,8 @@ L "  $((Get-ChildItem (Join-Path $WorkDir 'render-admin') -ErrorAction SilentlyC
 L "== 3. 관리자 실행 A: 동의 → 자동 실행 → 직접 기록 → 종료"
 Remove-Item $data, $startup -Recurse -Force -ErrorAction SilentlyContinue
 $p = Start-Process $Exe -PassThru -ArgumentList @('--data-dir', "`"$data`"", '--startup-dir', "`"$startup`"", '--test-consent', '--test-mark-after', '20', '--test-auto-answer', '--test-exit-after', '80')
-Start-Sleep -Seconds 10
-L "  실행 중 토큰: $([Tok]::Elevated($p))"; Etw
+$t = WaitEtw 60
+L "  실행 중 토큰: $([Tok]::Elevated($p)) · 우선순위 $($p.PriorityClass) · 커널 ETW 세션 뜨기까지 $(if ($t -ne $null) { "$t 초" } else { '60초 안에 안 뜸 ★' })" 
 $p.WaitForExit(180000) | Out-Null
 L "  종료 코드 $($p.ExitCode)"
 $xml = (schtasks /Query /TN $task /XML 2>&1 | Out-String)
@@ -107,9 +111,9 @@ Etw
 
 L "== 4. 예약 작업으로 실행(로그인 때와 같은 경로) → 끝내기"
 schtasks /Run /TN $task | Out-Null
-Start-Sleep -Seconds 15
+$t = WaitEtw 90
 $q = Get-Process PcBlackBox -ErrorAction SilentlyContinue | Where-Object { $_.Path -like (Join-Path $startup 'install\*') } | Select-Object -First 1
-if ($q) { L "  실행됨: 토큰 $([Tok]::Elevated($q))"; L ("  명령줄: " + (Get-CimInstance Win32_Process -Filter "ProcessId=$($q.Id)").CommandLine) } else { L "  실행 안 됨 ★문제" }
+if ($q) { L "  실행됨: 토큰 $([Tok]::Elevated($q)) · 우선순위 $($q.PriorityClass) · 커널 ETW 세션 뜨기까지 $(if ($t -ne $null) { "$t 초" } else { '90초 안에 안 뜸 ★' })"; L ("  명령줄: " + (Get-CimInstance Win32_Process -Filter "ProcessId=$($q.Id)").CommandLine) } else { L "  실행 안 됨 ★문제" }
 Etw
 schtasks /End /TN $task | Out-Null
 Start-Sleep -Seconds 3
