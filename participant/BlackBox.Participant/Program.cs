@@ -29,6 +29,7 @@ internal static class Program
         TaskScheduler.UnobservedTaskException += (_, e) => { OpsLog.Write($"[task-error] {e.Exception.GetBaseException().Message}"); e.SetObserved(); };
 
         if (opt.RenderFormsDir != null) return RenderForms.Run(opt.RenderFormsDir);
+        if (opt.CheckDataDir) return CheckDataDir();
 
         // 1) 연구 설정 (배포본: exe 옆 study.json)
         StudyConfig study;
@@ -63,6 +64,9 @@ internal static class Program
             return 0;
         }
 
+        // 관리자 실행: 기록 폴더는 일반 권한 프로그램이 쓸 수 없는 곳이어야 한다(연결을 심어 관리자 권한으로 엉뚱한 곳에 쓰게 하는 공격 차단)
+        if (Elevation.IsElevated && opt.DataDirIsDefault && Elevation.EnsureSecureDataDir(opt.DataDir) is { } unsafeWhy)
+            return Fail(unsafeWhy, opt.Headless, 2);
         Directory.CreateDirectory(opt.DataDir);
         var state = ParticipantState.Load(opt.DataDir);
 
@@ -78,24 +82,25 @@ internal static class Program
         // 4) 연구 기간이 끝났으면 기록하지 않고 정리를 안내한다
         if (study.CollectionEnded(DateTime.Today))
         {
-            try { StartupShortcut.Remove(opt.StartupDir); } catch { }
-            if (!state.HasConsentFor(study)) return 0;
+            try { Autostart.Disable(opt); } catch { }
+            if (!state.HasConsentFor(study)) { ElevatedAutostart.RunPendingRemoval(); return 0; }
             var answer = MessageBox.Show($"연구 기간({study.CollectLastDay:yyyy-MM-dd})이 끝나 기록을 멈췄어요. 참여해 주셔서 정말 감사합니다.\n" +
                 "자동 실행도 꺼 두었어요.\n\n이 PC에 남은 기록도 지울까요? (프로그램 폴더는 직접 지우시면 됩니다)",
                 Texts.AppTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Information);
             if (answer == DialogResult.Yes) LocalData.DeleteAll(opt.DataDir);
             else { state.Autostart = false; state.Save(opt.DataDir); }
+            ElevatedAutostart.RunPendingRemoval();
             return 0;
         }
 
         // 5) 동의 — 거절하면 아무것도 저장하지 않고 끝난다. 동의는 연구·받는 곳에 묶인다.
         if (!state.HasConsentFor(study))
         {
-            if (opt.Autostart) return 0; // 동의가 철회된 뒤 남은 바로가기 — 조용히 끝낸다
+            if (opt.Autostart) return 0; // 동의가 철회된 뒤 남은 바로가기·예약 작업 — 조용히 끝낸다
             var pid = state.ParticipantIdFor(study);
             if (opt.TestConsent)
             {
-                state.Accept(pid, "test", autostart: opt.StartupDir != null, study); // 시험: 임시 시작 폴더에서 바로가기 생성까지 확인
+                state.Accept(pid, "test", autostart: opt.StartupDir != null, study); // 시험: 임시 시작 폴더(관리자면 -TEST 예약 작업·시험 설치 폴더)까지 확인
             }
             else
             {
@@ -106,7 +111,7 @@ internal static class Program
             state.Save(opt.DataDir);
             if (state.Autostart)
             {
-                try { StartupShortcut.Create(Installation.ExePath, opt.StartupDir, opt.ShortcutDataDir); }
+                try { Autostart.Enable(opt); }
                 catch (Exception ex)
                 {
                     state.Autostart = false;
@@ -118,9 +123,24 @@ internal static class Program
 
         OpsLog.Install(teeToConsole: opt.HasTestFlags); // 시험 실행은 운영 기록을 터미널에도
         OpsLog.Write($"[app] PcBlackBox {TrayApp.Version} 시작 (참여 ID {state.ParticipantId}, {(opt.Autostart ? "자동 실행" : "직접 실행")})");
-        using var app = new TrayApp(opt, study, state);
-        Application.Run(app);
+        using (var app = new TrayApp(opt, study, state))
+            Application.Run(app);
+        ElevatedAutostart.RunPendingRemoval(); // 그만두기로 설치본을 지웠는데 그 설치본에서 돌고 있었다면, 끝난 뒤 지운다
         return 0;
+    }
+
+    /// <summary>--check-data-dir: 관리자 실행의 기록 폴더 보호(소유자·쓰기 권한·OWNER RIGHTS·연결 아님)를 확인한다.</summary>
+    private static int CheckDataDir()
+    {
+        Console.WriteLine($"elevated={Elevation.IsElevated} dataDir={AppOptions.DefaultDataDir}");
+        if (!Elevation.IsElevated)
+        {
+            Console.WriteLine("SKIP 관리자 실행이 아니라 %LOCALAPPDATA% 를 씁니다(보호할 것 없음).");
+            return 0;
+        }
+        var why = Elevation.EnsureSecureDataDir(AppOptions.DefaultDataDir);
+        Console.WriteLine(why == null ? "OK 기록 폴더는 관리자·SYSTEM 만 쓸 수 있어요." : $"FAIL {why}");
+        return why == null ? 0 : 1;
     }
 
     private static int Fail(string message, bool headless, int code)

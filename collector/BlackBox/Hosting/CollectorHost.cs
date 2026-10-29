@@ -25,6 +25,9 @@ public sealed record CollectorHostOptions
 
     /// <summary>시작 시 이번 부팅 이후 41·BugCheck·WHEA 기록을 재생할지 (v0.6.1).</summary>
     public bool ReplaySinceBoot { get; init; } = true;
+
+    /// <summary>커널 ETW 세션 이름(관리자일 때만 쓰임). 같은 이름은 서로 대체되므로 판마다 다르게.</summary>
+    public string EtwSessionName { get; init; } = EtwKernelSource.DefaultSessionName;
 }
 
 /// <summary>
@@ -65,7 +68,7 @@ public sealed class CollectorHost : IDisposable
         // 모듈 스냅샷 전략: 2026-10-08 벤치 결과 ForegroundPlusRecent 확정 (NOTES.md "자동 감지 마킹" 절)
         Processes = new ProcessListSource(Strategy);
         Resources = new ResourceSource();
-        Etw = new EtwKernelSource(Options.StripCommandLineArgs);
+        Etw = new EtwKernelSource(Options.StripCommandLineArgs, Options.EtwSessionName);
         _sources = new ISignalSource[] { EventLog, Sensors, Processes, Resources, Etw };
         Rollup = new MinuteRollup(TimeSpan.FromHours(24));
         Config = BlackBoxConfig.Load();

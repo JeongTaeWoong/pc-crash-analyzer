@@ -1,13 +1,15 @@
 namespace BlackBox.Participant;
 
 /// <summary>
-/// 명령줄 옵션. 참여자는 인자 없이 실행한다(자동 실행 바로가기만 --autostart).
+/// 명령줄 옵션. 참여자는 인자 없이 실행한다(자동 실행 바로가기·예약 작업만 --autostart).
 /// --test-* 와 --startup-dir 은 study.json 의 수신 주소가 127.0.0.1 시험 수신기일 때만 허용된다 — 배포본에서 동의 화면을 건너뛸 길을 막는다.
 /// </summary>
 public sealed class AppOptions
 {
-    public static readonly string DefaultDataDir =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PcCrashAnalyzer");
+    /// <summary>관리자 실행이면 C:\ProgramData\PcBlackBox\&lt;SID&gt;(일반 권한으로 못 씀), 아니면 %LOCALAPPDATA%\PcCrashAnalyzer.</summary>
+    public static readonly string DefaultDataDir = Elevation.IsElevated
+        ? Elevation.SecureDataDir
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PcCrashAnalyzer");
 
     public string DataDir { get; private set; } = DefaultDataDir;
 
@@ -37,7 +39,10 @@ public sealed class AppOptions
     public int TestWithdrawAfterSec { get; private set; }
     public string? StartupDir { get; private set; }
 
-    public bool Headless => SelfTest || RenderFormsDir != null;
+    /// <summary>팀 점검용: 관리자 실행의 기록 폴더(C:\ProgramData\PcBlackBox\&lt;SID&gt;)를 준비·검사한 결과만 출력하고 끝난다.</summary>
+    public bool CheckDataDir { get; private set; }
+
+    public bool Headless => SelfTest || RenderFormsDir != null || CheckDataDir;
 
     public bool HasTestFlags => TestConsent || TestMarkAfterSec > 0 || TestAutoAnswer || TestExitAfterSec > 0 || TestWithdrawAfterSec > 0 || StartupDir != null;
 
@@ -62,6 +67,7 @@ public sealed class AppOptions
                 case "--post-seconds": o.PostSeconds = Math.Clamp(NextInt(), 1, 120); break;
                 case "--out": o.OutFile = Path.GetFullPath(Next()); break;
                 case "--render-forms": o.RenderFormsDir = Path.GetFullPath(Next()); break;
+                case "--check-data-dir": o.CheckDataDir = true; break;
                 case "--test-consent": o.TestConsent = true; break;
                 case "--test-mark-after": o.TestMarkAfterSec = NextInt(); break;
                 case "--test-auto-answer": o.TestAutoAnswer = true; break;

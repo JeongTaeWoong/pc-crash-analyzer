@@ -5,7 +5,7 @@
     <security>
       <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
         <!-- 관리자 권한을 요구하지 않는다. 관리자 전용 항목(ETW)은 건너뛰고 그 사실을 기록한다(CLAUDE.md 5). -->
-        <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+        <requestedExecutionLevel level="highestAvailable" uiAccess="false" />
       </requestedPrivileges>
     </security>
   </trustInfo>

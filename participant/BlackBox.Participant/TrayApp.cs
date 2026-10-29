@@ -44,7 +44,7 @@ internal sealed class TrayApp : ApplicationContext
     private static readonly TimeSpan ManualDebounce = TimeSpan.FromSeconds(30);
     private SourceStatus? _hotkeyStatus;
 
-    public static string Version => typeof(TrayApp).Assembly.GetName().Version?.ToString(3) ?? "0.7.1";
+    public static string Version => typeof(TrayApp).Assembly.GetName().Version?.ToString(3) ?? "0.8.0";
 
     public TrayApp(AppOptions opt, StudyConfig study, ParticipantState state)
     {
@@ -79,6 +79,7 @@ internal sealed class TrayApp : ApplicationContext
             DumpRoot = _dumpRoot,
             Edition = "participant",
             StripCommandLineArgs = true,
+            EtwSessionName = "PcBlackBox-Kernel", // 콘솔판과 같이 돌아도 서로 세션을 빼앗지 않게
         });
         _host.Marks.DumpWritten += OnDumpWritten;
 
@@ -89,7 +90,7 @@ internal sealed class TrayApp : ApplicationContext
         // 자동 실행 바로가기: 폴더를 옮겼으면 경로만 고친다. 참여자가 지운 바로가기는 되살리지 않는다.
         try
         {
-            bool exists = StartupShortcut.RepairIfMoved(Installation.ExePath, opt.StartupDir, opt.ShortcutDataDir);
+            bool exists = Autostart.Repair(opt);
             if (_state.Autostart != exists) { _state.Autostart = exists; SaveState(); }
         }
         catch (Exception ex) { OpsLog.Write($"[autostart] 확인 실패: {ex.Message}"); }
@@ -270,9 +271,9 @@ internal sealed class TrayApp : ApplicationContext
     {
         try
         {
-            if (StartupShortcut.Exists(_opt.StartupDir)) StartupShortcut.Remove(_opt.StartupDir);
-            else StartupShortcut.Create(Installation.ExePath, _opt.StartupDir, _opt.ShortcutDataDir);
-            _state.Autostart = StartupShortcut.Exists(_opt.StartupDir);
+            if (_state.Autostart) Autostart.Disable(_opt);
+            else Autostart.Enable(_opt);
+            _state.Autostart = Autostart.Exists(_opt);
             SaveState();
         }
         catch (Exception ex) { MessageBox.Show($"자동 실행 설정을 바꾸지 못했어요: {ex.Message}", Texts.AppTitle); }
@@ -317,7 +318,7 @@ internal sealed class TrayApp : ApplicationContext
             }
             catch (Exception ex) { requestNote = $"삭제 요청을 보내지 못했어요({ex.Message}). 연구팀에 참여 ID {_state.ParticipantId} 를 알려 주세요."; }
         }
-        try { StartupShortcut.Remove(_opt.StartupDir); } catch { }
+        try { Autostart.Disable(_opt); } catch (Exception ex) { OpsLog.Write($"[withdraw] 자동 실행 끄기 실패: {ex.Message}"); }
         var pid = _state.ParticipantId;
         if (form.DeleteLocal) LocalData.DeleteAll(_opt.DataDir);
         else { _state.ConsentVersion = 0; _state.Autostart = false; SaveState(); }
@@ -335,7 +336,7 @@ internal sealed class TrayApp : ApplicationContext
     {
         if (confirm)
         {
-            var auto = StartupShortcut.Exists(_opt.StartupDir) ? "다음에 Windows에 로그인하면 다시 켜져요." : "다시 켜려면 PcBlackBox.exe 를 실행해 주세요.";
+            var auto = _state.Autostart ? "다음에 Windows에 로그인하면 다시 켜져요." : "다시 켜려면 PcBlackBox.exe 를 실행해 주세요.";
             if (MessageBox.Show($"끄면 그동안은 문제 상황이 기록되지 않아요.\n{auto}\n\n끌까요?", Texts.AppTitle,
                     MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
         }
@@ -372,6 +373,8 @@ internal sealed class TrayApp : ApplicationContext
         // 로그오프·종료가 확정됨: 기다리지 않는다(대기열 파일은 원자적으로 써서 다음 실행에 이어 보낸다)
         _exiting = true;
         try { _tray.Visible = false; } catch { }
+        // 커널 ETW 세션은 프로세스가 끝나도 남는다 — 로그오프로 강제 종료되기 전에 세션만 멈춘다(관리자 실행)
+        try { _host.Etw.Stop(); } catch { }
     }
 
     // ───────── 표시 ─────────
@@ -381,7 +384,7 @@ internal sealed class TrayApp : ApplicationContext
         UpdateTrayText();
         _pauseItem.Checked = _state.UploadsPaused;
         _pauseItem.Text = _state.UploadsPaused ? "전송 일시중지됨 (눌러서 재개)" : "전송 일시중지";
-        _autostartItem.Checked = StartupShortcut.Exists(_opt.StartupDir);
+        _autostartItem.Checked = _state.Autostart; // 관리자면 확인에 schtasks 가 필요해 메뉴를 열 때마다 부르지 않는다
     }
 
     private void UpdateTrayText()

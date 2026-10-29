@@ -80,7 +80,7 @@ zip 안에 `읽어주세요.md`(= `docs/participant-guide.md`), `blackbox.config
 ```powershell
 dotnet test participant\StudyCore.Tests                       # 봉투·서명·대기열·수신 규칙 48건
 participant\StudyTools\bin\Release\net8.0\StudyTools.exe check --config participant\study.local.json
-powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.7.1
+powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.8.0
 ```
 
 ## 수집기 콘솔 명령과 검증 모드 (v0.6.1, 2026-10-29)

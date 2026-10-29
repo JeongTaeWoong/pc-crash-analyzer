@@ -8,15 +8,20 @@
 ```
 참여자 PC                                            팀 Google 계정                 팀 PC
 ─────────────────────────────────────────────        ─────────────────────         ─────────────────────────────
-PcBlackBox.exe (트레이, 비관리자)                     Apps Script 웹 앱             StudyTools decrypt
+PcBlackBox.exe (트레이, 관리자 — UAC)                 Apps Script 웹 앱             StudyTools decrypt
   수집기(collector/ 소스 그대로, 메모리 링버퍼)          형식·크기·토큰만 검사          (개인키 %USERPROFILE%\.pca-study)
-  → 자동 감지/단축키 → 덤프(%LOCALAPPDATA%)            → Drive 폴더/<참여 ID>/       → <참여 ID>/<덤프>/*.json
+  → 자동 감지/단축키 → 덤프(%ProgramData%\PcBlackBox)   → Drive 폴더/<참여 ID>/       → <참여 ID>/<덤프>/*.json
   → zip → AES-256-GCM + RSA-OAEP(팀 공개키) ──HTTPS──→   *.pcae.json (암호문)  ──내려받기→  → crash_engine diagnose
   → 디스크 대기열(재시도) · 하트비트(8시간)                                               → StudyTools summary
 ```
 
 - 수집 코드는 `collector/` 에만 있다. 참여자판(`participant/BlackBox.Participant`)은 같은 소스를 링크하고 트레이·동의·전송만 더한다 — 수집기 원칙(분석 없음, 조치 없음, 마킹 전 디스크 쓰기 없음)은 그대로.
 - 수신기는 **내용을 열 수 없다**. Google 도, 주소를 알아낸 제3자도 마찬가지. 열 수 있는 것은 개인키를 가진 팀 PC 뿐.
+- **관리자 권한(0.8~)**: 매니페스트 `highestAvailable`. 관리자 계정이면 켤 때 UAC 로 권한을 받아 커널 ETW(프로그램 시작·DLL 로드 실시간)·보안 필터 드라이버 목록(fltmc)·접근 거부되던 프로세스의 모듈까지 모은다. 표준 사용자 계정이면 UAC 없이 그대로 돌고 관리자 전용 항목은 `unavailable` 로 기록(0.7 과 같음).
+  관리자로 돌 때 지키는 것:
+  - 기록 폴더는 `C:\ProgramData\PcBlackBox\<SID>` — 루트는 관리자·SYSTEM 만 쓰기, 소유자 Administrators, OWNER RIGHTS 읽기 전용 상속, 본인은 읽기만. 루트를 다른 계정이 먼저 만들어 두었거나 연결(정션)이면 쓰지 않고 멈춘다(`--check-data-dir` 로 확인).
+  - 자동 실행은 작업 스케줄러(로그인 트리거, 가장 높은 권한, 실행 시간 제한 없음) + `C:\Program Files\PcBlackBox` 복사본. 다운로드 폴더의 exe 를 가리키면 일반 권한 악성 프로그램이 바꿔치기해 관리자 권한을 얻으므로 쓰지 않는다. 작업 XML 도 설치 폴더 안에서 만들어 넘긴다.
+  - 커널 ETW 세션 이름은 판마다 다르다(`PcBlackBox-Kernel`, 자체 점검 `PcBlackBox-Kernel-SelfTest`, 콘솔판 `CrashCollector-BlackBox-Kernel`). 로그오프가 확정되면 세션을 먼저 멈춘다.
 
 | 폴더 | 역할 |
 |---|---|
@@ -53,17 +58,20 @@ PcBlackBox.exe (트레이, 비관리자)                     Apps Script 웹 앱
 
 ```powershell
 participant\StudyTools\bin\Release\net8.0\StudyTools.exe check --config participant\study.local.json
-# 팀 PC 에서: 배포 빌드의 PcBlackBox.exe 를 한 번 실행해 동의 → 그다음
+# 팀 PC 에서: 배포 빌드의 PcBlackBox.exe 를 한 번 실행해 동의 → 그다음 "관리자 PowerShell" 에서
 PcBlackBox.exe --selftest
+PcBlackBox.exe --check-data-dir   # 기록 폴더 보호 확인(OK 가 나와야 함)
 ```
+
+> 0.8 부터 exe 가 관리자 권한을 요청한다. 일반 PowerShell 에서 `--selftest` 를 부르면 UAC 창이 뜨고 출력이 보이지 않을 수 있으니 관리자 PowerShell 에서 실행한다. 관리자 아닌 경로를 시험하려면 `$env:__COMPAT_LAYER='RunAsInvoker'` 를 먼저 설정한다.
 
 `--selftest` 는 실제 수집기로 마킹 1건 → 덤프 → 봉투 → 전송 → 메모 → 하트비트를 하고 단계별 OK/FAIL 을 출력한다(참여 ID `selftest…` 폴더로 들어가 실제 참여자와 섞이지 않는다). 실제 수신 주소로는 그 PC 에서 동의한 뒤에만 돈다.
 
 ### 2-4. 배포 빌드
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.7.1
-# → dist\PcBlackBox-0.7.1-win-x64.zip (+ .zip.sha256.txt)
+powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.8.0
+# → dist\PcBlackBox-0.8.0-win-x64.zip (+ .zip.sha256.txt)
 ```
 
 - 127.0.0.1 시험 설정이면 거부한다(시험 빌드는 `-AllowLoopback`, 이름에 `-LOCALTEST`).
@@ -112,7 +120,8 @@ StudyTools summary --in D:\pca\study-decrypted
 | 배포본에 개인키·시험 설정이 실림 | 앱·빌드 스크립트가 PRIVATE KEY 포함 설정 거부, 시험 설정 빌드 거부, 금지 파일 점검 | 없음 |
 | 개인정보 | 창 제목·키 입력·화면·파일 내용·통신 내용 수집 안 함. 프로필 경로(8.3 짧은 경로 포함, 다른 사용자 폴더 오치환 없음)·사용자 이름·PC 이름 치환. 짧은 이름(예: 두 글자)은 경로 조각·도메인\이름 형태에서 치환. ETW 명령줄 인자 삭제 | 일반 문장 속 두 글자 이름, 파일·폴더 이름(예: 프로젝트 이름)은 남는다 — 동의 화면에 명시 |
 | 참여자 PC 디스크·네트워크 | 로컬 기록 200MB·300건(하드 400MB) + 대기열 100MB·500건·30일, 같은 대상 자동 덤프 시간당 6건, 수동 기록 30초 연타 무시, 끊긴 임시 파일 정리 | 없음 |
-| 참여자 PC 안정성 | 비관리자, 커널 드라이버 없음, 읽기 전용, 자동 조치 없음, 전체 화면 중 창 안 띄움, 한 번만 실행, 로그오프 "취소" 뒤에도 정상(SessionEnded 에서만 정리), 종료 때 UI 를 막지 않음 | 코드 서명이 없어 SmartScreen 경고, 일부 백신의 평판 기반 차단 가능 |
+| 관리자 권한 악용(0.8~) | 기록 폴더는 일반 권한으로 못 쓰는 ProgramData 하위(소유자·쓰기 권한·OWNER RIGHTS·연결 여부 확인, 선점돼 있으면 멈춤). 자동 실행은 Program Files 복사본만 가리킴. 작업 인자는 고정(`--autostart`) | 사용자가 다운로드 폴더에서 직접 켤 때(UAC 승인) 그 폴더에 미리 심긴 DLL 은 막지 못한다 — 일반 설치 파일과 같은 위험 |
+| 참여자 PC 안정성 | 관리자 권한은 읽기에만, 커널 드라이버 없음(센서 라이브러리는 PawnIO 미설치면 드라이버를 올리지 않음), 읽기 전용, 자동 조치 없음, 전체 화면 중 창 안 띄움, 한 번만 실행, 로그오프 "취소" 뒤에도 정상(SessionEnded 에서만 정리), 종료 때 UI 를 막지 않음 | 코드 서명이 없어 SmartScreen 경고, 일부 백신의 평판 기반 차단 가능 |
 | 안티치트 보호 게임 | 모듈 열거가 거부된 PID 는 살아 있는 동안 다시 열지 않음(10초마다 시도하지 않음) | 첫 1회 열기 시도는 남는다 — 반응은 미확인 |
 | 동의 없는 수집 | 동의 체크 필수, 거절 시 저장 없음. 동의는 연구 ID·받는 곳에 묶임(시험 동의가 실제 배포본으로 넘어가지 않음). 시험 옵션은 127.0.0.1 설정 + 별도 `--data-dir` 에서만. `--selftest` 는 그 연구에 동의한 PC 에서만 | 없음 |
 | 철회 뒤 업로드 | 철회 시 수집·전송을 먼저 멈추고 → 삭제 요청 → 로컬 삭제(`selftest` 포함). 정리 중 끝난 덤프는 보내지 않음 | 없음 |
@@ -136,7 +145,8 @@ StudyTools summary --in D:\pca\study-decrypted
 | `DriveApp.getStorageUsed/Limit`, `createFile` 문자열 크기 상한 | **미확인** | Node 흉내로만 시험. 봉투는 보통 80~300KB |
 | `drive.file` 같은 좁은 범위로 동작하는지 | **미확인** | 지금은 `drive` 전체 범위(DriveApp 기본) |
 | 다른 PC 의 SmartScreen·백신(V3 등)·안티치트 반응 | **미확인** | 지인 1~2명 시범 배포로 확인 |
-| 관리자 실행 시 ETW 명령줄 인자 삭제, 강제 종료 뒤 커널 ETW 세션 잔류 | **권한 필요 / 미확인** | 참여자판은 비관리자가 기본 |
+| 관리자 아닌 경로(0.8 — 표준 사용자 계정) | **검증됨** | `__COMPAT_LAYER=RunAsInvoker` 로 자체 점검 4단계·트레이 흐름, 예약 작업 안 만듦 |
+| 관리자 경로(0.8): 기록 폴더 선점 방어·ACL, 예약 작업 등록·실행, 설치본, 그만두기 정리, ETW 명령줄 인자 삭제, 강제 종료 뒤 세션 잔류 | **권한 필요 / 시험 대기** | `tools/test-participant-admin.ps1` (UAC 한 번) |
 | 참여자 PC 장기(2주) 안정성 | **미확인** | 하트비트 `self.cpuPctOfMachine`·`privateMB` 로 원격 관찰 |
 
 ## 7. 문제 해결

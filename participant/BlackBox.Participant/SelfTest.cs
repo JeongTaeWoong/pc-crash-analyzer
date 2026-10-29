@@ -33,6 +33,7 @@ internal static class SelfTest
             Edition = "participant",
             StripCommandLineArgs = true,
             ReplaySinceBoot = false,
+            EtwSessionName = "PcBlackBox-Kernel-SelfTest", // 트레이 앱이 같이 돌아도 세션을 빼앗지 않게
         });
         var written = new TaskCompletionSource<DumpRecord>(TaskCreationOptions.RunContinuationsAsynchronously);
         host.Marks.DumpWritten += r => written.TrySetResult(r);

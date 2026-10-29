@@ -234,6 +234,15 @@ public static class LocalData
             try { File.Delete(Path.Combine(dataDir, f)); } catch { }
         }
         try { if (Directory.Exists(dataDir) && !Directory.EnumerateFileSystemEntries(dataDir).Any()) Directory.Delete(dataDir); } catch { }
+        // 관리자 실행의 데이터 루트(C:\ProgramData\PcBlackBox)도 비었으면 지운다
+        try
+        {
+            var root = Elevation.SecureRoot;
+            if (string.Equals(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(dataDir)), root, StringComparison.OrdinalIgnoreCase)
+                && Directory.Exists(root) && !Directory.EnumerateFileSystemEntries(root).Any())
+                Directory.Delete(root);
+        }
+        catch { }
     }
 
     private static long SizeOf(DirectoryInfo d)

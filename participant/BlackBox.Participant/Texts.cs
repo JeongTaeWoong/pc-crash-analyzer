@@ -62,6 +62,17 @@ public static class Texts
 
     public static string EndpointHost(StudyConfig s) => s.EndpointUri?.Host ?? "(설정 없음)";
 
+    // 관리자 실행(0.8) 여부에 따라 동의문의 "PC에 미치는 영향"이 달라진다 — 실제 동작과 다른 말을 하지 않게
+    public static string AdminLine => Elevation.IsElevated
+        ? "· 관리자 권한으로 실행됩니다(켤 때 Windows가 묻습니다). 문제 순간에 어떤 프로그램·DLL·보안 필터 드라이버가 끼어 있었는지 읽는 데만 쓰고, 프로그램을 끄거나 설정·레지스트리를 바꾸지 않습니다(읽기 전용)."
+        : "· 지금은 관리자 권한 없이 실행 중이라 일부 기록(보안 필터 드라이버 목록, 실시간 DLL 로드)은 빠집니다. 프로그램을 끄거나 설정·레지스트리를 바꾸지 않습니다(읽기 전용).";
+
+    public static string DataDirText => Elevation.IsElevated ? Elevation.SecureRoot : @"%LOCALAPPDATA%\PcCrashAnalyzer";
+
+    public static string AutostartLine => Elevation.IsElevated
+        ? $"· 자동 실행을 켜면 프로그램을 {new ElevatedAutostart(null).InstallDir} 에 복사하고, 작업 스케줄러에 '로그인할 때 실행'을 하나 등록합니다. 관리자 권한으로 켜지는 프로그램이라 다른 프로그램이 바꿔치기할 수 없는 곳에 둡니다. 그만두면 둘 다 지웁니다."
+        : "· 자동 실행을 켜면 시작 프로그램 폴더에 바로가기 하나만 만듭니다.";
+
     public static string Consent(StudyConfig s, string participantId) => $@"중앙대학교 캡스톤디자인 7조(정태웅·송민석·남건호)가 만든 연구용 프로그램입니다.
 PC에서 프로그램이 꺼지거나 멈추거나 느려지는 순간의 ""주변 상황""을 기록해, 원인을 찾아 주는 엔진을 검증하는 데 씁니다.
 완성된 제품이 아닌 시험판이며, 참여는 언제든 그만둘 수 있습니다.
@@ -91,10 +102,10 @@ PC에서 프로그램이 꺼지거나 멈추거나 느려지는 순간의 ""주�
 · 이름 대신 무작위 참여 ID로 구분합니다. 내 참여 ID: {participantId}
 
 ■ PC에 미치는 영향
-· 관리자 권한을 요구하지 않습니다. 프로그램을 끄거나 설정·레지스트리를 바꾸지 않습니다(읽기 전용).
+{AdminLine}
 · 연구팀 PC 측정 기준 CPU 평균 0.3% 미만, 메모리 약 120MB를 씁니다.
-· 기록은 이 PC의 %LOCALAPPDATA%\PcCrashAnalyzer 폴더에도 남으며, 오래된 것부터 지워 약 300MB 안으로 유지합니다.
-· 자동 실행을 켜면 시작 프로그램 폴더에 바로가기 하나만 만듭니다.
+· 기록은 이 PC의 {DataDirText} 폴더에도 남으며, 오래된 것부터 지워 약 300MB 안으로 유지합니다.
+{AutostartLine}
 
 ■ 그만두기
 · 작업 표시줄 아이콘 → ""참여 그만두기""를 누르면 자동 실행이 꺼지고, 원하시면 이 PC의 기록을 지우고 연구팀에 보낸 기록의 삭제를 요청합니다.

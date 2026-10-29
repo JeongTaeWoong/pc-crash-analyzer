@@ -14,7 +14,7 @@
     <RootNamespace>BlackBox.Participant</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>0.7.1</Version>
+    <Version>0.8.0</Version>
     <Product>PC 블랙박스 (중앙대 캡스톤 연구용)</Product>
     <Company>중앙대학교 캡스톤디자인 7조</Company>
     <Description>PC 문제 순간 전후 상황을 기록해 연구팀에 암호화 전송하는 참여자용 블랙박스</Description>
