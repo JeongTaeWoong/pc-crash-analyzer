@@ -18,10 +18,19 @@ public sealed class BlackBoxItem
     public string Text { get; init; } = "";        // 목록의 '내용' 칸
     public string Detail { get; init; } = "";      // '선택한 기록' 칸
     public bool IsModule { get; init; }
+    public string ActionKind { get; init; } = "";  // 조치 줄: apply / rollback / error (2026-11-02)
 
     // 목록(ListView) 표시용
     public string TimeText { get; set; } = "";
     public string ShortText => Ui.Short(Text, 90);
+
+    // 2026-11-02 확정안 2-4-C 표: 출처 · 판단 칸, 줄 색, 연결된 엔진 후보
+    public string Source { get; set; } = "";
+    public string Verdict { get; set; } = "";
+    public System.Windows.Media.Brush VerdictFg { get; set; } = Ui.DimFg;
+    public System.Windows.Media.Brush RowBg { get; set; } = System.Windows.Media.Brushes.Transparent;
+    public string CandId { get; set; } = "";       // 이 줄과 관계있는 엔진 후보 id (없으면 빈 글자)
+    public string Title { get; set; } = "";        // '선택한 항목' 카드 제목
 }
 
 public sealed class BlackBoxData
@@ -30,21 +39,13 @@ public sealed class BlackBoxData
     public List<BlackBoxItem> Items { get; } = new();
     public List<(DateTime T, double V)> GpuLoad { get; } = new();
     public List<(DateTime T, double V)> GpuTemp { get; } = new();
+    public List<(DateTime T, double V)> CpuTemp { get; } = new();   // 2026-11-02 추가
+    public string TargetProcess { get; private set; } = "";         // 증상 대상 프로그램 (예: othergame.exe)
     public DateTime? Mark { get; private set; }
     public DateTime? From { get; private set; }
     public DateTime? To { get; private set; }
     public string MetaKind { get; private set; } = "";
     public bool ViaHotkey { get; private set; }
-
-    /// <summary>타임라인 줄 (키, 왼쪽 이름)</summary>
-    public static readonly (string Key, string Name)[] Lanes =
-    {
-        ("event", "오류·종료 이벤트"),
-        ("proc", "프로그램 시작·종료"),
-        ("module", "모듈(DLL) 로드"),
-        ("gpu_load", "GPU 사용률"),
-        ("gpu_temp", "GPU 온도"),
-    };
 
     /// <summary>
     /// 기록 시각 문자열 → 기록한 곳의 현지 시각(시간대 없음). 못 읽으면 null.
@@ -109,6 +110,8 @@ public sealed class BlackBoxData
                 if (raw["events"] is JsonArray evs)
                     for (int i = 0; i < evs.Count; i++)
                         bb.AddCollectorEvent(evs[i]);
+                if (!string.IsNullOrEmpty(snapshotPath))
+                    bb.TargetProcess = S(ReadJson(snapshotPath)?["symptom"]?["target_process"]);
                 return bb;
             }
         }
@@ -119,6 +122,36 @@ public sealed class BlackBoxData
         if (snap == null) return bb;
         bb.Source = "snapshot";
         bb.Mark = ParseTime(S(snap["marked_at"]));
+        bb.TargetProcess = S(snap["symptom"]?["target_process"]);
+        // 증상이 시작된 시각 = 대상 프로그램을 켠 시각으로 본다 (스냅샷에 프로세스 시작 시각이 따로 없음)
+        var started = ParseTime(S(snap["symptom"]?["started_at"]));
+        if (started != null && bb.TargetProcess.Length > 0)
+            bb.Items.Add(new BlackBoxItem
+            {
+                Time = started.Value, Lane = "proc", Kind = "프로그램 시작", Text = bb.TargetProcess + " 시작",
+                Detail = "증상이 시작된 시각(symptom.started_at)", Title = bb.TargetProcess,
+            });
+        if (snap["modules"] is JsonArray smods)
+            for (int i = 0; i < smods.Count; i++)
+            {
+                var t = ParseTime(S(smods[i]?["loaded_at"]));
+                if (t is null) continue;
+                string name = S(smods[i]?["name"]);
+                bb.Items.Add(new BlackBoxItem
+                {
+                    Time = t.Value, Lane = "module", Kind = "모듈 로드", IsModule = true,
+                    Text = S(smods[i]?["process"]) + " ← " + name,
+                    Detail = name + " (" + S(smods[i]?["company"]) + ")", Title = name,
+                });
+            }
+        if (snap["sensors"]?["samples"] is JsonArray samples)
+            for (int i = 0; i < samples.Count; i++)
+            {
+                var t = ParseTime(S(samples[i]?["time"]));
+                if (t is null) continue;
+                if (samples[i]?["gpu_temp"] is JsonValue gv && gv.TryGetValue<double>(out double g)) bb.GpuTemp.Add((t.Value, g));
+                if (samples[i]?["cpu_temp"] is JsonValue cv && cv.TryGetValue<double>(out double c)) bb.CpuTemp.Add((t.Value, c));
+            }
         if (snap["events"] is JsonArray sev)
         {
             for (int i = 0; i < sev.Count; i++)
@@ -172,8 +205,17 @@ public sealed class BlackBoxData
                 if (m < min) min = m;
                 if (m > max) max = m;
             }
-            bb.From = min;
-            bb.To = max;
+            // 타임라인은 문제 순간 앞 2시간 안의 기록부터 (며칠 전 설치 기록은 목록에만 남긴다)
+            if (bb.Mark is { } mk2 && (mk2 - min).TotalHours > 2)
+            {
+                DateTime limit = mk2.AddHours(-2);
+                DateTime first = mk2;
+                for (int i = 0; i < bb.Items.Count; i++)
+                    if (bb.Items[i].Time >= limit && bb.Items[i].Time < first) first = bb.Items[i].Time;
+                min = first;
+            }
+            bb.From = min.AddSeconds(-Math.Max(30, (max - min).TotalSeconds * 0.03));
+            bb.To = max.AddSeconds(30);
         }
         return bb;
     }
@@ -191,11 +233,17 @@ public sealed class BlackBoxData
                 for (int k = 0; k < sensors.Count; k++)
                 {
                     var s = sensors[k];
-                    if (S(s?["name"]) != "GPU Core") continue;
+                    string sname = S(s?["name"]);
                     double v = 0;
                     try { v = s?["value"]?.GetValue<double>() ?? 0; } catch (Exception) { continue; }
-                    if (S(s?["type"]) == "Load") GpuLoad.Add((t.Value, v));
-                    else if (S(s?["type"]) == "Temperature") GpuTemp.Add((t.Value, v));
+                    if (sname == "GPU Core")
+                    {
+                        if (S(s?["type"]) == "Load") GpuLoad.Add((t.Value, v));
+                        else if (S(s?["type"]) == "Temperature") GpuTemp.Add((t.Value, v));
+                    }
+                    // CPU 온도: 인텔 'CPU Package', AMD 'Core (Tctl/Tdie)' (2026-11-02 추가)
+                    else if (S(s?["type"]) == "Temperature" && (sname == "CPU Package" || sname.StartsWith("Core (Tctl", StringComparison.Ordinal)))
+                        CpuTemp.Add((t.Value, v));
                 }
             return;
         }
@@ -241,6 +289,29 @@ public sealed class BlackBoxData
     }
 
     /// <summary>
+    /// 실행기 기록(조치 실행·되돌림)을 덧붙인 사본 (2026-11-02 추가). 조치는 기록 뒤에 일어나므로 시간 범위를 늘린다.
+    /// </summary>
+    public BlackBoxData WithExtra(List<BlackBoxItem> extra)
+    {
+        var copy = new BlackBoxData
+        {
+            Source = Source, Mark = Mark, From = From, To = To, MetaKind = MetaKind, ViaHotkey = ViaHotkey,
+            TargetProcess = TargetProcess,
+        };
+        copy.CpuTemp.AddRange(CpuTemp);
+        copy.Items.AddRange(Items);
+        copy.GpuLoad.AddRange(GpuLoad);
+        copy.GpuTemp.AddRange(GpuTemp);
+        for (int i = 0; i < extra.Count; i++)
+        {
+            copy.Items.Add(extra[i]);
+            if (copy.From is null || extra[i].Time < copy.From) copy.From = extra[i].Time;
+            if (copy.To is null || extra[i].Time > copy.To) copy.To = extra[i].Time.AddSeconds(5);
+        }
+        return copy;
+    }
+
+    /// <summary>
     /// 문제 순간 스냅샷에 나온 드라이버 · 모듈 · 실시간 백신 이름들 (소문자).
     /// "문제 순간에 실행 중이던 후보" 카드가 엔진 후보 이름과 비교할 때 쓴다.
     /// </summary>
@@ -260,5 +331,17 @@ public sealed class BlackBoxData
             for (int i = 0; i < av.Count; i++)
                 names.Add(S(av[i]).ToLowerInvariant());
         return names;
+    }
+
+    /// <summary>스냅샷의 드라이버 (파일 이름, 표시 이름). 타임라인 드라이버 줄에 쓴다 (2026-11-02).</summary>
+    public static List<(string Name, string Display)> Drivers(string? snapshotPath)
+    {
+        var list = new List<(string, string)>();
+        if (string.IsNullOrEmpty(snapshotPath)) return list;
+        var snap = ReadJson(snapshotPath);
+        if (snap?["drivers"] is JsonArray drv)
+            for (int i = 0; i < drv.Count; i++)
+                list.Add((S(drv[i]?["name"]), S(drv[i]?["display"])));
+        return list;
     }
 }

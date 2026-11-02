@@ -13,6 +13,7 @@ public sealed class RankRow
     public double Probability { get; init; }
     public bool IsFirst { get; init; }
     public bool IsSelected { get; init; }
+    public string Tip { get; init; } = "";          // 근거 (마우스를 올리면 보임, 2026-11-02)
 
     public Brush RowBg => IsSelected ? Ui.AccentSoft : Brushes.Transparent;
     public FontWeight Weight => IsFirst ? FontWeights.SemiBold : FontWeights.Normal;
@@ -29,6 +30,7 @@ public sealed class ProgressRow
     public string Text { get; init; } = "";
     public string State { get; init; } = "";
     public string Kind { get; init; } = "later";
+    public string Sub { get; init; } = "";          // 점검 진행 탭: 대상 · 시간 · 확률 (2026-11-02)
 
     public Brush Fg => Kind == "now" ? Ui.StrongFg : (Kind == "done" ? Ui.DimFg : Ui.FaintFg);
     public Brush NumFg => Kind == "now" ? Ui.Accent : Ui.FaintFg;
@@ -59,4 +61,34 @@ public sealed class MomentRow
     public FontWeight Weight => IsFirst ? FontWeights.SemiBold : FontWeights.Normal;
     public string State => (Present ? "실행 중이었음" : "기록에 없음") + " · " + Ui.Pct(Probability);
     public Brush StateFg => Present ? Ui.Accent : Ui.FaintFg;
+}
+
+/// <summary>조치 카드의 진행 기록 한 줄 (2026-11-02 추가)</summary>
+public sealed class ExecEventRow
+{
+    public string Text { get; init; } = "";
+    public string Kind { get; init; } = "info";
+
+    public Brush Fg => Kind switch
+    {
+        "apply" => Ui.Accent,
+        "rollback" => Ui.Hex("#B9741F"),
+        "error" => Ui.Red,
+        "done" => Ui.StrongFg,
+        _ => Ui.DimFg,
+    };
+}
+
+/// <summary>블랙박스 기록 탭의 ① ② ③ 흐름 카드 (2026-11-02 확정안 2-4-C)</summary>
+public sealed class FlowRow
+{
+    public string Head { get; init; } = "";    // "① 21:26"
+    public string Title { get; init; } = "";   // "게임 시작"
+    public string Body { get; init; } = "";    // "othergame.exe"
+    public bool Crash { get; init; }
+
+    public Brush Bg => Crash ? Ui.Hex("#FDE7E9") : Ui.Hex("#F6F9F7");
+    public Brush HeadFg => Crash ? Ui.Red : Ui.Accent;
+    public Brush TitleFg => Crash ? Ui.Red : Ui.StrongFg;
+    public Brush BodyFg => Crash ? Ui.Hex("#8E2A20") : Ui.DimFg;
 }

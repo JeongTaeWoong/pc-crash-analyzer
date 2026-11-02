@@ -129,6 +129,78 @@
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
 
+        <!-- ─── 2026-11-02 확정안 2-4 PDF 맞춤: 둥근(알약) 버튼 · 필터 칩 ─── -->
+        <Style x:Key="BtnPill" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource Accent}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="16,11"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="22" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.88"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="BtnPillOutline" TargetType="Button" BasedOn="{StaticResource BtnPill}">
+            <Setter Property="Background" Value="{StaticResource Card}"/>
+            <Setter Property="BorderBrush" Value="#CFDDD5"/>
+            <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+        </Style>
+        <!-- 작은 알약 테두리 버튼 ("근거 보기: 블랙박스 기록 →") -->
+        <Style x:Key="BtnPillSmall" TargetType="Button" BasedOn="{StaticResource BtnPillOutline}">
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Padding" Value="13,6"/>
+        </Style>
+        <Style x:Key="FilterChip" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="bd" Background="{StaticResource Card}" BorderBrush="{StaticResource Line}"
+                                BorderThickness="1" CornerRadius="15" Padding="13,5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <!-- ─── 머리글 페이지 전환 (검진 결과 | 블랙박스 기록) ─── -->
         <Style x:Key="NavButton" TargetType="RadioButton">
             <Setter Property="Cursor" Value="Hand"/>
@@ -159,14 +231,15 @@
         <Style x:Key="BarMeter" TargetType="ProgressBar">
             <Setter Property="Minimum" Value="0"/>
             <Setter Property="Maximum" Value="1"/>
-            <Setter Property="Height" Value="12"/>
+            <Setter Property="Height" Value="10"/>
             <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Background" Value="{StaticResource Track}"/>
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ProgressBar">
                         <Grid>
-                            <Border x:Name="PART_Track" Background="{StaticResource Track}"/>
-                            <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}"
+                            <Border x:Name="PART_Track" Background="{TemplateBinding Background}" CornerRadius="5"/>
+                            <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" CornerRadius="5"
                                     HorizontalAlignment="Left" MinWidth="2"/>
                         </Grid>
                     </ControlTemplate>
