@@ -30,6 +30,24 @@ public sealed class SessionService
 
     public JsonNode ApplyFix() => Call("session_apply_fix", new JsonObject());
 
+    /// <summary>해결책 적용 기록 (2026-11-02 추가). remedyId 가 비면 엔진이 고른 현재 추천, appliedAt 이 비면 지금 시각.</summary>
+    public JsonNode ApplyFix(string remedyId, string appliedAt)
+    {
+        var args = new JsonObject();
+        if (remedyId.Length > 0) args["remedy_id"] = remedyId;
+        if (appliedAt.Length > 0) args["applied_at"] = appliedAt;
+        return Call("session_apply_fix", args);
+    }
+
+    /// <summary>후보 하나의 근거 문장 (2026-11-02 추가). explain 은 세션이 아니라 스냅샷을 받는다.</summary>
+    public JsonNode Explain(string candidateId)
+    {
+        if (SnapshotPath is null) throw new InvalidOperationException("세션이 시작되지 않았습니다");
+        var args = new JsonObject { ["snapshot_path"] = SnapshotPath };
+        if (candidateId.Length > 0) args["candidate_id"] = candidateId;
+        return _engine.CallTool("explain", args);
+    }
+
     public JsonNode VerifyAfter(string afterSnapshotPath) =>
         Call("session_verify", new JsonObject { ["after_snapshot_path"] = afterSnapshotPath });
 

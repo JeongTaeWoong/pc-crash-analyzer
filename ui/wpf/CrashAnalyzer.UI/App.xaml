@@ -4,25 +4,30 @@
              ShutdownMode="OnExplicitShutdown"
              Startup="OnAppStartup">
     <Application.Resources>
-        <!-- ─── 토큰: 색 ─── -->
-        <SolidColorBrush x:Key="Ink" Color="#182233"/>
-        <SolidColorBrush x:Key="Ink2" Color="#22304A"/>
-        <SolidColorBrush x:Key="Surface" Color="#F3F5F8"/>
+        <!-- ─── 토큰: 색 (2026-11-02 시안 2-4: 밝은 초록 회색 바탕 + 초록 강조) ─── -->
+        <!-- 키 이름은 v1 과 같게 두고 값만 바꿨다. 다크 모드는 나중에 이 값들을 바꿔 끼우는 방식으로 넣는다. -->
+        <SolidColorBrush x:Key="Ink" Color="#17201B"/>
+        <SolidColorBrush x:Key="Ink2" Color="#2C3A33"/>
+        <SolidColorBrush x:Key="Surface" Color="#EEF3F0"/>
         <SolidColorBrush x:Key="Card" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="Line" Color="#DEE4EC"/>
-        <SolidColorBrush x:Key="LineSoft" Color="#ECF0F5"/>
-        <SolidColorBrush x:Key="TextStrong" Color="#1C2740"/>
-        <SolidColorBrush x:Key="TextDim" Color="#5C6A80"/>
-        <SolidColorBrush x:Key="TextFaint" Color="#8B97A9"/>
-        <SolidColorBrush x:Key="Accent" Color="#2563C7"/>
-        <SolidColorBrush x:Key="AccentDark" Color="#1D4FA3"/>
-        <SolidColorBrush x:Key="AccentSoft" Color="#E8EFFB"/>
-        <SolidColorBrush x:Key="Green" Color="#2F9E63"/>
-        <SolidColorBrush x:Key="GreenSoft" Color="#E3F4EA"/>
-        <SolidColorBrush x:Key="Red" Color="#C2434A"/>
-        <SolidColorBrush x:Key="RedSoft" Color="#FAE7E8"/>
-        <SolidColorBrush x:Key="Amber" Color="#B9741F"/>
-        <SolidColorBrush x:Key="AmberSoft" Color="#F9EFDE"/>
+        <SolidColorBrush x:Key="Soft" Color="#F1F5F3"/>
+        <SolidColorBrush x:Key="Line" Color="#DCE6E0"/>
+        <SolidColorBrush x:Key="LineSoft" Color="#EEF2F0"/>
+        <SolidColorBrush x:Key="TextStrong" Color="#17201B"/>
+        <SolidColorBrush x:Key="TextDim" Color="#4A5750"/>
+        <SolidColorBrush x:Key="TextFaint" Color="#9AA59F"/>
+        <SolidColorBrush x:Key="Accent" Color="#0B7A55"/>
+        <SolidColorBrush x:Key="AccentDark" Color="#08603F"/>
+        <SolidColorBrush x:Key="AccentSoft" Color="#ECF6F2"/>
+        <SolidColorBrush x:Key="Accent2" Color="#7FB59B"/>
+        <SolidColorBrush x:Key="Track" Color="#E3ECE7"/>
+        <SolidColorBrush x:Key="Green" Color="#0B7A55"/>
+        <SolidColorBrush x:Key="GreenSoft" Color="#DFF6E3"/>
+        <SolidColorBrush x:Key="Red" Color="#C0392B"/>
+        <SolidColorBrush x:Key="RedSoft" Color="#FDE7E9"/>
+        <SolidColorBrush x:Key="Amber" Color="#8A5300"/>
+        <SolidColorBrush x:Key="AmberSoft" Color="#FFF1D6"/>
+        <SolidColorBrush x:Key="StatusBar" Color="#E2EAE5"/>
 
         <!-- ─── 텍스트 ─── -->
         <Style x:Key="SectionTitle" TargetType="TextBlock">
@@ -89,19 +94,157 @@
         </Style>
         <Style x:Key="BtnSecondary" TargetType="Button" BasedOn="{StaticResource BtnBase}">
             <Setter Property="Background" Value="{StaticResource Card}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Line}"/>
+            <Setter Property="BorderBrush" Value="#CFE0D7"/>
             <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
         </Style>
         <Style x:Key="BtnGood" TargetType="Button" BasedOn="{StaticResource BtnBase}">
             <Setter Property="Background" Value="{StaticResource GreenSoft}"/>
             <Setter Property="BorderBrush" Value="#BBDFC9"/>
-            <Setter Property="Foreground" Value="#1E6B42"/>
+            <Setter Property="Foreground" Value="#0E6B2F"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
         <Style x:Key="BtnGhost" TargetType="Button" BasedOn="{StaticResource BtnBase}">
-            <Setter Property="Background" Value="#2A3A57"/>
-            <Setter Property="BorderBrush" Value="#3B4D6E"/>
-            <Setter Property="Foreground" Value="#E8EDF5"/>
+            <Setter Property="Background" Value="{StaticResource Soft}"/>
+            <Setter Property="BorderBrush" Value="#CFE0D7"/>
+            <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
+        </Style>
+        <!-- 글자만 있는 초록 링크형 버튼 ("왜 이게 먼저예요?", "근거 보기: 블랙박스 기록 ↗") -->
+        <Style x:Key="BtnLink" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+            <Setter Property="Padding" Value="6,3"/>
+        </Style>
+        <Style x:Key="BtnChip" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+            <Setter Property="Background" Value="{StaticResource AccentSoft}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentSoft}"/>
+            <Setter Property="Foreground" Value="{StaticResource Accent}"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="9,4"/>
+        </Style>
+        <Style x:Key="BtnDark" TargetType="Button" BasedOn="{StaticResource BtnBase}">
+            <Setter Property="Background" Value="{StaticResource Ink}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Ink}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <!-- ─── 2026-11-02 확정안 2-4 PDF 맞춤: 둥근(알약) 버튼 · 필터 칩 ─── -->
+        <Style x:Key="BtnPill" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource Accent}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="16,11"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="22" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.88"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="BtnPillOutline" TargetType="Button" BasedOn="{StaticResource BtnPill}">
+            <Setter Property="Background" Value="{StaticResource Card}"/>
+            <Setter Property="BorderBrush" Value="#CFDDD5"/>
+            <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+        </Style>
+        <!-- 작은 알약 테두리 버튼 ("근거 보기: 블랙박스 기록 →") -->
+        <Style x:Key="BtnPillSmall" TargetType="Button" BasedOn="{StaticResource BtnPillOutline}">
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Padding" Value="13,6"/>
+        </Style>
+        <Style x:Key="FilterChip" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="bd" Background="{StaticResource Card}" BorderBrush="{StaticResource Line}"
+                                BorderThickness="1" CornerRadius="15" Padding="13,5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Accent}"/>
+                                <Setter TargetName="bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ─── 머리글 페이지 전환 (검진 결과 | 블랙박스 기록) ─── -->
+        <Style x:Key="NavButton" TargetType="RadioButton">
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Foreground" Value="#36423C"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="bd" Background="Transparent" CornerRadius="6" Padding="14,5">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="bd" Property="Background" Value="{StaticResource Card}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextStrong}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ─── 확률 막대 (원인 후보 순위). 값 0~1, 색은 Foreground ─── -->
+        <Style x:Key="BarMeter" TargetType="ProgressBar">
+            <Setter Property="Minimum" Value="0"/>
+            <Setter Property="Maximum" Value="1"/>
+            <Setter Property="Height" Value="10"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Background" Value="{StaticResource Track}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Grid>
+                            <Border x:Name="PART_Track" Background="{TemplateBinding Background}" CornerRadius="5"/>
+                            <Border x:Name="PART_Indicator" Background="{TemplateBinding Foreground}" CornerRadius="5"
+                                    HorizontalAlignment="Left" MinWidth="2"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <!-- ─── 입력 ─── -->
