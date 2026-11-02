@@ -274,6 +274,12 @@ UI·에이전트는 판단하지 않고 엔진이 돌려준 값만 보여 주고
 
 참고한 기존 도구: [NVCheckup](https://github.com/thatcooperguy/NVCheckup), [Env-Doctor](https://pypi.org/project/env-doctor), [pipdeptree](https://github.com/tox-dev/pipdeptree), WhoCrashed, 구라제거기, Windows 문제 해결사
 
+### 안내 UI — 최종 UI(WPF)로 정리 (2026-11-02 추가)
+
+* UI 를 팀에서 확정한 시안 **2-4**(검진 결과 / 블랙박스 기록 페이지, 버튼으로 여는 상담 도우미 챗봇 창)로 바꿨다. 최종 UI 는 `ui/wpf/` (C# WPF) 하나다.
+* 파이썬 시안(`ui/prototype-python/`)은 WPF 가 기능을 다 따라잡아서 폴더째(코드·README) 지웠다. 위 2026-10-12 단락은 그때 기준으로 그대로 둔다(`run_ui.bat`·`ui/prototype-python/README.md` 링크는 이제 없음). 지운 파일은 저장소 기록(2026-11-02 커밋 이전)에서 볼 수 있다.
+* 실행: 엔진을 빌드한 뒤 `ui\wpf\run_ui.bat` 을 더블클릭한다(처음이면 자동으로 빌드, .NET 8 SDK 필요). 자세한 내용은 [`ui/wpf/CrashAnalyzer.UI/README.md`](ui/wpf/CrashAnalyzer.UI/README.md).
+
 ## 라이선스
 
 [MIT](LICENSE)

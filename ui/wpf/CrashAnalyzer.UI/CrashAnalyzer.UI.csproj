@@ -8,4 +8,10 @@
     <RootNamespace>CrashAnalyzer.UI</RootNamespace>
     <AssemblyName>CrashAnalyzerUI</AssemblyName>
   </PropertyGroup>
+  <ItemGroup>
+    <!-- 상담 도우미 그림 (2026-11-02). 이 파일만 같은 이름으로 바꿔 넣으면 버튼·창 그림이 바뀐다. -->
+    <None Update="assets\chatbot.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

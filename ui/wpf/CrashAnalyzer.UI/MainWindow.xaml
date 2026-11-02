@@ -1,197 +1,466 @@
 <Window x:Class="CrashAnalyzer.UI.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="PC Crash Analyzer" Width="1240" Height="820" MinWidth="1080" MinHeight="680"
+        Title="PC 크래시 검진" Width="1360" Height="860" MinWidth="1040" MinHeight="640"
         WindowStartupLocation="CenterScreen"
         Background="{StaticResource Surface}"
         FontFamily="Segoe UI Variable Text, Segoe UI, Malgun Gothic" FontSize="13"
         TextOptions.TextFormattingMode="Display" UseLayoutRounding="True">
 
+    <!-- 2026-11-02 시안 2-4 구성
+         머리글: PC 크래시 검진 · [검진 결과 | 블랙박스 기록 ↗] · 안내/자동 점검 모드 · [최근 기록 열기] [파일 열기…]
+         단계 표시: ① 진단 ② 원인 확인 ③ 해결 안내 ④ 검증
+         검진 결과 페이지: 왼쪽 = 가장 유력한 원인(원형) · 층별 상태 · 원인 후보 순위 · 점검 진행 / 오른쪽 = 지금 할 일
+         블랙박스 기록 페이지: 같은 창 안에서 전환 (타임라인 · 시간순 기록 · 문제 순간 후보 · 수집기)
+         오른쪽 아래: 상담 도우미 버튼 (누르면 챗봇 창, 점검 후에도 문제가 남으면 저절로 열림) -->
+
     <DockPanel>
         <!-- ─── 머리글 ─── -->
-        <Border DockPanel.Dock="Top" Background="{StaticResource Ink}" Padding="18,0" Height="58">
-            <DockPanel VerticalAlignment="Center" LastChildFill="True">
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
-                    <TextBlock Text="PC Crash Analyzer" Foreground="White" FontSize="17" FontWeight="Bold"
-                               VerticalAlignment="Center"/>
-                    <Rectangle Width="1" Height="20" Fill="#3B4D6E" Margin="16,0" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="txtHeaderSnap" Text="스냅샷 없음 — 수집기를 켜거나 덤프를 여세요"
-                               Foreground="#9FB0C9" VerticalAlignment="Center"/>
+        <Border DockPanel.Dock="Top" Background="{StaticResource Card}" BorderBrush="{StaticResource Line}"
+                BorderThickness="0,0,0,1" Padding="18,0" Height="58">
+            <DockPanel VerticalAlignment="Center" LastChildFill="False">
+                <TextBlock Text="PC 크래시 검진" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextStrong}"
+                           VerticalAlignment="Center" DockPanel.Dock="Left" Margin="0,0,16,0"/>
+                <Border Background="{StaticResource Line}" CornerRadius="8" Padding="3" DockPanel.Dock="Left"
+                        VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="rbNavMain" Content="검진 결과" GroupName="nav" IsChecked="True"
+                                     Style="{StaticResource NavButton}" Click="OnNavMain"/>
+                        <RadioButton x:Name="rbNavBlackBox" Content="블랙박스 기록 ↗" GroupName="nav" Margin="3,0,0,0"
+                                     Style="{StaticResource NavButton}" Click="OnNavBlackBox"/>
+                    </StackPanel>
+                </Border>
+
+                <Button Content="파일 열기…" Style="{StaticResource BtnSecondary}" DockPanel.Dock="Right"
+                        VerticalAlignment="Center" Margin="6,0,0,0" Click="OnOpenSnapshotFile"/>
+                <Button Content="최근 기록 열기" Style="{StaticResource BtnPrimary}" DockPanel.Dock="Right"
+                        VerticalAlignment="Center" Margin="6,0,0,0" Click="OnOpenLatestDump"/>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <RadioButton x:Name="rbModeGuide" Content="안내 모드" GroupName="mode" IsChecked="True"
+                                 VerticalAlignment="Center" Click="OnModeClick" Foreground="{StaticResource TextStrong}"/>
+                    <RadioButton x:Name="rbModeAuto" Content="자동 점검 모드" GroupName="mode" Margin="10,0,0,0"
+                                 VerticalAlignment="Center" Click="OnModeClick" Foreground="{StaticResource TextStrong}"/>
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock x:Name="txtElevation" Foreground="#D9A741" VerticalAlignment="Center" Margin="0,0,14,0" FontSize="12"/>
-                    <Button Content="최근 덤프 열기" Style="{StaticResource BtnGhost}" Margin="0,0,8,0" Click="OnOpenLatestDump"/>
-                    <Button Content="스냅샷 열기…" Style="{StaticResource BtnPrimary}" Click="OnOpenSnapshotFile"/>
-                </StackPanel>
+                <!-- 수집기 상태 (누르면 블랙박스 기록 페이지의 수집기 카드로) -->
+                <Button Style="{StaticResource BtnGhost}" DockPanel.Dock="Right" VerticalAlignment="Center"
+                        Margin="0,0,14,0" Padding="10,5" Click="OnNavBlackBox" ToolTip="블랙박스 수집기 켜기·끄기">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse x:Name="dotCollectorHeader" Width="8" Height="8" Fill="#B9C2CF" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="txtCollectorHeader" Text="수집기 꺼짐" Margin="6,0,0,0" FontSize="12"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </DockPanel>
         </Border>
 
-        <!-- ─── 상태 줄 ─── -->
-        <Border DockPanel.Dock="Bottom" Background="#E9EDF3" BorderBrush="{StaticResource Line}" BorderThickness="0,1,0,0" Padding="18,6">
-            <TextBlock x:Name="txtStatus" Text="준비됨" Foreground="{StaticResource TextDim}" FontSize="12"/>
+        <!-- 열린 기록 한 줄 요약 -->
+        <TextBlock x:Name="txtHeaderInfo" DockPanel.Dock="Top" Margin="20,8,20,0" Foreground="{StaticResource TextDim}"
+                   TextTrimming="CharacterEllipsis"
+                   Text="수집기가 남긴 기록을 열면 검진을 시작해요.  [최근 기록 열기]"/>
+
+        <!-- 단계 표시 -->
+        <Canvas x:Name="cvStepper" DockPanel.Dock="Top" Height="52" Margin="14,4,14,2" SizeChanged="OnStepperSize"
+                ClipToBounds="True"/>
+
+        <!-- 상태 표시줄 -->
+        <Border DockPanel.Dock="Bottom" Background="{StaticResource StatusBar}" Padding="12,4">
+            <TextBlock x:Name="txtStatus" Text="준비됨" Foreground="{StaticResource TextDim}" FontSize="12"
+                       TextTrimming="CharacterEllipsis"/>
         </Border>
 
-        <!-- ─── 본문: 콘텐츠 + 수집기 레일 ─── -->
-        <Grid Margin="18,14,18,12">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="292"/>
-            </Grid.ColumnDefinitions>
+        <!-- 상담 도우미 버튼 줄 (두 페이지 모두에서 보임) -->
+        <DockPanel DockPanel.Dock="Bottom" Margin="14,0,14,8" LastChildFill="False">
+            <Button x:Name="btnChat" DockPanel.Dock="Right" Click="OnChatToggle" Cursor="Hand"
+                    ToolTip="상담 도우미 열기·닫기">
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="Transparent">
+                            <ContentPresenter/>
+                        </Border>
+                    </ControlTemplate>
+                </Button.Template>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock x:Name="txtChatLabel" Text="상담 도우미" FontWeight="SemiBold" VerticalAlignment="Center"
+                               Foreground="{StaticResource TextStrong}" Margin="0,0,8,0"/>
+                    <Image x:Name="imgChat" Width="52" Height="52" RenderOptions.BitmapScalingMode="HighQuality"/>
+                    <!-- 그림 파일이 없을 때의 글자 버튼 -->
+                    <Border x:Name="bdChatFallback" Background="{StaticResource Ink}" CornerRadius="7" Padding="18,8"
+                            Visibility="Collapsed">
+                        <TextBlock x:Name="txtChatFallback" Text="상담 도우미  ▲" Foreground="White" FontWeight="SemiBold"/>
+                    </Border>
+                </StackPanel>
+            </Button>
+            <TextBlock x:Name="txtChatHint" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="0,0,16,0"
+                       FontSize="12" Foreground="{StaticResource TextDim}" Text="궁금한 점은 상담 도우미에게 물어보세요"/>
+        </DockPanel>
 
-            <TabControl x:Name="tabs" Grid.Column="0" Margin="0,0,16,0">
+        <!-- ─── 페이지 ─── -->
+        <Grid Margin="14,0,14,8">
 
-                <!-- ① 진단 결과 -->
-                <TabItem Header="진단 결과">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <StackPanel Margin="4,14,8,8">
-                            <Grid Margin="0,0,0,12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="7*"/>
-                                    <ColumnDefinition Width="12"/>
-                                    <ColumnDefinition Width="5*"/>
-                                </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource CardBox}" Grid.Column="0">
-                                    <StackPanel>
-                                        <TextBlock Text="어느 층의 문제인가 (층 판정)" Style="{StaticResource SectionTitle}"/>
-                                        <ItemsControl x:Name="icLayerBars">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Grid Margin="0,4">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="110"/>
-                                                            <ColumnDefinition Width="188"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{Binding Name}" Foreground="{StaticResource TextStrong}"/>
-                                                        <Border Grid.Column="1" Background="{StaticResource LineSoft}" Height="12"
-                                                                CornerRadius="6" VerticalAlignment="Center" HorizontalAlignment="Left" Width="180">
-                                                            <Border Background="{Binding Fill}" Width="{Binding FillWidth}" Height="12"
-                                                                    CornerRadius="6" HorizontalAlignment="Left"/>
-                                                        </Border>
-                                                        <TextBlock Grid.Column="2" Text="{Binding PctText}" Margin="10,0,0,0"
-                                                                   Foreground="{StaticResource TextDim}" FontWeight="SemiBold"/>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        <TextBlock x:Name="txtConfLine" Style="{StaticResource Faint}" Margin="0,8,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource CardBox}" Grid.Column="2">
-                                    <StackPanel>
-                                        <TextBlock Text="요약" Style="{StaticResource SectionTitle}"/>
-                                        <TextBlock x:Name="txtSummary" Style="{StaticResource Dim}" Text="스냅샷을 열면 진단 요약이 표시됩니다."/>
-                                        <TextBlock x:Name="txtMetaLine" Style="{StaticResource Faint}" Margin="0,10,0,0"/>
-                                    </StackPanel>
-                                </Border>
+            <!-- ══════════ 검진 결과 페이지 ══════════ -->
+            <Grid x:Name="pageMain">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="2*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- 왼쪽 -->
+                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="0,4,4,4">
+                        <!-- (1) 가장 유력한 원인 + 층별 상태 -->
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="196"/>
+                                <ColumnDefinition Width="18"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid Width="196" Height="196" VerticalAlignment="Top">
+                                <Canvas x:Name="cvRing" Width="196" Height="196"/>
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Width="124">
+                                    <TextBlock x:Name="txtRingCaption" FontSize="12" Foreground="{StaticResource TextDim}"
+                                               HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="txtRingPct" Text="검진 전" FontSize="17" FontWeight="Bold"
+                                               Foreground="{StaticResource TextFaint}" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="txtRingName" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}"
+                                               HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock x:Name="txtRingSub" FontSize="12" Foreground="{StaticResource TextDim}"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
                             </Grid>
+                            <StackPanel Grid.Column="2">
+                                <UniformGrid Columns="3">
+                                    <Border Style="{StaticResource CardBox}" Padding="12,10" Margin="0,0,4,0">
+                                        <StackPanel>
+                                            <TextBlock Text="소프트웨어" FontSize="12" Foreground="{StaticResource TextDim}"/>
+                                            <TextBlock x:Name="txtStateSW" Text="-" FontSize="20" FontWeight="Bold"
+                                                       Foreground="{StaticResource TextFaint}"/>
+                                            <TextBlock x:Name="txtProbSW" FontSize="12" Foreground="{StaticResource TextFaint}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource CardBox}" Padding="12,10" Margin="4,0">
+                                        <StackPanel>
+                                            <TextBlock Text="드라이버" FontSize="12" Foreground="{StaticResource TextDim}"/>
+                                            <TextBlock x:Name="txtStateDRIVER" Text="-" FontSize="20" FontWeight="Bold"
+                                                       Foreground="{StaticResource TextFaint}"/>
+                                            <TextBlock x:Name="txtProbDRIVER" FontSize="12" Foreground="{StaticResource TextFaint}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource CardBox}" Padding="12,10" Margin="4,0,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="하드웨어" FontSize="12" Foreground="{StaticResource TextDim}"/>
+                                            <TextBlock x:Name="txtStateHW" Text="-" FontSize="20" FontWeight="Bold"
+                                                       Foreground="{StaticResource TextFaint}"/>
+                                            <TextBlock x:Name="txtProbHW" FontSize="12" Foreground="{StaticResource TextFaint}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
+                                <TextBlock x:Name="txtRankNote" Style="{StaticResource Dim}" Margin="0,10,0,0"/>
+                            </StackPanel>
+                        </Grid>
 
-                            <Grid Margin="0,0,0,12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="7*"/>
-                                    <ColumnDefinition Width="12"/>
-                                    <ColumnDefinition Width="5*"/>
-                                </Grid.ColumnDefinitions>
-                                <Border Style="{StaticResource CardBox}" Grid.Column="0">
-                                    <StackPanel>
-                                        <DockPanel>
-                                            <TextBlock Text="원인 후보 순위" Style="{StaticResource SectionTitle}" DockPanel.Dock="Left"/>
-                                            <Button x:Name="btnStartSession" Content="원인 확인 시작 →" Style="{StaticResource BtnPrimary}"
-                                                    HorizontalAlignment="Right" IsEnabled="False" Click="OnStartSession" Margin="0,-4,0,6"/>
-                                        </DockPanel>
-                                        <ListBox x:Name="lbCandidates" MaxHeight="268" SelectionChanged="OnCandidateSelected"
-                                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
-                                            <ListBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Grid Opacity="{Binding RowOpacity}">
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="30"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="52"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <Border Width="22" Height="22" CornerRadius="11" Background="{Binding RankBg}"
-                                                                VerticalAlignment="Center" HorizontalAlignment="Left">
-                                                            <TextBlock Text="{Binding Rank}" Foreground="{Binding RankFg}" FontSize="11"
-                                                                       FontWeight="SemiBold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                        </Border>
-                                                        <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
-                                                            <TextBlock Text="{Binding Label}" Foreground="{StaticResource TextStrong}" TextTrimming="CharacterEllipsis"/>
-                                                            <TextBlock Text="{Binding SubText}" Style="{StaticResource Faint}"/>
-                                                        </StackPanel>
-                                                        <TextBlock Grid.Column="2" Text="{Binding ProbText}" FontWeight="SemiBold" FontSize="14"
-                                                                   Foreground="{StaticResource TextStrong}" VerticalAlignment="Center" HorizontalAlignment="Right"/>
-                                                    </Grid>
-                                                </DataTemplate>
-                                            </ListBox.ItemTemplate>
-                                        </ListBox>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource CardBox}" Grid.Column="2">
-                                    <StackPanel>
-                                        <TextBlock Text="근거 (왜 이 후보인가)" Style="{StaticResource SectionTitle}"/>
-                                        <TextBlock x:Name="txtSelCand" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}"
-                                                   Text="왼쪽에서 후보를 선택하세요" Margin="0,0,0,6" TextWrapping="Wrap"/>
-                                        <ItemsControl x:Name="icSelEvidence">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding Text}" Style="{StaticResource Dim}" Margin="0,2"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
+                        <!-- (2) 원인 후보 순위 -->
+                        <Border Style="{StaticResource CardBox}" Margin="0,0,0,8">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <Button Content="근거 보기: 블랙박스 기록 ↗" Style="{StaticResource BtnLink}" DockPanel.Dock="Right"
+                                            FontSize="12" Click="OnNavBlackBox"/>
+                                    <TextBlock Text="원인 후보 순위" Style="{StaticResource SectionTitle}" Margin="0"
+                                               VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <TextBlock x:Name="txtRankEmpty" Text="아직 검진 전이에요." Foreground="{StaticResource TextDim}"/>
+                                <ItemsControl x:Name="icRank">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{Binding RowBg}" CornerRadius="4" Padding="6,4" Margin="0,1"
+                                                    Cursor="Hand" Tag="{Binding Index}" MouseLeftButtonUp="OnRankRowClick">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="190"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="56"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding Name}" FontWeight="{Binding Weight}"
+                                                               Foreground="{Binding NameFg}" TextTrimming="CharacterEllipsis"
+                                                               VerticalAlignment="Center"/>
+                                                    <ProgressBar Grid.Column="1" Style="{StaticResource BarMeter}"
+                                                                 Value="{Binding Probability, Mode=OneWay}"
+                                                                 Foreground="{Binding BarFill}" VerticalAlignment="Center"/>
+                                                    <TextBlock Grid.Column="2" Text="{Binding PctText}" FontWeight="{Binding Weight}"
+                                                               Foreground="{Binding PctFg}" HorizontalAlignment="Right"
+                                                               VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                                <TextBlock x:Name="txtEvidence" Style="{StaticResource Dim}" FontSize="12" Margin="0,6,0,0"/>
+                            </StackPanel>
+                        </Border>
 
-                            <Border Style="{StaticResource CardBox}">
+                        <!-- (3) 점검 진행 -->
+                        <Border Style="{StaticResource CardBox}">
+                            <StackPanel>
+                                <DockPanel Margin="0,0,0,6">
+                                    <TextBlock x:Name="txtProgressCount" DockPanel.Dock="Right" FontSize="12"
+                                               Foreground="{StaticResource TextDim}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="점검 진행" Style="{StaticResource SectionTitle}" Margin="0"/>
+                                </DockPanel>
+                                <TextBlock x:Name="txtProgressEmpty" Foreground="{StaticResource TextDim}"
+                                           Text="검진을 시작하면 엔진이 정한 확인 순서가 여기에 나와요."/>
+                                <ItemsControl x:Name="icProgress">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="0,3">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="28"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{Binding Num}" Foreground="{Binding NumFg}" FontWeight="{Binding Weight}"/>
+                                                <TextBlock Grid.Column="1" Text="{Binding Text}" Foreground="{Binding Fg}"
+                                                           FontWeight="{Binding Weight}" TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Grid.Column="2" Text="{Binding State}" Foreground="{Binding StateFg}"
+                                                           FontWeight="{Binding Weight}" Margin="10,0,0,0"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- 오른쪽: 지금 할 일 -->
+                <Border Grid.Column="2" Style="{StaticResource CardBox}" Padding="0" Margin="0,4,0,4">
+                    <DockPanel>
+                        <DockPanel DockPanel.Dock="Top" Margin="18,14,18,8">
+                            <TextBlock x:Name="txtCollectLabel" DockPanel.Dock="Right" FontSize="12" Foreground="#1E6B42"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="지금 할 일" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextStrong}"/>
+                        </DockPanel>
+                        <Border DockPanel.Dock="Top" Height="1" Background="{StaticResource LineSoft}"/>
+
+                        <Grid>
+                            <!-- 지금 할 점검 -->
+                            <DockPanel x:Name="panelCheck">
+                                <StackPanel DockPanel.Dock="Bottom" Margin="18,10,18,16">
+                                    <TextBlock Text="해 본 결과는?" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}"
+                                               Margin="0,0,0,6"/>
+                                    <WrapPanel>
+                                        <Button x:Name="btnSolved" Content="증상이 사라졌어요" Style="{StaticResource BtnPrimary}"
+                                                Margin="0,0,6,4" Click="OnReportSolved"/>
+                                        <Button x:Name="btnNotSolved" Content="그대로예요" Style="{StaticResource BtnSecondary}"
+                                                Margin="0,0,6,4" Click="OnReportNotSolved"/>
+                                        <Button x:Name="btnSkipped" Content="할 수 없어요" Style="{StaticResource BtnSecondary}"
+                                                Margin="0,0,6,4" Click="OnReportSkipped"/>
+                                        <Button x:Name="btnWhy" Content="왜 이게 먼저예요?" Style="{StaticResource BtnLink}"
+                                                Margin="0,0,0,4" Click="OnWhy"/>
+                                    </WrapPanel>
+                                </StackPanel>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                    <StackPanel Margin="18,14,18,0">
+                                        <TextBlock x:Name="txtNextTitle" FontSize="16" FontWeight="Bold" TextWrapping="Wrap"
+                                                   Foreground="{StaticResource TextStrong}" Text="아직 검진 전이에요"/>
+                                        <TextBlock x:Name="txtNextTarget" FontWeight="SemiBold" Foreground="{StaticResource Accent}"
+                                                   TextWrapping="Wrap" Margin="0,2,0,6"/>
+                                        <WrapPanel x:Name="wpNextMeta" Margin="0,0,0,8">
+                                            <TextBlock x:Name="txtNextCost" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="txtNextChance" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                                            <Border x:Name="bdNextExec" CornerRadius="10" Padding="9,2" VerticalAlignment="Center"
+                                                    Background="#EDEDED">
+                                                <TextBlock x:Name="txtNextExec" FontSize="11.5" FontWeight="SemiBold"/>
+                                            </Border>
+                                            <TextBlock x:Name="txtNextReboot" Text="재부팅 필요" FontSize="12" Margin="8,0,0,0"
+                                                       VerticalAlignment="Center" Foreground="{StaticResource Amber}"/>
+                                        </WrapPanel>
+                                        <TextBlock x:Name="txtNextAdvice" Style="{StaticResource Dim}" Foreground="{StaticResource TextStrong}"
+                                                   Margin="0,0,0,8"
+                                                   Text="[최근 기록 열기]를 누르면 수집기가 남긴 가장 최근 기록으로 검진을 시작해요.&#10;다른 기록이나 실험용 시나리오는 [파일 열기…]로 고를 수 있어요."/>
+                                        <Border x:Name="bdNextSteps" Background="{StaticResource Soft}" BorderBrush="#CFE3DC"
+                                                BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,8">
+                                            <ItemsControl x:Name="icNextSteps">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" TextWrapping="Wrap" Margin="0,2" LineHeight="19"
+                                                                   Foreground="{StaticResource TextStrong}"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Border>
+                                        <TextBlock x:Name="txtNextRollback" Style="{StaticResource Dim}" FontSize="12"/>
+                                        <TextBlock x:Name="txtNextReason" Style="{StaticResource Dim}" FontSize="12" Margin="0,2,0,8"/>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </DockPanel>
+
+                            <!-- 원인이 확인된 뒤: 해결 방법 · 검증 -->
+                            <DockPanel x:Name="panelFix" Visibility="Collapsed">
+                                <StackPanel DockPanel.Dock="Bottom" Margin="18,6,18,14">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="적용 시각" FontSize="12" Foreground="{StaticResource TextDim}"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBox x:Name="txtAppliedAt" Width="200" Margin="6,0"/>
+                                        <Button x:Name="btnApply" Content="적용했어요" Style="{StaticResource BtnPrimary}"
+                                                Click="OnApplyFix"/>
+                                    </StackPanel>
+                                    <Border Height="1" Background="{StaticResource LineSoft}" Margin="0,10"/>
+                                    <TextBlock Text="해결됐는지 확인" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}"/>
+                                    <Button x:Name="btnVerifySnap" Content="적용 후 기록으로 확인…" Style="{StaticResource BtnPrimary}"
+                                            HorizontalAlignment="Left" Margin="0,6,0,0" Click="OnVerifyAfterSnapshot"/>
+                                    <WrapPanel Margin="0,8,0,0">
+                                        <RadioButton x:Name="rbNoRecur" Content="재발 없음" GroupName="recur" IsChecked="True"
+                                                     VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <RadioButton x:Name="rbRecur" Content="다시 발생" GroupName="recur"
+                                                     VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                        <TextBlock Text="써 본 시간(분)" FontSize="12" Foreground="{StaticResource TextDim}"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBox x:Name="txtObservedMinutes" Width="56" Text="60" Margin="4,0"/>
+                                        <Button x:Name="btnVerifyAnswer" Content="답으로 확인" Style="{StaticResource BtnSecondary}"
+                                                Click="OnVerifyAnswer"/>
+                                    </WrapPanel>
+                                    <TextBlock x:Name="txtVerifyResult" Style="{StaticResource Dim}" FontSize="12" Margin="0,8,0,0"/>
+                                </StackPanel>
+                                <StackPanel DockPanel.Dock="Top" Margin="18,14,18,0">
+                                    <TextBlock x:Name="txtCauseTitle" FontSize="16" FontWeight="Bold" TextWrapping="Wrap"
+                                               Foreground="{StaticResource TextStrong}"/>
+                                    <TextBlock x:Name="txtCauseDetail" Style="{StaticResource Dim}" FontSize="12" Margin="0,4,0,8"/>
+                                    <TextBlock Text="해결 방법 (기대 해결률 순)" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}"/>
+                                    <ListView x:Name="lvRemedies" Height="112" Margin="0,4,0,6" SelectionMode="Single"
+                                              SelectionChanged="OnRemedySelected" BorderBrush="{StaticResource Line}">
+                                        <ListView.View>
+                                            <GridView>
+                                                <GridViewColumn Header="해결책" Width="250" DisplayMemberBinding="{Binding Label}"/>
+                                                <GridViewColumn Header="기대 해결률" Width="84" DisplayMemberBinding="{Binding RateText}"/>
+                                                <GridViewColumn Header="상태" Width="64" DisplayMemberBinding="{Binding State}"/>
+                                            </GridView>
+                                        </ListView.View>
+                                    </ListView>
+                                </StackPanel>
+                                <Border Background="{StaticResource Soft}" CornerRadius="6" Margin="18,0">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                        <TextBlock x:Name="txtRemedyDetail" TextWrapping="Wrap" Margin="10,6" LineHeight="19"
+                                                   Foreground="{StaticResource TextStrong}"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </DockPanel>
+                        </Grid>
+                    </DockPanel>
+                </Border>
+            </Grid>
+
+            <!-- ══════════ 블랙박스 기록 페이지 ══════════ -->
+            <DockPanel x:Name="pageBlackBox" Visibility="Collapsed">
+                <DockPanel DockPanel.Dock="Top" Margin="0,4,0,8">
+                    <Button Content="← 검진 결과로" Style="{StaticResource BtnSecondary}" DockPanel.Dock="Left"
+                            Click="OnNavMain"/>
+                    <TextBlock Text="블랙박스 기록" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextStrong}"
+                               DockPanel.Dock="Left" VerticalAlignment="Center" Margin="14,0,0,0"/>
+                    <CheckBox x:Name="chkModules" Content="모듈(DLL) 로드도 목록에 보기" DockPanel.Dock="Right"
+                              VerticalAlignment="Center" Click="OnModulesToggle" Foreground="{StaticResource TextDim}"/>
+                    <TextBlock x:Name="txtBbSub" Foreground="{StaticResource TextDim}" VerticalAlignment="Center"
+                               Margin="12,0,12,0" TextTrimming="CharacterEllipsis"
+                               Text="기록을 열면 문제 순간 앞뒤가 여기에 나와요."/>
+                </DockPanel>
+
+                <Border DockPanel.Dock="Top" Style="{StaticResource CardBox}">
+                    <StackPanel>
+                        <TextBlock Text="타임라인 (빨간 줄 = 문제 순간)" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
+                        <Canvas x:Name="cvTimeline" Height="230" Background="{StaticResource Card}" Cursor="Hand"
+                                ClipToBounds="True" SizeChanged="OnTimelineSize" MouseLeftButtonUp="OnTimelineClick"/>
+                    </StackPanel>
+                </Border>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3*"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="2*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource CardBox}" Padding="6,4">
+                        <TabControl x:Name="tabsBlackBox">
+                            <TabItem Header="시간순 기록">
+                                <ListView x:Name="lvBlackBox" Margin="0,6,0,0" SelectionMode="Single" BorderThickness="0"
+                                          SelectionChanged="OnBlackBoxSelected">
+                                    <ListView.View>
+                                        <GridView>
+                                            <GridViewColumn Header="시각" Width="96" DisplayMemberBinding="{Binding TimeText}"/>
+                                            <GridViewColumn Header="종류" Width="120" DisplayMemberBinding="{Binding Kind}"/>
+                                            <GridViewColumn Header="내용" Width="460" DisplayMemberBinding="{Binding ShortText}"/>
+                                        </GridView>
+                                    </ListView.View>
+                                </ListView>
+                            </TabItem>
+                            <TabItem Header="수집기 로그">
+                                <TextBox x:Name="txtLog" IsReadOnly="True" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                                         Margin="0,6,0,0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                                         TextWrapping="NoWrap" BorderThickness="0" Background="#101521" Foreground="#C9D4E8"
+                                         Padding="10" VerticalContentAlignment="Top"/>
+                            </TabItem>
+                        </TabControl>
+                    </Border>
+
+                    <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <Border Style="{StaticResource CardBox}" Margin="0,0,0,8">
                                 <StackPanel>
-                                    <TextBlock x:Name="txtPlanSummary" Text="엔진이 정한 원인 확인 순서" Style="{StaticResource SectionTitle}"/>
-                                    <Grid Margin="0,0,0,4">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="34"/>
-                                            <ColumnDefinition Width="*"/>
-                                            <ColumnDefinition Width="76"/>
-                                            <ColumnDefinition Width="86"/>
-                                            <ColumnDefinition Width="92"/>
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="1" Text="점검 → 대상" Style="{StaticResource Faint}"/>
-                                        <TextBlock Grid.Column="2" Text="예상 시간" Style="{StaticResource Faint}"/>
-                                        <TextBlock Grid.Column="3" Text="드러날 확률" Style="{StaticResource Faint}"/>
-                                        <TextBlock Grid.Column="4" Text="실행 방식" Style="{StaticResource Faint}"/>
-                                    </Grid>
-                                    <ItemsControl x:Name="icSteps">
+                                    <TextBlock Text="문제 순간에 실행 중이던 후보" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
+                                    <TextBlock x:Name="txtMomentEmpty" Text="검진 후에 보여 드려요." Foreground="{StaticResource TextDim}"/>
+                                    <ItemsControl x:Name="icMoment">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border BorderBrush="{StaticResource LineSoft}" BorderThickness="0,1,0,0" Padding="0,9">
-                                                    <Grid>
-                                                        <Grid.ColumnDefinitions>
-                                                            <ColumnDefinition Width="34"/>
-                                                            <ColumnDefinition Width="*"/>
-                                                            <ColumnDefinition Width="76"/>
-                                                            <ColumnDefinition Width="86"/>
-                                                            <ColumnDefinition Width="92"/>
-                                                        </Grid.ColumnDefinitions>
-                                                        <TextBlock Text="{Binding Index}" Foreground="{StaticResource TextFaint}"
-                                                                   FontWeight="SemiBold" VerticalAlignment="Top" Margin="4,1,0,0"/>
-                                                        <StackPanel Grid.Column="1" Margin="0,0,10,0">
-                                                            <TextBlock Text="{Binding Title}" Foreground="{StaticResource TextStrong}"
-                                                                       FontWeight="SemiBold" TextWrapping="Wrap"/>
-                                                            <TextBlock Text="{Binding Advice}" Style="{StaticResource Faint}" Margin="0,2,0,0"/>
-                                                        </StackPanel>
-                                                        <TextBlock Grid.Column="2" Text="{Binding CostText}" Foreground="{StaticResource TextDim}" VerticalAlignment="Top"/>
-                                                        <TextBlock Grid.Column="3" Text="{Binding ChanceText}" Foreground="{StaticResource TextDim}" VerticalAlignment="Top"/>
-                                                        <Border Grid.Column="4" Background="{Binding ExecBg}" CornerRadius="10"
-                                                                Padding="9,3" HorizontalAlignment="Left" VerticalAlignment="Top">
-                                                            <TextBlock Text="{Binding ExecText}" Foreground="{Binding ExecFg}" FontSize="11" FontWeight="SemiBold"/>
-                                                        </Border>
-                                                    </Grid>
+                                                <Border Background="{Binding Bg}" BorderBrush="{StaticResource Line}" BorderThickness="1"
+                                                        CornerRadius="4" Padding="10,6" Margin="0,2">
+                                                    <DockPanel>
+                                                        <TextBlock DockPanel.Dock="Right" Text="{Binding State}" FontSize="12"
+                                                                   Foreground="{Binding StateFg}" VerticalAlignment="Center"
+                                                                   Margin="10,0,0,0"/>
+                                                        <TextBlock Text="{Binding Name}" FontWeight="{Binding Weight}"
+                                                                   Foreground="{StaticResource TextStrong}" TextTrimming="CharacterEllipsis"/>
+                                                    </DockPanel>
                                                 </Border>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
-                                    <ItemsControl x:Name="icNotes" Margin="0,8,0,0">
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource CardBox}" Margin="0,0,0,8">
+                                <StackPanel>
+                                    <TextBlock Text="선택한 기록" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
+                                    <TextBox x:Name="txtBbDetail" IsReadOnly="True" TextWrapping="Wrap" BorderThickness="0"
+                                             Padding="0" FontSize="12" Height="130" VerticalScrollBarVisibility="Auto"
+                                             VerticalContentAlignment="Top"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- 블랙박스 수집기 (WPF 판에서 추가: UI 안에서 시작·중지, 새 덤프 자동 진단) -->
+                            <Border Style="{StaticResource CardBox}">
+                                <StackPanel>
+                                    <TextBlock Text="블랙박스 수집기" Style="{StaticResource SectionTitle}" Margin="0,0,0,6"/>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <Ellipse x:Name="dotCollector" Width="9" Height="9" Fill="#B9C2CF" VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="txtCollectorState" Text="꺼짐" Margin="7,0,0,0"
+                                                   Foreground="{StaticResource TextDim}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="txtElevation" FontSize="12" Foreground="{StaticResource Amber}" Margin="0,0,0,8"/>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button x:Name="btnCollectorStart" Content="수집 시작" Style="{StaticResource BtnPrimary}"
+                                                Margin="0,0,8,0" Click="OnCollectorStart"/>
+                                        <Button x:Name="btnCollectorStop" Content="중지" Style="{StaticResource BtnSecondary}"
+                                                IsEnabled="False" Click="OnCollectorStop"/>
+                                    </StackPanel>
+                                    <CheckBox x:Name="chkAutoDiagnose" Content="새 기록이 생기면 자동으로 검진" IsChecked="True"
+                                              Margin="0,10,0,0" Foreground="{StaticResource TextDim}"/>
+                                    <TextBlock Style="{StaticResource Faint}" Margin="0,6,0,0"
+                                               Text="켜 두면 최근 5분을 메모리에만 기록하다가, 크래시가 감지되는 순간 앞뒤 구간을 남깁니다."/>
+                                    <TextBlock x:Name="txtNoActivity" Style="{StaticResource Faint}" Margin="0,8,0,0"
+                                               Text="아직 활동이 없습니다."/>
+                                    <ItemsControl x:Name="icActivity" Margin="0,6,0,0">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <TextBlock Text="{Binding}" Style="{StaticResource Faint}"/>
+                                                <TextBlock Text="{Binding}" Style="{StaticResource Faint}" Margin="0,1"/>
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
@@ -199,219 +468,8 @@
                             </Border>
                         </StackPanel>
                     </ScrollViewer>
-                </TabItem>
-
-                <!-- ② 원인 확인 -->
-                <TabItem Header="원인 확인">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <Grid Margin="4,14,8,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="7*"/>
-                                <ColumnDefinition Width="12"/>
-                                <ColumnDefinition Width="5*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <Border Style="{StaticResource CardBox}" Margin="0,0,0,12">
-                                    <StackPanel>
-                                        <TextBlock x:Name="txtSessionStatus" Style="{StaticResource SectionTitle}"
-                                                   Text="세션 없음 — 진단 탭에서 [원인 확인 시작]을 누르세요"/>
-                                        <TextBlock x:Name="txtNextAction" Style="{StaticResource Dim}"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource CardBox}" x:Name="cardNextCheck" Visibility="Collapsed">
-                                    <StackPanel>
-                                        <DockPanel Margin="0,0,0,6">
-                                            <TextBlock Text="지금 할 점검" Style="{StaticResource SectionTitle}" Margin="0" DockPanel.Dock="Left"/>
-                                            <Border x:Name="bdCheckExec" Background="{StaticResource LineSoft}" CornerRadius="10"
-                                                    Padding="9,3" HorizontalAlignment="Right">
-                                                <TextBlock x:Name="txtCheckExec" Text="안내" Foreground="{StaticResource TextDim}"
-                                                           FontSize="11" FontWeight="SemiBold"/>
-                                            </Border>
-                                        </DockPanel>
-                                        <TextBlock x:Name="txtCheckLabel" FontSize="15" FontWeight="SemiBold"
-                                                   Foreground="{StaticResource TextStrong}" TextWrapping="Wrap"/>
-                                        <TextBlock x:Name="txtCheckChance" Style="{StaticResource Faint}" Margin="0,2,0,6"/>
-                                        <TextBlock x:Name="txtCheckAdvice" Style="{StaticResource Dim}"/>
-                                        <ItemsControl x:Name="icCheckSteps" Margin="0,8,0,0">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding}" TextWrapping="Wrap" Foreground="{StaticResource TextStrong}"
-                                                               Margin="0,2" LineHeight="19"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        <TextBlock x:Name="txtCheckRollback" Style="{StaticResource Faint}" Margin="0,8,0,0"/>
-                                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
-                                            <Button Content="원인이 드러났어요" Style="{StaticResource BtnGood}" Margin="0,0,8,0" Click="OnReportSolved"/>
-                                            <Button Content="아니었어요" Style="{StaticResource BtnSecondary}" Margin="0,0,8,0" Click="OnReportNotSolved"/>
-                                            <Button Content="건너뛰기" Style="{StaticResource BtnSecondary}" Click="OnReportSkipped"/>
-                                        </StackPanel>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <Border Style="{StaticResource CardBox}" Margin="0,0,0,12">
-                                    <StackPanel>
-                                        <TextBlock Text="후보 확률 (점검 결과에 따라 갱신)" Style="{StaticResource SectionTitle}"/>
-                                        <ItemsControl x:Name="icBelief">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel Margin="0,4" Opacity="{Binding RowOpacity}">
-                                                        <TextBlock Text="{Binding Text}" Foreground="{StaticResource TextStrong}" TextWrapping="Wrap"/>
-                                                        <Border Background="{StaticResource LineSoft}" Height="8" CornerRadius="4"
-                                                                HorizontalAlignment="Left" Width="164" Margin="0,3,0,0">
-                                                            <Border Background="{Binding Fill}" Width="{Binding FillWidth}" Height="8"
-                                                                    CornerRadius="4" HorizontalAlignment="Left"/>
-                                                        </Border>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource CardBox}">
-                                    <StackPanel>
-                                        <TextBlock Text="지난 점검" Style="{StaticResource SectionTitle}"/>
-                                        <ItemsControl x:Name="icHistory">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding}" Style="{StaticResource Faint}" Margin="0,2"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </Grid>
-                    </ScrollViewer>
-                </TabItem>
-
-                <!-- ③ 해결 · 검증 -->
-                <TabItem Header="해결 · 검증">
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <Grid Margin="4,14,8,8">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="7*"/>
-                                <ColumnDefinition Width="12"/>
-                                <ColumnDefinition Width="5*"/>
-                            </Grid.ColumnDefinitions>
-                            <StackPanel Grid.Column="0">
-                                <Border Style="{StaticResource CardBox}" Margin="0,0,0,12">
-                                    <StackPanel>
-                                        <TextBlock Text="확인된 원인" Style="{StaticResource SectionTitle}"/>
-                                        <TextBlock x:Name="txtConfirmed" FontWeight="SemiBold" FontSize="15"
-                                                   Foreground="{StaticResource TextStrong}" Text="아직 없음" TextWrapping="Wrap"/>
-                                        <ItemsControl x:Name="icConfirmedEvidence" Margin="0,6,0,0">
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding Text}" Style="{StaticResource Dim}" Margin="0,2"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                </Border>
-                                <Border Style="{StaticResource CardBox}">
-                                    <StackPanel>
-                                        <DockPanel>
-                                            <TextBlock Text="해결책 (기대 해결률 순)" Style="{StaticResource SectionTitle}" DockPanel.Dock="Left"/>
-                                            <Button x:Name="btnApplyFix" Content="적용했어요 (기록)" Style="{StaticResource BtnPrimary}"
-                                                    HorizontalAlignment="Right" IsEnabled="False" Click="OnApplyFix" Margin="0,-4,0,6"/>
-                                        </DockPanel>
-                                        <ListBox x:Name="lbRemedies" SelectionChanged="OnRemedySelected" MaxHeight="180">
-                                            <ListBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <StackPanel>
-                                                        <TextBlock Text="{Binding Title}" FontWeight="{Binding TitleWeight}"
-                                                                   Foreground="{StaticResource TextStrong}"/>
-                                                        <TextBlock Text="{Binding SubText}" Style="{StaticResource Faint}"/>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </ListBox.ItemTemplate>
-                                        </ListBox>
-                                        <Border BorderBrush="{StaticResource LineSoft}" BorderThickness="0,1,0,0" Margin="0,8,0,0" Padding="0,8,0,0">
-                                            <ItemsControl x:Name="icRemedyActions">
-                                                <ItemsControl.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <TextBlock Text="{Binding}" Style="{StaticResource Dim}" Margin="0,2"/>
-                                                    </DataTemplate>
-                                                </ItemsControl.ItemTemplate>
-                                            </ItemsControl>
-                                        </Border>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <Border Style="{StaticResource CardBox}">
-                                    <StackPanel>
-                                        <TextBlock Text="재발 검증" Style="{StaticResource SectionTitle}"/>
-                                        <TextBlock Style="{StaticResource Dim}"
-                                                   Text="해결책 적용 후 충분히 사용해 본 다음, 둘 중 한 방법으로 검증합니다."/>
-                                        <Button Content="사후 스냅샷으로 검증…" Style="{StaticResource BtnSecondary}"
-                                                HorizontalAlignment="Left" Margin="0,10,0,0" Click="OnVerifyAfterSnapshot"/>
-                                        <Border BorderBrush="{StaticResource LineSoft}" BorderThickness="0,1,0,0" Margin="0,12,0,10"/>
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Text="관찰 시간(분)" Foreground="{StaticResource TextDim}" VerticalAlignment="Center" Margin="0,0,6,0"/>
-                                            <TextBox x:Name="txtObservedMinutes" Width="56" Text="120"/>
-                                        </StackPanel>
-                                        <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                            <Button Content="재발 없었어요" Style="{StaticResource BtnGood}" Margin="0,0,8,0" Click="OnVerifyNoRecur"/>
-                                            <Button Content="재발했어요" Style="{StaticResource BtnSecondary}" Click="OnVerifyRecurred"/>
-                                        </StackPanel>
-                                        <TextBlock x:Name="txtLastVerify" Foreground="{StaticResource TextStrong}" FontWeight="SemiBold" Margin="0,12,0,0"/>
-                                        <TextBlock x:Name="txtRestoreNote" Style="{StaticResource Faint}" Margin="0,6,0,0"/>
-                                    </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </Grid>
-                    </ScrollViewer>
-                </TabItem>
-
-                <!-- ④ 수집기 로그 -->
-                <TabItem Header="수집기 로그">
-                    <Border Style="{StaticResource CardBox}" Margin="4,14,8,8" Padding="2">
-                        <TextBox x:Name="txtLog" IsReadOnly="True" FontFamily="Cascadia Mono, Consolas" FontSize="12"
-                                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                                 TextWrapping="NoWrap" BorderThickness="0" Background="#101521" Foreground="#C9D4E8" Padding="10"/>
-                    </Border>
-                </TabItem>
-            </TabControl>
-
-            <!-- ─── 수집기 레일 ─── -->
-            <StackPanel Grid.Column="1">
-                <Border Style="{StaticResource CardBox}" Margin="0,6,0,12">
-                    <StackPanel>
-                        <TextBlock Text="블랙박스 수집기" Style="{StaticResource SectionTitle}"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <Ellipse x:Name="dotCollector" Width="9" Height="9" Fill="#B9C2CF" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="txtCollectorState" Text="꺼짐" Margin="7,0,0,0"
-                                       Foreground="{StaticResource TextDim}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Button x:Name="btnCollectorStart" Content="수집 시작" Style="{StaticResource BtnPrimary}"
-                                    Margin="0,0,8,0" Click="OnCollectorStart"/>
-                            <Button x:Name="btnCollectorStop" Content="중지" Style="{StaticResource BtnSecondary}"
-                                    IsEnabled="False" Click="OnCollectorStop"/>
-                        </StackPanel>
-                        <CheckBox x:Name="chkAutoDiagnose" Content="새 덤프가 생기면 자동 진단" IsChecked="True"
-                                  Margin="0,12,0,0" Foreground="{StaticResource TextDim}"/>
-                        <TextBlock Style="{StaticResource Faint}" Margin="0,8,0,0"
-                                   Text="켜 두면 최근 5분을 메모리에만 기록하다가, 크래시가 감지되는 순간 전후 구간을 덤프합니다."/>
-                    </StackPanel>
-                </Border>
-                <Border Style="{StaticResource CardBox}">
-                    <StackPanel>
-                        <TextBlock Text="최근 활동" Style="{StaticResource SectionTitle}"/>
-                        <ItemsControl x:Name="icActivity">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding}" Style="{StaticResource Faint}" Margin="0,2" TextWrapping="Wrap"/>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                        <TextBlock x:Name="txtNoActivity" Style="{StaticResource Faint}" Text="아직 활동이 없습니다."/>
-                    </StackPanel>
-                </Border>
-            </StackPanel>
+                </Grid>
+            </DockPanel>
         </Grid>
     </DockPanel>
 </Window>

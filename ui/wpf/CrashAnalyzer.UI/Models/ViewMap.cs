@@ -3,23 +3,31 @@ using System.Windows.Media;
 
 namespace CrashAnalyzer.UI.Models;
 
-// 엔진 JSON 응답 → 화면 바인딩용 POCO. UI는 값을 계산하지 않고 변환·표시만 한다.
+// 엔진 JSON 응답 → 화면 표시용 도우미. UI는 값을 계산하지 않고 변환·표시만 한다.
+// (2026-11-02) 시안 2-4 화면은 MainWindow 가 엔진 JSON 을 바로 읽어 그린다. DiagnoseVm 은 --selftest 가 쓴다.
 
 internal static class Ui
 {
-    public static readonly Brush Accent = Hex("#2563C7");
+    // 2026-11-02 시안 2-4 색 (App.xaml 토큰과 같은 값)
+    public static readonly Brush Accent = Hex("#0B7A55");
+    public static readonly Brush Accent2 = Hex("#7FB59B");
+    public static readonly Brush AccentSoft = Hex("#ECF6F2");
     public static readonly Brush Purple = Hex("#6D4FC4");
     public static readonly Brush AmberBar = Hex("#C97A2B");
-    public static readonly Brush Track = Hex("#ECF0F5");
-    public static readonly Brush DimFg = Hex("#5C6A80");
-    public static readonly Brush StrongFg = Hex("#1C2740");
-    public static readonly Brush GuideBg = Hex("#ECF0F5");
-    public static readonly Brush AutoBg = Hex("#E8EFFB");
-    public static readonly Brush AutoFg = Hex("#2563C7");
-    public static readonly Brush ConfirmBg = Hex("#F9EFDE");
-    public static readonly Brush ConfirmFg = Hex("#B9741F");
-    public static readonly Brush ManualBg = Hex("#FAE7E8");
-    public static readonly Brush ManualFg = Hex("#C2434A");
+    public static readonly Brush Track = Hex("#E3ECE7");
+    public static readonly Brush DimFg = Hex("#4A5750");
+    public static readonly Brush FaintFg = Hex("#9AA59F");
+    public static readonly Brush StrongFg = Hex("#17201B");
+    public static readonly Brush Red = Hex("#C0392B");
+    public static readonly Brush Amber = Hex("#8A5300");
+    public static readonly Brush GuideBg = Hex("#EDEDED");
+    public static readonly Brush GuideFg = Hex("#3B3B3B");
+    public static readonly Brush AutoBg = Hex("#DFF6E3");
+    public static readonly Brush AutoFg = Hex("#0E6B2F");
+    public static readonly Brush ConfirmBg = Hex("#FFF1D6");
+    public static readonly Brush ConfirmFg = Hex("#8A5300");
+    public static readonly Brush ManualBg = Hex("#FDE7E9");
+    public static readonly Brush ManualFg = Hex("#A4262C");
 
     public static Brush Hex(string s) => (Brush)new BrushConverter().ConvertFromString(s)!;
 
@@ -34,21 +42,76 @@ internal static class Ui
     public static string LayerKo(string layer) => layer switch
     {
         "SW" => "소프트웨어",
-        "DRIVER" => "드라이버·시스템",
+        "DRIVER" => "드라이버",
         "HW" => "하드웨어",
         _ => layer,
     };
 
+    /// <summary>후보의 범위(stage) 표시. 0 = 범위 밖.</summary>
+    public static string StageKo(int stage) => stage switch
+    {
+        1 => "1차 보안",
+        2 => "2차 드라이버",
+        3 => "3차 하드웨어",
+        _ => "범위 밖",
+    };
+
+    public static string SymptomKo(string type) => type switch
+    {
+        "app_crash" => "프로그램 튕김",
+        "freeze" => "멈춤(프리징)",
+        "fps_drop" => "프레임 저하",
+        "flicker" => "화면 깜빡임",
+        "input_loss" => "입력 누락",
+        "launch_fail" => "실행 안 됨",
+        "network_fail" => "네트워크 끊김",
+        "unexpected_reboot" => "갑자기 재부팅",
+        _ => type,
+    };
+
+    /// <summary>점검 결과를 사람이 읽을 말로.</summary>
+    public static string ResultKo(string result) => result switch
+    {
+        "solved" => "증상 사라짐",
+        "not_solved" => "그대로 → 원인 아님",
+        "skipped" => "건너뜀",
+        _ => result,
+    };
+
+    /// <summary>검증 결과(outcome) 글자와 색.</summary>
+    public static (string Text, Brush Fg) OutcomeStyle(string outcome) => outcome switch
+    {
+        "resolved" => ("해결됨", AutoFg),
+        "recurred" => ("재발", ManualFg),
+        "observing" => ("관찰 중", ConfirmFg),
+        "need_answer" => ("사용자 응답 필요", ConfirmFg),
+        _ => (outcome, StrongFg),
+    };
+
     public static (string Text, Brush Bg, Brush Fg) ExecPill(string execution) => execution switch
     {
-        "auto" => ("자동 실행", AutoBg, AutoFg),
+        "auto" => ("자동 가능", AutoBg, AutoFg),
         "confirm" => ("동의 후 실행", ConfirmBg, ConfirmFg),
         "manual" => ("직접 작업", ManualBg, ManualFg),
-        _ => ("안내", GuideBg, DimFg),
+        _ => ("안내", GuideBg, GuideFg),
     };
 
     public static string CostText(int seconds) =>
         seconds >= 60 ? $"{seconds / 60}분" + (seconds % 60 > 0 ? $" {seconds % 60}초" : "") : $"{seconds}초";
+
+    /// <summary>걸리는 시간: 60초 미만은 초, 1시간 미만은 분(반올림), 그 이상은 시간(소수 1자리).</summary>
+    public static string DurationText(double seconds)
+    {
+        if (seconds < 60) return (int)seconds + "초";
+        double minutes = seconds / 60.0;
+        if (minutes < 60) return (int)Math.Round(minutes) + "분";
+        return (minutes / 60.0).ToString("0.0") + "시간";
+    }
+
+    public static string Pct(double p) => (int)Math.Round(p * 100) + "%";
+
+    public static string Short(string text, int limit) =>
+        text.Length <= limit ? text : text.Substring(0, limit - 1) + "…";
 }
 
 public sealed class EvidenceVm
@@ -141,50 +204,6 @@ public sealed class DiagnoseVm
             return string.Join(Environment.NewLine, lines);
         }
     }
-}
-
-public sealed class BeliefVm
-{
-    public string Label { get; init; } = "";
-    public int ProbPct { get; init; }
-    public bool InFocus { get; init; }
-    public string Text => $"{Label}  ·  {ProbPct}%" + (InFocus ? "" : "  (범위 밖)");
-    public double FillWidth => Math.Max(2, ProbPct * 1.6);
-    public Brush Fill => InFocus ? Ui.Accent : Ui.DimFg;
-    public double RowOpacity => InFocus ? 1.0 : 0.6;
-}
-
-public sealed class RemedyVm
-{
-    public string Id { get; init; } = "";
-    public int SuccessPct { get; init; }
-    public bool IsCurrent { get; init; }
-    public List<string> Actions { get; init; } = new();
-    public string Title => Id;
-    public string SubText => $"기대 해결률 {SuccessPct}%" + (IsCurrent ? "  ·  현재 추천" : "");
-    public System.Windows.FontWeight TitleWeight => IsCurrent ? System.Windows.FontWeights.SemiBold : System.Windows.FontWeights.Normal;
-}
-
-public sealed class SessionVm
-{
-    public string Status { get; init; } = "";
-    public string StatusText { get; init; } = "";
-    public string NextAction { get; init; } = "";
-    public string RestoreNote { get; init; } = "";
-    public List<BeliefVm> Belief { get; init; } = new();
-    public bool HasNextCheck { get; init; }
-    public string CheckId { get; init; } = "";
-    public string CheckLabel { get; init; } = "";
-    public string CheckAdvice { get; init; } = "";
-    public int CheckChancePct { get; init; }
-    public string CheckExecution { get; init; } = "guide";
-    public List<string> CheckSteps { get; init; } = new();
-    public string CheckRollback { get; init; } = "";
-    public string ConfirmedLabel { get; init; } = "";
-    public List<EvidenceVm> ConfirmedEvidence { get; init; } = new();
-    public List<RemedyVm> Remedies { get; init; } = new();
-    public string LastVerifyText { get; init; } = "";
-    public List<string> History { get; init; } = new();
 }
 
 public static class ViewMap
@@ -281,71 +300,6 @@ public static class ViewMap
             PlanSummary = planSummary,
             Steps = steps,
             Notes = Strings(r["notes"]).Concat(Strings(r["warnings"])).ToList(),
-        };
-    }
-
-    public static SessionVm FromSessionView(JsonNode v)
-    {
-        var belief = new List<BeliefVm>();
-        if (v["belief"] is JsonArray ba)
-            foreach (var b in ba)
-                belief.Add(new BeliefVm
-                {
-                    Label = S(b?["label"]),
-                    ProbPct = Pct(b?["probability"]),
-                    InFocus = b?["in_focus"]?.GetValue<bool>() ?? true,
-                });
-
-        var check = v["next_check"];
-        var action = check?["action"];
-
-        var remedies = new List<RemedyVm>();
-        string current = S(v["current_remedy"]);
-        if (v["remedies"] is JsonArray ra)
-            foreach (var rm in ra)
-            {
-                var acts = new List<string>();
-                if (rm?["actions"] is JsonArray aa)
-                    foreach (var a in aa)
-                        acts.Add("•  " + (S(a?["label"]) is { Length: > 0 } l ? l : a?.ToJsonString() ?? ""));
-                remedies.Add(new RemedyVm
-                {
-                    Id = S(rm?["remedy_id"]),
-                    SuccessPct = Pct(rm?["expected_success"]),
-                    IsCurrent = S(rm?["remedy_id"]) == current,
-                    Actions = acts,
-                });
-            }
-
-        string lastVerify = "";
-        if (v["last_verify"] is JsonObject lv)
-            lastVerify = $"판정: {S(lv["outcome"])} · 재발 {lv["recurrences"]?.GetValue<double>() ?? 0}건 · 관찰 {lv["observed_minutes"]?.GetValue<double>() ?? 0}분";
-
-        var history = new List<string>();
-        if (v["history"] is JsonArray ha)
-            foreach (var h in ha)
-                history.Add(h is JsonValue ? S(h) : h?.ToJsonString() ?? "");
-
-        return new SessionVm
-        {
-            Status = S(v["status"]),
-            StatusText = S(v["status_text"]),
-            NextAction = S(v["next_action"]),
-            RestoreNote = S(v["restore_after_check"]),
-            Belief = belief,
-            HasNextCheck = check is not null,
-            CheckId = S(check?["check_id"]),
-            CheckLabel = S(check?["label"]),
-            CheckAdvice = S(check?["advice"]),
-            CheckChancePct = Pct(check?["chance_to_reveal_cause"]),
-            CheckExecution = S(action?["execution"]) is { Length: > 0 } ex ? ex : "guide",
-            CheckSteps = Strings(action?["steps"]),
-            CheckRollback = S(action?["rollback"]),
-            ConfirmedLabel = S(v["confirmed"]?["label"]),
-            ConfirmedEvidence = Evidence(v["confirmed"]?["evidence"]),
-            Remedies = remedies,
-            LastVerifyText = lastVerify,
-            History = history,
         };
     }
 }
