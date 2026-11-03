@@ -2,7 +2,7 @@
   <!--
     참여자판 (지인 배포용). 콘솔 수집기와 같은 소스(collector/BlackBox 의 Core·Sources·Marking·Hosting)를 링크해 한 실행 파일로 만든다.
     여기서 더하는 것: 트레이 아이콘, 동의 화면, 증상 대화상자, 암호화 자동 전송(StudyCore). 수집 로직은 collector/ 에만 있다.
-    관리자 권한을 요구하지 않는다(app.manifest asInvoker). 커널 드라이버를 싣지 않는다.
+    관리자 계정이면 관리자 권한으로 돈다(0.8~, app.manifest highestAvailable). 권한은 읽기에만 쓰고 커널 드라이버를 싣지 않는다.
   -->
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -14,7 +14,7 @@
     <RootNamespace>BlackBox.Participant</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <Version>0.8.0</Version>
+    <Version>0.8.1</Version>
     <Product>PC 블랙박스 (중앙대 캡스톤 연구용)</Product>
     <Company>중앙대학교 캡스톤디자인 7조</Company>
     <Description>PC 문제 순간 전후 상황을 기록해 연구팀에 암호화 전송하는 참여자용 블랙박스</Description>

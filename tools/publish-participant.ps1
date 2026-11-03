@@ -1,12 +1,13 @@
 ﻿# 참여자판 배포 빌드 — 지인 PC 에 .NET 설치 없이 풀어서 바로 쓰는 폴더(self-contained, win-x64)와 zip 을 만든다.
-# 사용: powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 [-Version 0.8.0] [-Config participant\study.local.json] [-AllowLoopback]
+# 사용: powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 [-Version 0.8.1] [-Config participant\study.local.json] [-AllowLoopback]
 # 결과: dist\PcBlackBox-<Version>-win-x64.zip (+ .sha256.txt). dist\ 는 커밋하지 않는다.
 # 안전장치:
 #  - 설정 검증(StudyTools check): https 수신 주소, 3072비트 이상 공개키, keyId 일치, 개인키가 섞여 있으면 거부
 #  - 127.0.0.1 시험 수신기 설정은 -AllowLoopback 일 때만(시험 빌드) — 실수로 시험 설정을 지인에게 보내지 않게
 #  - 배포 폴더에 *.pem·*.pdb·study.local.json 이 들어가면 실패
+#  - 시험 빌드는 zip 안 폴더 이름도 "PC블랙박스-팀시험용" — 지인에게 잘못 보내도 이름으로 알아보게(10/30)
 param(
-    [string]$Version = "0.8.0",
+    [string]$Version = "0.8.1",
     [string]$Config = "participant\study.local.json",
     [switch]$AllowLoopback
 )
@@ -34,7 +35,7 @@ if ($LASTEXITCODE -ne 0) { throw "설정 검증 실패" }
 $suffix = if ($loopback) { "-LOCALTEST" } else { "" }
 $name = "PcBlackBox-$Version-win-x64$suffix"
 $stage = Join-Path $root "dist\$name"
-$appDir = Join-Path $stage "PC블랙박스"
+$appDir = Join-Path $stage $(if ($loopback) { "PC블랙박스-팀시험용" } else { "PC블랙박스" })
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory -Force $appDir | Out-Null
 $proj = Join-Path $root "participant\BlackBox.Participant\BlackBox.Participant.csproj"
@@ -52,6 +53,7 @@ $study = [ordered]@{
     keyId          = $cfg.keyId
     contact        = $cfg.contact
     retentionUntil = $cfg.retentionUntil
+    collectUntil   = $(if ($cfg.collectUntil) { $cfg.collectUntil } else { "" })   # 0.8.0 까지 빠져 있었음 — 수집 종료일이 배포본에 안 실림
 }
 $json = $study | ConvertTo-Json -Depth 3
 [System.IO.File]::WriteAllText((Join-Path $appDir "study.json"), $json, (New-Object System.Text.UTF8Encoding($false)))

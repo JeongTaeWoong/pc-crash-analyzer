@@ -6,10 +6,12 @@
 #   2) 관리자 실행 A: 동의 → 자동 실행(-TEST 예약 작업 + 시험 설치본) → 직접 기록 → 정상 종료, 커널 ETW 세션 정리
 #   3) 예약 작업으로 실행(로그인 때와 같은 경로): 설치본이 관리자 토큰으로 뜨는가, 명령줄 인자
 #   4) 관리자 실행 B: 참여 그만두기 → 예약 작업·설치본·기록 삭제
-# 남기는 것: C:\ProgramData\PcBlackBox\<SID> (빈 폴더 — 실제 실행 때 쓰는 자리). 시험 폴더는 %TEMP%\pcbb-admin-test.
+# 남기는 것: C:\ProgramData\PcBlackBox\<SID> (빈 폴더 — 실제 실행 때 쓰는 자리). 시험 폴더는 %LOCALAPPDATA%\pcbb-admin-test.
+#   %TEMP% 밑에 두면 예약 작업이 띄운 시험 설치본이 앱의 "압축 파일 안에서 바로 실행" 보호(임시 폴더 검사)에 걸려 창만 띄우고 멈춘다(10/30).
+#   실제 설치본은 Program Files 라 해당 없음.
 param(
     [string]$Exe,
-    [string]$WorkDir = (Join-Path $env:TEMP 'pcbb-admin-test'),
+    [string]$WorkDir = (Join-Path $env:LOCALAPPDATA 'pcbb-admin-test'),
     [switch]$Elevated
 )
 $ErrorActionPreference = 'Continue'
@@ -18,7 +20,7 @@ $repo = Split-Path $PSScriptRoot -Parent
 if (-not $Exe) {
     $d = Get-ChildItem (Join-Path $repo 'dist') -Directory -Filter '*-LOCALTEST' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
     if (-not $d) { throw "dist\ 에 LOCALTEST 빌드가 없습니다. publish-participant.ps1 -AllowLoopback 으로 먼저 만드세요." }
-    $Exe = Join-Path $d.FullName 'PC블랙박스\PcBlackBox.exe'
+    $Exe = (Get-ChildItem $d.FullName -Filter 'PcBlackBox.exe' -Recurse | Select-Object -First 1).FullName   # 시험판 폴더 이름은 0.8.1 부터 'PC블랙박스-팀시험용'
 }
 $log = Join-Path $WorkDir 'admin-test.log'
 $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value

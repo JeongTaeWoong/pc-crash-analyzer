@@ -35,6 +35,7 @@ public sealed class StudyConfig
     [JsonPropertyName("collectUntil")] public string CollectUntil { get; set; } = "";
 
     /// <summary>수집 마지막 날(포함).</summary>
+    [JsonIgnore]
     public DateOnly? CollectLastDay =>
         DateOnly.TryParseExact(string.IsNullOrWhiteSpace(CollectUntil) ? RetentionUntil : CollectUntil, "yyyy-MM-dd", out var d) ? d : null;
 
@@ -60,9 +61,12 @@ public sealed class StudyConfig
         AtomicFile.WriteAllText(path, json);
     }
 
+    // 계산 값은 저장하지 않는다(study.local.json 에 EndpointUri·IsLoopbackEndpoint 가 남던 것)
+    [JsonIgnore]
     public Uri? EndpointUri => Uri.TryCreate(Endpoint, UriKind.Absolute, out var u) ? u : null;
 
     /// <summary>시험용 루프백 수신기(127.0.0.1/localhost)인가. 시험 전용 옵션은 이때만 허용한다.</summary>
+    [JsonIgnore]
     public bool IsLoopbackEndpoint => EndpointUri is { } u && (u.IsLoopback || u.Host == "localhost");
 
     /// <summary>문제 목록(빈 목록 = 정상).</summary>

@@ -41,7 +41,9 @@ PcBlackBox.exe (트레이, 관리자 — UAC)                 Apps Script 웹 �
 - 설정: `participant/study.local.json` — 공개키·토큰·문의처. `.gitignore` 로 커밋 제외(토큰과 수신 주소가 저장소에 남지 않게).
 - 키를 바꿀 때: `StudyTools keygen --config participant/study.local.json --rotate`. 이전 개인키는 지우지 않는다(이전 기록 복호화용). 새 키로 다시 빌드·배포해야 한다.
 
-### 2-2. 수신기 배포 (Google 계정 필요 — 팀이 직접)
+### 2-2. 수신기 배포 — 완료(10/30, 팀 Google 계정)
+
+수신 주소(`/exec`)와 토큰은 `participant/study.local.json` 에만 둔다(저장소에 남기지 않는다). 다시 배포할 때의 절차:
 
 1. https://script.google.com → 새 프로젝트 → 이름 "PC블랙박스 수신기".
 2. `Code.gs` 내용을 `participant/receiver/Code.gs` 로 바꿔 붙여넣고 저장.
@@ -70,11 +72,12 @@ PcBlackBox.exe --check-data-dir   # 기록 폴더 보호 확인(OK 가 나와야
 ### 2-4. 배포 빌드
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.8.0
-# → dist\PcBlackBox-0.8.0-win-x64.zip (+ .zip.sha256.txt)
+powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.8.1
+# → dist\PcBlackBox-0.8.1-win-x64.zip (+ .zip.sha256.txt)
 ```
 
-- 127.0.0.1 시험 설정이면 거부한다(시험 빌드는 `-AllowLoopback`, 이름에 `-LOCALTEST`).
+- 127.0.0.1 시험 설정이면 거부한다(시험 빌드는 `-AllowLoopback`, zip 이름에 `-LOCALTEST`, 안 폴더 이름 `PC블랙박스-팀시험용`). 시험 빌드를 지인 PC 에서 그냥 켜면 "연구팀 내부 시험용" 안내가 뜨고 멈춘다.
+- `collectUntil`(수집 종료일)도 배포본 study.json 에 옮긴다(0.8.0 까지는 빠져 있었다).
 - 설정에 개인키가 섞였거나 배포 폴더에 `*.pem`·`*.pdb`·`study.local.json` 이 있으면 실패한다.
 - 크기 약 65MB(.NET·WinForms 런타임 포함, 설치 불필요). 카카오톡·Google Drive 링크로 전달하고 SHA-256 을 함께 알린다.
 
@@ -126,7 +129,7 @@ StudyTools summary --in D:\pca\study-decrypted
 | 동의 없는 수집 | 동의 체크 필수, 거절 시 저장 없음. 동의는 연구 ID·받는 곳에 묶임(시험 동의가 실제 배포본으로 넘어가지 않음). 시험 옵션은 127.0.0.1 설정 + 별도 `--data-dir` 에서만. `--selftest` 는 그 연구에 동의한 PC 에서만 | 없음 |
 | 철회 뒤 업로드 | 철회 시 수집·전송을 먼저 멈추고 → 삭제 요청 → 로컬 삭제(`selftest` 포함). 정리 중 끝난 덤프는 보내지 않음 | 없음 |
 
-## 6. 검증 상태 (10/29, CLAUDE.md 4분류)
+## 6. 검증 상태 (10/30, CLAUDE.md 4분류)
 
 | 항목 | 상태 | 근거 |
 |---|---|---|
@@ -141,13 +144,15 @@ StudyTools summary --in D:\pca\study-decrypted
 | 수신 규칙 C# ↔ Apps Script 일치 | **검증됨(Node 흉내)** | `test-receiver.js` 30개 판정(실제 서명 봉투 10건, 바이트 상한·저장 공간·철회 메일 포함) |
 | 참여자판 유휴 오버헤드 | **검증됨(이 PC, 16스레드)** | 8분: 기계 CPU 0.204%(1코어 3.3%), Private 121MB 일정, 정상 종료 |
 | 배포 zip 탐색기 압축 풀기(한글 이름)·게시본 자체 점검 | **검증됨(이 PC)** | 65.3MB·278파일 |
-| 실제 Apps Script 배포에서의 302 → GET 응답·Drive 저장·메일 | **미확인** | Google 계정 필요 — 배포 직후 `--selftest` 로 확인 |
+| 실제 Apps Script 배포에서의 302 → GET 응답·저장 응답 | **검증됨(10/30)** | 배포본 `--selftest`: 봉투 2건 + 하트비트, 수신기가 저장 파일 이름으로 응답 |
+| Drive 에 생긴 파일을 팀 키로 복호화 | **미확인** | Drive 수신 폴더를 내려받아 `StudyTools decrypt` |
+| 철회 메일(MailApp) | **미확인** | 시험 참여자로 그만두기 한 번 |
 | `DriveApp.getStorageUsed/Limit`, `createFile` 문자열 크기 상한 | **미확인** | Node 흉내로만 시험. 봉투는 보통 80~300KB |
 | `drive.file` 같은 좁은 범위로 동작하는지 | **미확인** | 지금은 `drive` 전체 범위(DriveApp 기본) |
 | 다른 PC 의 SmartScreen·백신(V3 등)·안티치트 반응 | **미확인** | 지인 1~2명 시범 배포로 확인 |
 | 관리자 아닌 경로(0.8 — 표준 사용자 계정) | **검증됨** | `__COMPAT_LAYER=RunAsInvoker` 로 자체 점검 4단계·트레이 흐름, 예약 작업 안 만듦 |
-| 관리자 경로(0.8): 기록 폴더 선점 방어·ACL, 예약 작업 등록·실행(관리자 토큰), 설치본, 그만두기 정리, 일반 권한 쓰기·권한 변경 거부 | **검증됨(1차) · 사용자 폴더 ACL 수정분은 재시험 대기** | `tools/test-participant-admin.ps1` (UAC 한 번). 자세한 결과는 collector/NOTES.md 0.8.0 절 |
-| ETW 명령줄 인자 삭제(관리자), 예약 작업 실행 때 ETW 세션 뜨는 시간 | **미확인** | 재시험 때 복호화본에서 확인 |
+| 관리자 경로(0.8): 기록 폴더 선점 방어·ACL, 예약 작업 등록·실행(관리자 토큰), 설치본, 그만두기 정리, 일반 권한 쓰기·권한 변경 거부 | **검증됨(10/30 재시험, ACL 수정분 포함)** | `tools/test-participant-admin.ps1` (UAC 한 번). 자세한 결과는 collector/NOTES.md 0.8.0·0.8.1 절 |
+| 예약 작업으로 띄운 인스턴스의 ETW, ETW 명령줄 인자 삭제(관리자) | **미확인** | 10/30 시험은 시험 도구 문제(설치본을 %TEMP% 에 둠)로 무효 — 고친 도구로 다시. 명령줄 삭제는 복호화본에서 확인 |
 | 참여자 PC 장기(2주) 안정성 | **미확인** | 하트비트 `self.cpuPctOfMachine`·`privateMB` 로 원격 관찰 |
 
 ## 7. 문제 해결

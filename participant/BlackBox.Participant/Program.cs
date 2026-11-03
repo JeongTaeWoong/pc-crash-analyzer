@@ -47,7 +47,12 @@ internal static class Program
             return Fail("--test-* / --startup-dir 옵션은 127.0.0.1 시험 수신기 설정에서만 쓸 수 있어요.", opt.Headless, 2);
         // 시험 실행은 자기 데이터 폴더에서만 — 시험 동의가 실제 데이터 폴더에 남지 않게(10/29 검토 지적)
         if ((opt.HasTestFlags || study.IsLoopbackEndpoint) && opt.DataDirIsDefault)
+        {
+            // 시험 빌드(127.0.0.1 = 팀 PC 의 시험 수신기)를 지인이 받아 그냥 켠 경우 — 그 PC 에서는 보낼 곳이 없다(10/30 지인 공유에서 발생)
+            if (study.IsLoopbackEndpoint && !opt.HasTestFlags)
+                return Fail("이 파일은 연구팀 내부 시험용이라 이 PC에서는 쓸 수 없어요.\n연구팀에게 배포용 파일을 다시 받아 주세요.\n\n(연구팀 시험: --data-dir 로 별도 폴더를 주세요)", opt.Headless, 2);
             return Fail("시험 수신기 설정이나 --test-* 옵션은 --data-dir 로 별도 폴더를 줄 때만 쓸 수 있어요.", opt.Headless, 2);
+        }
 
         // 2) 압축 보기 안에서 바로 실행하면 임시 폴더라 곧 지워진다
         if (!opt.Headless && Installation.RunningFromTemp())
