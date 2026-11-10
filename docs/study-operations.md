@@ -33,13 +33,13 @@ PcBlackBox.exe (트레이, 관리자 — UAC)                 Apps Script 웹 �
 
 ## 2. 처음 한 번 (팀)
 
-### 2-1. 키 — 완료(10/29)
+### 2-1. 키 — 11/10 교체
 
-`StudyTools keygen` 으로 만들었다. 키 ID `6e88a733c8746f43`.
+`StudyTools keygen --rotate` 로 만들었다. 키 ID `deed820e822d5d7f`. 이전 키 `6e88a733c8746f43` 는 11/4 C드라이브 포맷으로 사라져(사본 미확인) 그 키로 암호화된 봉투는 열 수 없다.
 
-- 개인키: `%USERPROFILE%\.pca-study\6e88a733c8746f43.private.pem` (정태웅 PC) — **이 파일이 없으면 받은 기록을 아무도 못 연다.** USB 에 백업하고, 분석할 팀원에게만 직접 건넨다(채팅·메일·저장소 금지).
+- 개인키: `%USERPROFILE%\.pca-study\deed820e822d5d7f.private.pem` (정태웅 PC) — **이 파일이 없으면 받은 기록을 아무도 못 연다.** USB 에 백업하고, 분석할 팀원에게만 직접 건넨다(채팅·메일·저장소 금지).
 - 설정: `participant/study.local.json` — 공개키·토큰·문의처. `.gitignore` 로 커밋 제외(토큰과 수신 주소가 저장소에 남지 않게).
-- 키를 바꿀 때: `StudyTools keygen --config participant/study.local.json --rotate`. 이전 개인키는 지우지 않는다(이전 기록 복호화용). 새 키로 다시 빌드·배포해야 한다.
+- 키를 바꿀 때: `StudyTools keygen --config participant/study.local.json --rotate`. 이전 개인키는 지우지 않는다(이전 기록 복호화용). 새 키로 다시 빌드·배포해야 한다. **버전을 반드시 올린다** — 자동 실행 설치본(Program Files)은 버전이 같으면 덮어쓰지 않아 옛 공개키로 계속 암호화한다.
 
 ### 2-2. 수신기 배포 — 완료(10/30, 팀 Google 계정)
 
@@ -72,8 +72,8 @@ PcBlackBox.exe --check-data-dir   # 기록 폴더 보호 확인(OK 가 나와야
 ### 2-4. 배포 빌드
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.8.1
-# → dist\PcBlackBox-0.8.1-win-x64.zip (+ .zip.sha256.txt)
+powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.8.2
+# → dist\PcBlackBox-0.8.2-win-x64.zip (+ .zip.sha256.txt)
 ```
 
 - 127.0.0.1 시험 설정이면 거부한다(시험 빌드는 `-AllowLoopback`, zip 이름에 `-LOCALTEST`, 안 폴더 이름 `PC블랙박스-팀시험용`). 시험 빌드를 지인 PC 에서 그냥 켜면 "연구팀 내부 시험용" 안내가 뜨고 멈춘다.

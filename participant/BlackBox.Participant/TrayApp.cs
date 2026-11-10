@@ -44,7 +44,7 @@ internal sealed class TrayApp : ApplicationContext
     private static readonly TimeSpan ManualDebounce = TimeSpan.FromSeconds(30);
     private SourceStatus? _hotkeyStatus;
 
-    public static string Version => typeof(TrayApp).Assembly.GetName().Version?.ToString(3) ?? "0.8.1";
+    public static string Version => typeof(TrayApp).Assembly.GetName().Version?.ToString(3) ?? "0.8.2";
 
     public TrayApp(AppOptions opt, StudyConfig study, ParticipantState state)
     {
