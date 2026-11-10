@@ -1,0 +1,48 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-003",
+    "marked_at":  "2021-10-05T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey",
+                    "event_id":  41
+                },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "change_history":  [
+                           {
+                               "kind":  "setting_change",
+                               "subject":  "XMP re-enabled; two Kernel 41 crashes reported after"
+                           }
+                       ],
+    "events":  [
+                   {
+                       "provider":  "Kernel Power",
+                       "id":  41
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.tomshardware.com/threads/crashing-kernel-power-41-bug-check-code-0.3727486/",
+                       "site":  "Tom\u0027s Hardware Forum",
+                       "posted_date":  "Oct 5, 2021",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Oct 17, 2021: \u0027Manually setting the memory timings and voltage rather than simply enabling xmp seems to have solved the issue.\u0027 Short test only; poster said more testing was planned.",
+                       "category_reported":  "memory",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Event Viewer lists Event ID: 41 \"Kernel Power\"",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "target_process",
+                                                  "minidumps",
+                                                  "modules",
+                                                  "drivers",
+                                                  "culprit"
+                                              ]
+                   }
+}

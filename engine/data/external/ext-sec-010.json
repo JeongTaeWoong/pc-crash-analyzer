@@ -1,0 +1,39 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-010",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "scope":  "unknown",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "나우콤의 피디박스, 클럽박스",
+                      "안철수연구소의 핵실드를 사용하는 게임"
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://gameguardfaq.nprotect.com/con_06.html",
+                       "site":  "gameguardfaq.nprotect.com",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "Programs listed by the vendor as unable to run alongside GameGuard (error 500)",
+                       "what_fixed_it":  "Page steps are in images not retrievable as text; page recommends a full PC scan",
+                       "category_reported":  "anticheat",
+                       "program":  "nProtect GameGuard",
+                       "conflict_with":  "Nowcom PD Box and Club Box; games using AhnLab HackShield",
+                       "mechanism":  "other",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "게임가드와 동시에 실행시킬 수 없는 프로그램이 발견되었습니다.",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "exact_fix_steps (images)",
+                                                  "mechanism_not_stated"
+                                              ]
+                   }
+}

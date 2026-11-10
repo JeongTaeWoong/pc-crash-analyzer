@@ -1,0 +1,63 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-033",
+    "marked_at":  "2021-02-03T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey",
+                    "event_id":  41
+                },
+    "host":  {
+                 "os":  "Windows 10 (forum section only)"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "change_history":  [
+                           {
+                               "kind":  "bios_update",
+                               "subject":  "BIOS updated"
+                           },
+                           {
+                               "kind":  "hardware_replacement",
+                               "subject":  "new CPU"
+                           }
+                       ],
+    "events":  [
+                   {
+                       "id":  41,
+                       "subject":  "category 63; BugCheckCode 0; no BSOD"
+                   },
+                   {
+                       "id":  6008,
+                       "subject":  "The previous system shutdown at XX on XX was unexpected."
+                   },
+                   {
+                       "id":  65,
+                       "subject":  "Failed with 0x57 retrieving AppModel Runtime status for package Windows."
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.tomshardware.com/threads/pc-restarts-with-error-id-41-bugcheckcode-0-no-bsod.3685133/",
+                       "site":  "Tom\u0027s Hardware Forum",
+                       "posted_date":  "Feb 3, 2021",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Feb 25, 2021: \u0027looks like a new CPU fixed the problem as my PC ran Mersenne for 4 hours without an issue.\u0027",
+                       "category_reported":  "other",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Critical event 41, followed by error event 6008 (The previous system shutdown at XX on XX was unexpected.) | Failed with 0x57 retrieving AppModel Runtime status for package Windows.",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events.provider",
+                                                  "minidumps",
+                                                  "modules",
+                                                  "drivers",
+                                                  "culprit"
+                                              ]
+                   }
+}

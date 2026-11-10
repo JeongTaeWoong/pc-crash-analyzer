@@ -1,0 +1,45 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-004",
+    "marked_at":  "2025-11-14T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "target_process":  "PUBG",
+                    "scope":  "unknown",
+                    "faulting_modules":  [
+                                             "BEDaisy.sys"
+                                         ]
+                },
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "BEDaisy.sys",
+                          "bugcheck":  "SYSTEM_SERVICE_EXCEPTION"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://steamcommunity.com/app/1172710/discussions/0/546746241084651807/?ctp=3",
+                       "site":  "Steam Community",
+                       "posted_date":  "14 Nov 2025",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Post #37, by a poster other than the topic starter, about their own PC: \u0027tried another older version of the gpu driver and VOILA! It started and have no issues for now!\u0027 Version not given.",
+                       "category_reported":  "anticheat",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "BEDaisy.sys with a SYSTEM_SERVICE_EXCEPTION",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "events",
+                                                  "modules",
+                                                  "drivers",
+                                                  "change_history",
+                                                  "culprit"
+                                              ]
+                   }
+}

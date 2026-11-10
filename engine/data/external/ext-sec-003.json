@@ -1,0 +1,63 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-003",
+    "marked_at":  "2025-06-12T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 11 24H2"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "target_process":  "Fortnite (named among games)",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "ntoskrnl.exe or EasyAntiCheat_EOS.exe (as reported by customers, per article)"
+                                         ]
+                },
+    "processes":  [
+                      "EasyAntiCheat_EOS.exe"
+                  ],
+    "change_history":  [
+                           {
+                               "kind":  "windows_update",
+                               "subject":  "KB5060842"
+                           },
+                           {
+                               "kind":  "windows_update_fix",
+                               "subject":  "KB5063060",
+                               "version":  "26100.4351"
+                           }
+                       ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "ntoskrnl.exe or EasyAntiCheat_EOS.exe (as reported by customers, per article)",
+                          "bugcheck":  "IRQL_NOT_LESS_OR_EQUAL"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.bleepingcomputer.com/news/microsoft/windows-11-24h2-emergency-update-fixes-easy-anti-cheat-bsod-issue/",
+                       "site":  "bleepingcomputer.com",
+                       "posted_date":  "2025-06-12",
+                       "grade":  "C",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "KB5063060 out-of-band update (Microsoft statement relayed by article)",
+                       "category_reported":  "anticheat",
+                       "program":  "Easy Anti-Cheat",
+                       "conflict_with":  "KB5060842 (June 2025 Patch Tuesday cumulative update for Windows 11 24H2)",
+                       "mechanism":  "other",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Windows might restart unexpectedly when opening games that use the Easy Anti-Cheat service.",
+                       "absent_from_source":  [
+                                                  "bugcheck_hex_code",
+                                                  "eac_version",
+                                                  "mechanism_not_stated"
+                                              ]
+                   }
+}

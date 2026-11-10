@@ -1,0 +1,52 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-un-02",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "scope":  "single_app",
+                    "target_process":  ""
+                },
+    "modules":  [
+                    {
+                        "name":  "nvwgf2umx"
+                    },
+                    {
+                        "name":  "nvoglv64"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "app_version",
+                               "subject":  "Unity",
+                               "version":  "6.7.X"
+                           }
+                       ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://issuetracker.unity.com/issues/24370/recurring-crash-related-to-nvidia-drivers-nvwgf2umx-nvoglv64",
+                       "site":  "issuetracker.unity.com",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "NVIDIA drivers, per Unity resolution note",
+                       "what_fixed_it":  "UUM-150919 closed as Third Party Issue; no fix stated.",
+                       "category_reported":  "gpu_driver",
+                       "program":  "Unity",
+                       "conflict_with":  "NVIDIA driver DLLs nvwgf2umx and nvoglv64",
+                       "mechanism":  "M4",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "Our investigation indicates the issue originates from NVIDIA drivers, rather than Unity itself.",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "os",
+                                                  "driver version",
+                                                  "exception code",
+                                                  "reproduction steps"
+                                              ]
+                   }
+}

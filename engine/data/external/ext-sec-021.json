@@ -1,0 +1,45 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-021",
+    "marked_at":  "2025-12-07T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "slow",
+                    "target_process":  "Delta Force (三角洲) and \u0027瓦\u0027 (title abbreviation as written)",
+                    "scope":  "single_app"
+                },
+    "processes":  [
+                      "SGuard64.exe"
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.cnblogs.com/ChenAI-TGF/p/19318828",
+                       "site":  "cnblogs.com",
+                       "posted_date":  "2025-12-07",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "category_reported":  "anticheat",
+                       "program":  "Tencent ACE (SGuard64.exe)",
+                       "mechanism":  "background_service",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "SGuard64.exe (ACE related)",
+                                                 "metric":  "disk reads",
+                                                 "value":  "about 3-4 MB per second; over 2.5 GB in half an hour",
+                                                 "condition":  "Author\u0027s own test, as stated in the article; date of measurement not stated"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "每秒读操作可达 3-4 兆 / 半小时读取量超 2.5G",
+                       "absent_from_source":  [
+                                                  "cpu_percent",
+                                                  "test_setup",
+                                                  "official_statement"
+                                              ]
+                   }
+}

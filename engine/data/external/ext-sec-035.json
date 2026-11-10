@@ -1,0 +1,46 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-035",
+    "marked_at":  "2020-03-18T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "slow",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "Anysign (애니사인)"
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.clien.net/service/board/park/14726717",
+                       "site":  "clien.net",
+                       "posted_date":  "2020-03-18",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "AnySign (poster\u0027s attribution)",
+                       "category_reported":  "fin_security",
+                       "program":  "AnySign",
+                       "mechanism":  "background_service",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "Anysign",
+                                                 "metric":  "CPU",
+                                                 "value":  "100% (per title and screenshot); one commenter reports spikes to 100% about every 10 seconds",
+                                                 "condition":  "Poster reports ongoing use with Hangul document work; no banking at the time"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Anysign 계속 CPU 100% 사용중이네요.",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "anysign_version",
+                                                  "no_confirmed_fix"
+                                              ]
+                   }
+}

@@ -1,0 +1,40 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-012",
+    "marked_at":  "2021-04-28T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "scope":  "unknown",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "RGB Plus (Thermaltake)"
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.igorslab.de/en/battleye-and-easy-anti-cheat-rgb-control-software-causes-anew-bans-and-accounts-blocks-that-make-games-worthless/",
+                       "site":  "igorslab.de",
+                       "posted_date":  "2021-04-28",
+                       "grade":  "C",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "RGB Plus software from Thermaltake (alleged trigger per the article)",
+                       "category_reported":  "peripheral_driver",
+                       "program":  "Easy Anti-Cheat / BattlEye",
+                       "conflict_with":  "RGB Plus software from Thermaltake (others \u0027up to Asus and MSI\u0027 mentioned without naming software)",
+                       "mechanism":  "M2",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "The alleged cheat trigger here was the RGB Plus software from Thermaltake.",
+                       "absent_from_source":  [
+                                                  "symptom_is_ban_or_account_block_not_crash",
+                                                  "no_statement_from_BattlEye_or_EAC",
+                                                  "driver_names",
+                                                  "no_fix_stated"
+                                              ]
+                   }
+}

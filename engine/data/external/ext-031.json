@@ -1,0 +1,45 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-031",
+    "marked_at":  "2018-10-08T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey",
+                    "event_id":  2004
+                },
+    "symptom":  {
+                    "type":  "slow",
+                    "target_process":  "sqlservr.exe",
+                    "scope":  "unknown"
+                },
+    "events":  [
+                   {
+                       "provider":  "Microsoft-Windows-Resource-Exhaustion-Detector",
+                       "id":  2004,
+                       "subject":  "sqlservr.exe (2303) consumed 129733837434 bytes, ReportingServicesService.exe (17805) consumed 6491374460 bytes, and msmdsrv.exe (1643) consumed 2905451451 bytes"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://blog.sqlauthority.com/2018/10/08/sql-server-event-id-2004-resource-exhaustion-diagnosis-events/",
+                       "site":  "SQL Authority blog",
+                       "posted_date":  "October 8, 2018",
+                       "grade":  "C",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "true",
+                       "label_withheld":  "true",
+                       "culprit_reported":  "McAfee Host Intrusion Prevention (Host IPS), per author",
+                       "what_fixed_it":  "Author, describing a client case: \u0027Once they applied the latest version of Host IPS, the issue was resolved, and we did not see those messages again.\u0027",
+                       "category_reported":  "app_memory",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: sqlservr.exe (2303) consumed 129733837434 bytes, ReportingServicesService.exe (17805) consumed 6491374460 bytes, and msmdsrv.exe (1643) consumed 2905451451 bytes.",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "symptom_type",
+                                                  "minidumps",
+                                                  "modules",
+                                                  "drivers",
+                                                  "change_history"
+                                              ]
+                   }
+}

@@ -1,0 +1,53 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-016",
+    "marked_at":  "2025-06-30T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 11 24H2"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "target_process":  "War Thunder",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "BEDaisy.sys (per WinDbg analysis, as stated)"
+                                         ]
+                },
+    "drivers":  [
+                    {
+                        "name":  "BEDaisy.sys"
+                    }
+                ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "BEDaisy.sys (per WinDbg analysis, as stated)",
+                          "bugcheck":  "ATTEMPT_TO_WRITE_READONLY_MEMORY (0xBE per a later reply)"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forum.warthunder.com/t/consistent-bsod-due-to-bedaisy-sys-battleeye/248241",
+                       "site":  "forum.warthunder.com",
+                       "posted_date":  "2025-06-30",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "BEDaisy.sys (per poster\u0027s WinDbg analysis)",
+                       "category_reported":  "anticheat",
+                       "program":  "BattlEye",
+                       "mechanism":  "M2",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "ATTEMPT_TO_WRITE_READONLY_MEMORY",
+                       "absent_from_source":  [
+                                                  "driver_version",
+                                                  "fix_confirmed_by_original_poster",
+                                                  "later_replies_also_cite_0x50_bugcheck_not_original_poster"
+                                              ]
+                   }
+}

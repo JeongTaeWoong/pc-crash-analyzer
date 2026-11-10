@@ -1,0 +1,60 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-dr-01",
+    "marked_at":  "2025-04-11T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 11 (22H2)"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "unknown",
+                    "faulting_modules":  [
+                                             "dxgmms2.sys"
+                                         ],
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "NVIDIA Studio Driver (RTX 5070 12GB)",
+                        "version":  "572.83"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "app_version",
+                               "subject":  "DaVinci Resolve Studio Beta",
+                               "version":  "20.0.0.23"
+                           }
+                       ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "dxgmms2.sys",
+                          "bugcheck":  "SYSTEM_THREAD_EXCEPTION_NOT_HANDLED (7e)"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.developer.nvidia.com/t/bsod-7e-in-resolve-studio-beta-suspected-dxgmms2-sys-directx-issue-impacting-nvidia-gpu/330106",
+                       "site":  "forums.developer.nvidia.com",
+                       "posted_date":  "2025-04-11",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "category_reported":  "gpu_driver",
+                       "program":  "DaVinci Resolve",
+                       "mechanism":  "M4",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "The crashes are presenting as a SYSTEM_THREAD_EXCEPTION_NOT_HANDLED (7e) error",
+                       "absent_from_source":  [
+                                                  "resolution",
+                                                  "NVIDIA representative reply: none",
+                                                  "culprit"
+                                              ]
+                   }
+}

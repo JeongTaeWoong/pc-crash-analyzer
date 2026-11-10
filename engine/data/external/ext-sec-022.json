@@ -1,0 +1,47 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-022",
+    "marked_at":  "2025-10-17T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 7"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "bugcheck":  "0x000000C2 (BAD_POOL_CALLER)"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.kmib.co.kr/article/view.asp?arcid=0028840121",
+                       "site":  "kmib.co.kr (국민일보)",
+                       "posted_date":  "2025-10-17",
+                       "grade":  "C",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "nProtect Online Security v1.0 (presumed, per PC maintenance firm)",
+                       "what_fixed_it":  "PC maintenance firm advises removing nProtect in Safe Mode via Control Panel, rebooting, and optionally running sfc /scannow; firm says it mostly restores normal boot",
+                       "category_reported":  "fin_security",
+                       "program":  "nProtect Online Security v1.0",
+                       "conflict_with":  "Windows 7",
+                       "mechanism":  "other",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "보안 프로그램 ‘nProtect Online Security v1.0’이 윈도우7 커널과 충돌한 것이 원인으로 보인다",
+                       "absent_from_source":  [
+                                                  "vendor_statement_INCA",
+                                                  "faulting_module_named",
+                                                  "driver_name",
+                                                  "update_version"
+                                              ]
+                   }
+}

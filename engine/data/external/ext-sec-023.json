@@ -1,0 +1,45 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-023",
+    "marked_at":  "2021-01-31T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "slow",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "AnySign for PC_interfase (as printed)"
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.ddaily.co.kr/page/view/2021013113401237049",
+                       "site":  "ddaily.co.kr (디지털데일리)",
+                       "posted_date":  "2021-01-31",
+                       "grade":  "C",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "Resident security programs running outside the sites that need them (article statement)",
+                       "category_reported":  "fin_security",
+                       "program":  "Installed web security programs (AnySign for PC named)",
+                       "mechanism":  "background_service",
+                       "evidence_kind":  "vendor_statement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "security programs auto-starting with Windows",
+                                                 "metric":  "count on poorly maintained PCs",
+                                                 "value":  "수십개 이상 (dozens or more), described as common by the article",
+                                                 "condition":  "Inspecting PCs not maintained; no measurement method stated"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "이렇게 설치된 보안 프로그램 다수는 해당 웹사이트 이용을 하지 않을 때도 동작해 컴퓨터의 리소스를 차지하는 경우가 다수다.",
+                       "absent_from_source":  [
+                                                  "measured_cpu_or_memory",
+                                                  "version"
+                                              ]
+                   }
+}

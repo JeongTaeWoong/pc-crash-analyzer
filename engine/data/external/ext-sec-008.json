@@ -1,0 +1,44 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-008",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "scope":  "unknown",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "MSI Dragon Center",
+                      "MSI SDK"
+                  ],
+    "ground_truth":  {
+                         "layer":  "SW",
+                         "category":  "other_sw"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.battleye.com/support/faq/",
+                       "site":  "battleye.com",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "MSI Dragon Center / MSI SDK (linked by vendor to Corrupted Memory #0)",
+                       "what_fixed_it":  "Vendor FAQ: uninstall MSI Dragon Center and MSI SDK and reboot; updating to Windows 10 version 2004 or higher may also help",
+                       "category_reported":  "other_sw",
+                       "program":  "BattlEye",
+                       "conflict_with":  "MSI Dragon Center and MSI SDK",
+                       "mechanism":  "other",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "BattlEye detects that your game\u0027s or system\u0027s memory is not what it is supposed to be.",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "symptom_beyond_Corrupted_Memory_#0_error",
+                                                  "mechanism_not_stated",
+                                                  "driver_names"
+                                              ]
+                   }
+}

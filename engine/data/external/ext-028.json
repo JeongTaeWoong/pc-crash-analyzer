@@ -1,0 +1,66 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-028",
+    "marked_at":  "2016-10-03T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system",
+                    "event_id":  37
+                },
+    "host":  {
+                 "os":  "Windows 7"
+             },
+    "symptom":  {
+                    "type":  "freeze",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "change_history":  [
+                           {
+                               "kind":  "hardware_replacement",
+                               "subject":  "Samsung 128GB SSD; replaced HDD; DVD drive removed; replaced USB/power connector board"
+                           }
+                       ],
+    "events":  [
+                   {
+                       "provider":  "kernel processor power",
+                       "id":  37,
+                       "subject":  "the speed of the CPU is limited by the system firmware"
+                   },
+                   {
+                       "provider":  "WHEA logger",
+                       "id":  19,
+                       "subject":  "processor core, exception when checking the computer, unkonwn error"
+                   },
+                   {
+                       "provider":  "WHEA logger",
+                       "id":  18,
+                       "subject":  "processor core, critical hardware failure, unknown error"
+                   },
+                   {
+                       "provider":  "HAL",
+                       "id":  12,
+                       "subject":  "memory was damaged by the system firmware"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/2726429/event-ids-whea-logger-18-19-hal-12-kernel-processo",
+                       "site":  "Microsoft Q\u0026A",
+                       "posted_date":  "2016-10-03",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Question body: \u0027Then I removed the battery from the notebook and inserted it again and shutting down, ... do not freeze anymore.\u0027 Poster adds: \u0027because of the event logs I fear there is a bigger problem which will come back soon.\u0027",
+                       "category_reported":  "power",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "the speed of the CPU is limited by the system firmware | processor core, exception when checking the computer, unkonwn error | processor core, critical hardware failure, unknown error | memory was damaged by the system firmware",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "minidumps",
+                                                  "modules",
+                                                  "drivers",
+                                                  "culprit"
+                                              ]
+                   }
+}

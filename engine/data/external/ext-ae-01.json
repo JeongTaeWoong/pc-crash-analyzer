@@ -1,0 +1,52 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-ae-01",
+    "marked_at":  "2025-08-22T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "scope":  "single_app",
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "NVIDIA Studio driver (participant\u0027s suggested rollback)",
+                        "version":  "572.83 or 572.60"
+                    }
+                ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://community.adobe.com/t5/after-effects-discussions/multi-frame-rendering-crashes-on-my-pc-i-have-a-rtx-5090/m-p/15471344",
+                       "site":  "community.adobe.com",
+                       "posted_date":  "2025-08-22",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Not confirmed. A participant reported a rollback to Studio 572.83 or 572.60 after DDU fixed AE on a 5090; the poster did not confirm.",
+                       "category_reported":  "gpu_driver",
+                       "program":  "After Effects",
+                       "mechanism":  "gpu_memory",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "After Effects",
+                                                 "metric":  "frames rendered before stall",
+                                                 "value":  "about 10",
+                                                 "condition":  "Multi-Frame Rendering on, NVIDIA RTX 5090"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Multi frame rendering now crashes consitently on my PC, tells me that my gpu runs out of ram.",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "After Effects version",
+                                                  "driver version",
+                                                  "exact error text",
+                                                  "faulting module",
+                                                  "Adobe-labeled staff reply"
+                                              ]
+                   }
+}

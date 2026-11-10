@@ -1,0 +1,53 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-017",
+    "marked_at":  "2015-09-29T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "target_process":  "bf4.exe",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "RTSSHooks64.dll"
+                                         ]
+                },
+    "modules":  [
+                    {
+                        "process":  "bf4.exe",
+                        "name":  "RTSSHooks64.dll",
+                        "version":  "0.0.0.0"
+                    }
+                ],
+    "events":  [
+                   {
+                       "subject":  "bf4.exe",
+                       "faulting_module":  "RTSSHooks64.dll",
+                       "exception_code":  "c0000094"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.guru3d.com/threads/rtsshooks64-dll.402806/",
+                       "site":  "Guru3D Forums",
+                       "posted_date":  "Sep 29, 2015",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Post #7: Application detection level LOW, Custom Direct3D Support ON, OSD rendering mode VECTOR 2D: \u0027update : problem resolved\u0027. Post #8 (Oct 3, 2015): problem recurred in bf4 only; workaround \u0027go to origin and disable origin in game\u0027.",
+                       "category_reported":  "overlay",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "bf4.exe 1.5.2.34169 55d7db58 RTSSHooks64.dll 0.0.0.0 545f520f c0000094 0000000000012c1e",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "events.provider",
+                                                  "events.id",
+                                                  "minidumps",
+                                                  "drivers",
+                                                  "change_history",
+                                                  "culprit"
+                                              ]
+                   }
+}

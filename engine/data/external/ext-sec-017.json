@@ -1,0 +1,45 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-017",
+    "marked_at":  "2022-08-31T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows 11"
+             },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "xhunter1.sys"
+                    }
+                ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-ca/answers/questions/4333981/core-isolation-memory-integrity-(xhunter1-sys)",
+                       "site":  "learn.microsoft.com (Q\u0026A community)",
+                       "posted_date":  "2022-08-31",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "xhunter1.sys listed as incompatible driver",
+                       "category_reported":  "anticheat",
+                       "program":  "XIGNCODE3 (Wellbia xhunter1.sys)",
+                       "conflict_with":  "Windows Memory Integrity (HVCI)",
+                       "mechanism":  "M2",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "absent_from_source":  [
+                                                  "verbatim_excerpt (fetch tool gave no exact sentence)",
+                                                  "game_named",
+                                                  "driver_version",
+                                                  "no_confirmed_fix",
+                                                  "symptom_is_memory_integrity_will_not_enable_nearest_enum_chosen"
+                                              ]
+                   }
+}

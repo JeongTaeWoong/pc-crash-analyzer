@@ -1,0 +1,542 @@
+[
+  {
+    "id": "cpython-123321-readline-race",
+    "app": "CPython (official embeddable zip)",
+    "affected_version": "3.12.5 (last 3.12 release before the fix; issue labelled 3.12, 3.13, 3.14, reporter tested 3.12 and main)",
+    "download_url_official": "https://www.python.org/ftp/python/3.12.5/",
+    "download_asset": "python-3.12.5-embed-amd64.zip",
+    "fixed_in": "3.12.6 (2024-09-06, changelog lists gh-123321)",
+    "source_url": "https://github.com/python/cpython/issues/123321",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/python/cpython/commit/562ff73",
+    "repro_steps": [
+      "Save the issue's simplest reproducer as a .py file: import threading; def main(): def func(): input(); thread1 = threading.Thread(target=func); thread2 = threading.Thread(target=func); thread1.start(); thread2.start(); thread1.join(); thread2.join(); print(\"never\"); main()",
+      "Run it with python.exe so that two threads call input() at the same time.",
+      "Reporter's result for the original breakpoint() variant: \"The second breakpoint segfaults on Windows (==access violation).\""
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "Script is inline in the issue (comment of 2024-08-28)."
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": false,
+      "faulting_module": null,
+      "exception_code": "access violation (source wording; numeric code not stated)",
+      "detail": "Root cause placed in Parser/myreadline.c."
+    },
+    "crash_handler_risk": "Source mentions no handler. Not independently verified. Do not enable faulthandler (-X faulthandler) if you want the plain WER path.",
+    "mechanism": "app_bug",
+    "category": "app_memory",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Process-local memory-safety bug in a portable interpreter folder."
+    },
+    "verified_page_opened": true,
+    "notes": "Confirmation is via merged fix PRs and the changelog entry; no comment literally says 'confirmed'. It is a race, so allow a few runs. Inference, not from the source: stdin probably has to be a real console rather than redirected."
+  },
+  {
+    "id": "cpython-137934-ucrt-execve",
+    "app": "CPython (official embeddable zip), fault in Windows UCRT",
+    "affected_version": "Reporter tested 3.9 through 3.14.0rc2 (issue lists 3.10 to 3.15); any current build. 3.13.5 chosen here because its zip was confirmed.",
+    "download_url_official": "https://www.python.org/ftp/python/3.13.5/",
+    "download_asset": "python-3.13.5-embed-amd64.zip",
+    "fixed_in": null,
+    "source_url": "https://github.com/python/cpython/issues/137934",
+    "maintainer_confirmed": true,
+    "fix_commit_url": null,
+    "repro_steps": [
+      "Save: import os; prog = r\"C:\\Windows\\System32\\whoami.exe\"; os.execve(prog, [prog], os.environ)",
+      "Run it directly with the Python binary (the report says it does not reproduce via python.bat).",
+      "Use PowerShell as the parent shell: the report says PowerShell and the Visual Studio terminal crashed, while cmd.exe did not."
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "Three-line script inline in the issue."
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": false,
+      "faulting_module": "ucrtbase.dll (ucrtbased.dll on debug)",
+      "exception_code": "c0000005",
+      "detail": "Inside construct_environment_block<wchar_t>, reading past the end of the envp strings."
+    },
+    "crash_handler_risk": "Source mentions no handler. Not independently verified.",
+    "mechanism": "app_bug",
+    "category": "app_memory",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Only runs whoami.exe through a portable interpreter."
+    },
+    "verified_page_opened": true,
+    "notes": "No fix exists: closed not planned. zooba confirmed the C reproducer is independent of Python and pointed at Microsoft. Reporter calls it flaky and shell-dependent. Reported on Windows 10 and Server 2022/2025, not on Windows 11 or build 26300. Useful as a case where the faulting module is a system DLL rather than the app."
+  },
+  {
+    "id": "godot-98341-svg-jpeg-import",
+    "app": "Godot Engine editor (official zip)",
+    "affected_version": "4.3.stable and 4.4.dev3 (also 4.5-dev3 on Windows 10 per thread); 4.2.1 not affected",
+    "download_url_official": "https://godotengine.org/download/archive/4.3-stable/",
+    "download_asset": "https://downloads.godotengine.org/?version=4.3&flavor=stable&slug=win64.exe.zip&platform=windows.64",
+    "fixed_in": "4.5-dev4 (per reporter; milestone 4.5)",
+    "source_url": "https://github.com/godotengine/godot/issues/98341",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/godotengine/godot/commit/a8ece29adcf639305da073554be5cb1a7916b42b",
+    "repro_steps": [
+      "Open the minimal reproduction project in v4.3 or v4.4.dev3. Godot crashes during SVG import.",
+      "Contrast: open the same project in v4.2.1, which imports the SVG ignoring the image and writes import data to .godot.",
+      "Reopening in v4.3 then works because .godot exists; delete .godot and the crash returns."
+    ],
+    "needs_sample_file": {
+      "required": true,
+      "where": "svg-crash-example.zip attached to the issue (hand_with_reference_image.svg triggers it)."
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": false,
+      "faulting_module": null,
+      "exception_code": "segmentation fault (source wording)",
+      "detail": "Backtrace shows memmove called from jpeg_decoder::load_next_row in ThorVG's JPEG decoder."
+    },
+    "crash_handler_risk": "Godot installs its own handler that prints a backtrace. On current master (not the 4.3 source), the SEH variant ends with return EXCEPTION_CONTINUE_SEARCH (\"Pass the exception to the OS\") and the signal variant has no abort or _exit. No source states whether Event 1000 is written for official builds. Docs list --disable-crash-handler (\"Disable crash handler when supported by the platform code\"); launch with it to avoid depending on the handler.",
+    "mechanism": "app_bug",
+    "category": "app_memory",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Crash during file import inside a throwaway project folder."
+    },
+    "verified_page_opened": true,
+    "notes": "akien-mga could not reproduce on Linux and suspected a Windows-specific (possibly MinGW) problem, so this one is well suited to a Windows test PC. Fix is PR #104347, which replaced jpgd.h with libjpeg-turbo."
+  },
+  {
+    "id": "godot-91648-folder-rename-case",
+    "app": "Godot Engine editor (official zip)",
+    "affected_version": "4.3-dev6",
+    "download_url_official": "https://godotengine.org/download/archive/4.3-dev6/",
+    "download_asset": "https://downloads.godotengine.org/?version=4.3&flavor=dev6&slug=win64.exe.zip&platform=windows.64",
+    "fixed_in": "4.3 milestone (PR #91112 merged 2024-05-07; first build containing it not stated)",
+    "source_url": "https://github.com/godotengine/godot/issues/91648",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/godotengine/godot/commit/316c4d50d5d2e10c909bb101bcd4d6b472ebe688",
+    "repro_steps": [
+      "Create a fresh project.",
+      "Create a folder named \"OneSHots\".",
+      "Rename it through the context menu to \"OneShots\". Godot crashes."
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "None; reporter marked MRP as N/A."
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": false,
+      "faulting_module": null,
+      "exception_code": null,
+      "detail": "Backtrace: CowData<EditorFileSystemDirectory::FileInfo *>::_get_size, EditorFileSystemDirectory::get_file_count, FileSystemDock::_before_move."
+    },
+    "crash_handler_risk": "Same as godot-98341: own backtrace handler; launch with the documented --disable-crash-handler flag. No source states whether Event 1000 is written for official builds.",
+    "mechanism": "app_bug",
+    "category": "other",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Renames one empty folder inside a throwaway project."
+    },
+    "verified_page_opened": true,
+    "notes": "akien-mga: \"Doesn't seem to crash on Linux, possibly Windows specific.\" Reporter used Windows 11, GeForce 4080, Forward+."
+  },
+  {
+    "id": "ahk-alttabmenu-hotkey",
+    "app": "AutoHotkey v2 (official zip)",
+    "affected_version": "v2.0.20 through v2.0.29 (changelog: broken by v2.0.20, fixed in v2.0.30)",
+    "download_url_official": "https://www.autohotkey.com/download/2.0/",
+    "download_asset": "AutoHotkey_2.0.29.zip",
+    "fixed_in": "v2.0.30 (2026-10-09)",
+    "source_url": "https://www.autohotkey.com/docs/v2/ChangeLog.htm",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/AutoHotkey/AutoHotkey/commit/43e233e",
+    "repro_steps": [
+      "Create a script containing the changelog's hotkey: a & b::AltTabMenu",
+      "Run it with the 64-bit AutoHotkey exe from the zip.",
+      "Activate the hotkey (hold a, press b). Changelog: \"Fixed a & b::AltTabMenu and similar crashing the program when activated [broken by v2.0.20].\""
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "One-line script taken from the changelog text."
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": false,
+      "faulting_module": null,
+      "exception_code": null,
+      "detail": "Fix is one line in source/hook.cpp (bounds check on an AltTab action)."
+    },
+    "crash_handler_risk": "Sources mention no handler. Not independently verified.",
+    "mechanism": "app_bug",
+    "category": "input_util",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "User-mode script; the keyboard hook goes away with the process."
+    },
+    "verified_page_opened": true,
+    "notes": "The source is a changelog plus a commit, with no separate bug report. Activation keystrokes are my reading of the 'a & b' hotkey syntax. The only candidate here where an input-hook process is what crashes."
+  },
+  {
+    "id": "ahk-strget-no-length",
+    "app": "AutoHotkey v2 (official zip)",
+    "affected_version": "v2.0.20 (changelog: broken by v2.0.20, fixed in v2.0.21)",
+    "download_url_official": "https://www.autohotkey.com/download/2.0/",
+    "download_asset": "AutoHotkey_2.0.20.zip",
+    "fixed_in": "v2.0.21 (2026-02-09)",
+    "source_url": "https://www.autohotkey.com/docs/v2/ChangeLog.htm",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/AutoHotkey/AutoHotkey/commit/0460a7ed8ad1afb79e7580a262edc43cb86e9419",
+    "repro_steps": [
+      "Write a script that calls StrGet with an address and no length. Changelog: \"Fixed StrGet crashing when given an address and not a length. (Broken by v2.0.20)\"",
+      "Run it with the 64-bit AutoHotkey exe from the v2.0.20 zip."
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "No script is given in the source; the changelog sentence is the only description."
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": false,
+      "faulting_module": null,
+      "exception_code": null,
+      "detail": "Fix changes min(length, (size_t)INT_MAX) to min(length, INT_MAX) in source/lib/interop.cpp."
+    },
+    "crash_handler_risk": "Sources mention no handler. Not independently verified.",
+    "mechanism": "app_bug",
+    "category": "other",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Single user-mode script call in a portable exe."
+    },
+    "verified_page_opened": true,
+    "notes": "Exact script has to be written by you; use the address of a valid string so that the only fault is the bug itself."
+  },
+  {
+    "id": "npp-15144-column-editor",
+    "app": "Notepad++ (official portable zip)",
+    "affected_version": "v8.6.7",
+    "download_url_official": "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/tag/v8.6.7",
+    "download_asset": "npp.8.6.7.portable.x64.zip",
+    "fixed_in": "v8.6.8 (2024-06-04, changelog: \"Fix a crash in Column Editor caused by an arithmetic overflow. (Fix #15144)\")",
+    "source_url": "https://github.com/notepad-plus-plus/notepad-plus-plus/issues/15144",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/notepad-plus-plus/notepad-plus-plus/commit/d0e3a1a",
+    "repro_steps": [
+      "Select at least 28 lines in Column Mode, or multi-select at least 28 positions.",
+      "Open the Column Editor, choose \"Number to Insert\", set \"Increase by\" to 9999999, \"Repeat\" to 1, and \"Format\" to \"Hex\".",
+      "Press OK. A reporter: N++ \"simply disappears (closes); no crash box or other type of notification.\""
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "Any file with at least 28 lines."
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": false,
+      "faulting_module": null,
+      "exception_code": null,
+      "detail": "Changelog cause: arithmetic overflow in Column Editor."
+    },
+    "crash_handler_risk": "wWinMain (current master) installs a Win32Exception handler; its catch blocks show a message box, write a dump, and call doException, then the function returns normally, so a crash taken through that path would not produce Event 1000. The 'no crash box' report suggests this crash bypasses those blocks, but no source confirms Event 1000.",
+    "mechanism": "app_bug",
+    "category": "other",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Portable editor, unsaved scratch text only."
+    },
+    "verified_page_opened": true,
+    "notes": "Maintainer action is the 'accepted' label and the fix commit, with no written reply. Reported on Windows 10 Pro 1809."
+  },
+  {
+    "id": "npp-16207-regex-count-hang",
+    "app": "Notepad++ (official portable zip)",
+    "affected_version": "v8.7.7",
+    "download_url_official": "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/tag/v8.7.7",
+    "download_asset": "npp.8.7.7.portable.x64.zip",
+    "fixed_in": "v8.7.8 (changelog: \"Fix count operation on regex causing Notepad++ to hang. (Fix #16207)\")",
+    "source_url": "https://github.com/notepad-plus-plus/notepad-plus-plus/issues/16207",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/notepad-plus-plus/notepad-plus-plus/commit/a52738c1ddaad15fcc56c144402bda5139c13373",
+    "repro_steps": [
+      "Paste a└c into an empty Notepad++ tab.",
+      "Open Find, set Search Mode to Regular expression, and enter (?-i)\\u*(?=[^\\l]) in \"Find what\".",
+      "Click Count. Reporter: Notepad++ \"becomes unresponsive\"."
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "Three characters typed into a new tab."
+    },
+    "expected_signal": {
+      "event_id": 1002,
+      "event_id_stated_by_source": false,
+      "faulting_module": null,
+      "exception_code": null,
+      "detail": "Hang, not a fault. Mechanism: after a null match the position advances one byte into a multi-byte UTF-8 character."
+    },
+    "crash_handler_risk": "Not applicable to a hang. General Windows behaviour, not from the source: 1002 is typically written only when the hung window is closed through the not-responding flow, so close it that way rather than killing the process.",
+    "mechanism": "app_bug",
+    "category": "other",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Hang is confined to the portable editor."
+    },
+    "verified_page_opened": true,
+    "notes": "Neither the issue nor PR #16208 says whether the hang is permanent, so check that it lasts long enough for Windows to mark the window not responding."
+  },
+  {
+    "id": "npp-16316-hide-lines-hang",
+    "app": "Notepad++ (official portable zip)",
+    "affected_version": "v8.7.8",
+    "download_url_official": "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/tag/v8.7.8",
+    "download_asset": "npp.8.7.8.portable.x64.zip",
+    "fixed_in": "v8.8.2 (2025-06-30, changelog: \"Fix an unresponsive (hang) issue due to hide lines. (Fix #16316)\")",
+    "source_url": "https://github.com/notepad-plus-plus/notepad-plus-plus/issues/16316",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/notepad-plus-plus/notepad-plus-plus/commit/0f79a51",
+    "repro_steps": [
+      "Open or create a file.",
+      "Put the cursor on line 2 and use \"Hide Lines\".",
+      "Put the cursor on line 4 and use \"Hide Lines\" again.",
+      "Change the language from the Language menu, or switch to another tab and back. Report: the editor \"will become unresponsive\"."
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "Any file with at least 4 lines."
+    },
+    "expected_signal": {
+      "event_id": 1002,
+      "event_id_stated_by_source": false,
+      "faulting_module": null,
+      "exception_code": null,
+      "detail": "Hang, not a fault."
+    },
+    "crash_handler_risk": "Not applicable to a hang. See the 1002 note on npp-16207.",
+    "mechanism": "app_bug",
+    "category": "other",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Hang is confined to the portable editor."
+    },
+    "verified_page_opened": true,
+    "notes": "Reported on Windows 7 and confirmed by a second user on the same version. A later commenter saw no hang (lines unhid, markers stayed). Don HO: \"not reproducible in v8.8\", yet the changelog lists the fix under 8.8.2. Permanence of the hang is not stated."
+  },
+  {
+    "id": "winmerge-1160-regex-search",
+    "app": "WinMerge (official portable zip)",
+    "affected_version": null,
+    "download_url_official": "https://github.com/WinMerge/winmerge/releases/expanded_assets/v2.16.16",
+    "download_asset": "winmerge-2.16.16-x64-exe.zip",
+    "fixed_in": "v2.16.18 (January 2022, release notes: \"BugFix: WinMerge crashes with specific regex search (#1160)\")",
+    "source_url": "https://github.com/WinMerge/winmerge/issues/1160",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/WinMerge/winmerge/commit/f1da8c233568361f79ab5cf532bd7960fb3c2f6d",
+    "repro_steps": [
+      "Put this text in a compared file: TabIndex        =   0175~01234567890x / TabIndex        =   42 / TabIndex        =   053~01234567890x (three lines).",
+      "Search with regular expressions for: (TabIndex        =   )\\b0(?!9+~)|([0-9])(?=9*~[0-9]*?\\2([0-9]))|~[0-9]+x",
+      "Repeat the search if needed. Reporter: \"WinMerge crashes are the first or second search\" and \"the process immediately exits.\""
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "Regex and text are inline in the issue."
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": false,
+      "faulting_module": null,
+      "exception_code": null,
+      "detail": "Reporter states process exit with no error dialog."
+    },
+    "crash_handler_risk": "Reporter saw no dialog for this crash. No source confirms Event 1000.",
+    "mechanism": "app_bug",
+    "category": "other",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Portable app comparing scratch text."
+    },
+    "verified_page_opened": true,
+    "notes": "The issue does not state the affected version. v2.16.16 (Oct 2021) is simply the release I confirmed before the fix in v2.16.18, so test it first. sdottaka: \"This crash has been fixed in commit f1da8c2.\""
+  },
+  {
+    "id": "wt-20838-long-title",
+    "app": "Windows Terminal Preview (official x64 zip)",
+    "affected_version": "1.26.2734.0 (reported on Windows build 10.0.26300.0)",
+    "download_url_official": "https://github.com/microsoft/terminal/releases/expanded_assets/v1.26.2734.0",
+    "download_asset": "Microsoft.WindowsTerminalPreview_1.26.2734.0_x64.zip",
+    "fixed_in": null,
+    "source_url": "https://github.com/microsoft/terminal/issues/20838",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/microsoft/terminal/pull/20839",
+    "repro_steps": [
+      "Run it in Ubuntu WSL: echo -ne \"\\033]0;$(tr -dc 'a-zA-Z0-9' < /dev/urandom | head -c 10000000; echo)\\007\"",
+      "Reporter: \"It crashes the whole terminal with all your tabs.\""
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "One-line command inline in the issue."
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": false,
+      "faulting_module": null,
+      "exception_code": null,
+      "detail": "Source names neither the process nor the exception."
+    },
+    "crash_handler_risk": "Source mentions no handler. Sibling issue wt-19667 quotes real Event Log fields for WindowsTerminal.exe, which suggests crashes do reach WER.",
+    "mechanism": "app_bug",
+    "category": "other",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "A 10 MB string sent to a portable terminal; other sessions are unaffected."
+    },
+    "verified_page_opened": true,
+    "notes": "Only candidate reported on the test PC's exact OS build. The source uses WSL, which the test PC may not have without Hyper-V. Emitting the same OSC 0 sequence from another shell is an adaptation the source does not cover. Fix PR merged 2026-10-23 and marked for 1.25/1.26 servicing; the newest releases I saw are dated 02 Oct, so no fixed release is named. DHowett: \"Huh, I could have sworn we had something to prevent this.\""
+  },
+  {
+    "id": "wt-19667-click-padding",
+    "app": "Windows Terminal Preview (official x64 zip)",
+    "affected_version": "1.24.2682.0",
+    "download_url_official": "https://github.com/microsoft/terminal/releases/tag/v1.24.2682.0",
+    "download_asset": "Microsoft.WindowsTerminalPreview_1.24.2682.0_x64.zip",
+    "fixed_in": "PR #20442 is listed in the release notes of v1.26.2734.0, v1.25.2733.0 and v1.24.12741.0 (02 Oct)",
+    "source_url": "https://github.com/microsoft/terminal/issues/19667",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/microsoft/terminal/pull/20442",
+    "repro_steps": [
+      "\"Try clicking on the left padding of the terminal tab client area on the very next line after the line with the input cursor.\"",
+      "The right padding also reproduces it, \"but looks like only when on the same line as the input cursor.\"",
+      "Reporter: reproduced \"within 1-3 mouse clicks\"."
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "None."
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": true,
+      "faulting_module": "Windows.UI.Xaml.dll (process WindowsTerminal.exe, fault offset 0x00000000009062f4)",
+      "exception_code": "0xc000027b",
+      "detail": "Failing check in textBufferCellIterator.cpp line 45, HRESULT 0x80070057, via ControlCore::_repositionCursorWithMouse."
+    },
+    "crash_handler_risk": "Low: the report quotes real Event Log fields, so this crash reached WER on the reporter's machine.",
+    "mechanism": "app_bug",
+    "category": "other",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Mouse clicks in a portable terminal."
+    },
+    "verified_page_opened": true,
+    "notes": "Open question: DHowett blames \"the experimental 'reposition cursor with mouse click' feature\", but the report never names the setting or says it must be enabled. It is probably opt-in, so check the app's own settings first. Leonard Hecker could not reproduce it initially. Reported on build 27950. A good test of the case where the faulting module is a framework DLL."
+  },
+  {
+    "id": "krita-491665-paste-after-restart",
+    "app": "Krita (official portable zip)",
+    "affected_version": "5.2.3 (confirmed by developer; 5.3.x safe-asserts and pastes an empty layer instead)",
+    "download_url_official": "https://download.kde.org/Attic/krita/5.2.3/",
+    "download_asset": "krita-x64-5.2.3.zip",
+    "fixed_in": null,
+    "source_url": "https://bugs.kde.org/show_bug.cgi?id=491665",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://invent.kde.org/graphics/krita/-/commit/ad17230749bc1e73a9365f9c2939445f91718971",
+    "repro_steps": [
+      "Copy bitmap content or any layer in Krita.",
+      "Close Krita.",
+      "Reopen Krita.",
+      "Paste. Summary: \"Crash when pasting content from clipboard after reopening Krita\"."
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "Any new document."
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": false,
+      "faulting_module": null,
+      "exception_code": null,
+      "detail": "Freya Lupen: \"it doesn't store the layer data itself, but a pointer to it, which is no longer valid when Krita is closed.\""
+    },
+    "crash_handler_risk": "Source does not say whether a dialog appears or how the process ends, and gives no crash log. Krita's own crash handling was not verified.",
+    "mechanism": "app_bug",
+    "category": "app_memory",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Portable app; only overwrites clipboard contents."
+    },
+    "verified_page_opened": true,
+    "notes": "Fix was pushed to the krita/5.2 branch on 2024-09-03; the 'Version Fixed' field is blank, so no fixed release is named."
+  },
+  {
+    "id": "electron-42975-window-destroy",
+    "app": "Electron (official zip) with reporter's gist",
+    "affected_version": ">=v31.0.0; tested on v31.0.0, v31.2.1, v32.0.0-alpha.10. Last known working v30.3.0",
+    "download_url_official": "https://github.com/electron/electron/releases/expanded_assets/v31.2.1",
+    "download_asset": "electron-v31.2.1-win32-x64.zip",
+    "fixed_in": null,
+    "source_url": "https://github.com/electron/electron/issues/42975",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/electron/electron/pull/43033",
+    "repro_steps": [
+      "Get the gist's files (index.html, main.js, package.json, preload.js, renderer.js, styles.css).",
+      "Run the app with Electron v31.2.1.",
+      "\"To reproduce, click the menu item then manually close the window that appears.\""
+    ],
+    "needs_sample_file": {
+      "required": true,
+      "where": "https://gist.github.com/Araxeus/4e80b05c8bce61a5fe709eec1e969f2b"
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": false,
+      "faulting_module": null,
+      "exception_code": "EXCEPTION_ACCESS_VIOLATION; log says \"Electron exited with code 3221226525\" (0xC000041D by my conversion)",
+      "detail": "Top frame is a V8 compiler symbol; no single faulting module is named."
+    },
+    "crash_handler_risk": "The gist has no crashReporter.start. The docs imply Crashpad runs only after that call, so WER should see this, but neither source confirms it.",
+    "mechanism": "app_bug",
+    "category": "app_memory",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Sample app from a gist in a portable runtime; read the gist before running it."
+    },
+    "verified_page_opened": true,
+    "notes": "Weak ground truth for the fix: codebytere (status/confirmed) closed it with PR #43033, a macOS view-hierarchy revert, and the reporter's question about Windows went unanswered. PR #44628, which later listed this issue as closed, is also macOS-specific. The exact fixed version is not stated. The source does not describe running from the zip."
+  },
+  {
+    "id": "obs-9719-update-channel",
+    "app": "OBS Studio (official zip)",
+    "affected_version": "30.0.0-rc1",
+    "download_url_official": "https://github.com/obsproject/obs-studio/releases/expanded_assets/30.0.0-rc1",
+    "download_asset": "OBS-Studio-30.0-rc1.zip",
+    "fixed_in": null,
+    "source_url": "https://github.com/obsproject/obs-studio/issues/9719",
+    "maintainer_confirmed": true,
+    "fix_commit_url": "https://github.com/obsproject/obs-studio/pull/9721",
+    "repro_steps": [
+      "Open OBS freshly.",
+      "\"Switch update channel from beta to stable\"",
+      "\"Obs crashes after 3 secs.\""
+    ],
+    "needs_sample_file": {
+      "required": false,
+      "where": "None."
+    },
+    "expected_signal": {
+      "event_id": 1000,
+      "event_id_stated_by_source": true,
+      "faulting_module": "obs64.exe 30.0.0.0 (fault offset 0x0000000000236339)",
+      "exception_code": "0xc0000005",
+      "detail": "WinDbg: obs64!AutoUpdateThread::run+0xea9. PR #9721: add missing NULL check for the skipUpdateVer config value."
+    },
+    "crash_handler_risk": "On master, OBS's exception_handler calls bcrash and then returns EXCEPTION_CONTINUE_SEARCH. The reporter's Windows error report shows the crash reached WER, and the OBS crash log directory was empty.",
+    "mechanism": "app_bug",
+    "category": "other",
+    "risk_to_pc": {
+      "level": "low",
+      "reason": "Portable folder; the update path may contact the OBS update server, and it could offer an update if it does not crash."
+    },
+    "verified_page_opened": true,
+    "notes": "Per the PR, the crash needs the SkipUpdateVersion config key to be absent, so use a fresh profile. Not verified: whether the zip build runs AutoUpdateThread at all (the report does not say installer or zip). Release page does not label the zip as x64. PR merged 2023-10-17; no fixed release is named."
+  }
+]

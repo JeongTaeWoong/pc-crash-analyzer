@@ -1,0 +1,55 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-001",
+    "marked_at":  "2025-06-11T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows 11 (OS Build 26100.4351)"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "Easy Anti-Cheat service"
+                  ],
+    "change_history":  [
+                           {
+                               "kind":  "windows_update",
+                               "subject":  "KB506842 (as written; link goes to KB5060842)"
+                           },
+                           {
+                               "kind":  "windows_update_fix",
+                               "subject":  "KB5063060 out-of-band",
+                               "version":  "26100.4351"
+                           }
+                       ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://support.microsoft.com/en-us/servicing/os/windows-11/2025/06/june-11-2025-kb5063060-os-build-26100-4351-out-of-band",
+                       "site":  "support.microsoft.com",
+                       "posted_date":  "2025-06-11",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "KB5063060 out-of-band update, delivered automatically via Windows Update and Microsoft Update to devices with Easy Anti-Cheat installed",
+                       "category_reported":  "anticheat",
+                       "program":  "Easy Anti-Cheat",
+                       "conflict_with":  "Windows update identified on the page as KB506842 (the linked page is KB5060842)",
+                       "mechanism":  "other",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "This update addresses an incompatibility issue where Windows might restart unexpectedly when opening games that use the Easy Anti-Cheat service.",
+                       "absent_from_source":  [
+                                                  "bugcheck",
+                                                  "faulting_module",
+                                                  "affected_hardware",
+                                                  "eac_version",
+                                                  "mechanism_not_stated"
+                                              ]
+                   }
+}

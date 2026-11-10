@@ -1,0 +1,67 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-ob-01",
+    "marked_at":  "2025-07-20T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "slow",
+                    "scope":  "single_app",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "Google Chrome"
+                  ],
+    "change_history":  [
+                           {
+                               "kind":  "app_version",
+                               "subject":  "OBS",
+                               "version":  "31.1.2 (one reply)"
+                           }
+                       ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://obsproject.com/forum/threads/obs-maxing-out-gpu-with-90-usage-from-capture-source.187675/",
+                       "site":  "obsproject.com",
+                       "posted_date":  "2025-07-20",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Temporary: restart the PC or reinstall/update the NVIDIA driver. Disabling Look-ahead and Adaptive Quantization helped one user. No moderator or OBS staff confirmation; removing all filters made no difference for the poster.",
+                       "category_reported":  "other_sw",
+                       "program":  "OBS",
+                       "conflict_with":  "Google Chrome, per the original poster; another user said closing Chrome did not help",
+                       "mechanism":  "other",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "OBS",
+                                                 "metric":  "GPU usage",
+                                                 "value":  "90%+ versus about 40% normally",
+                                                 "condition":  "capture source, original poster"
+                                             },
+                                             {
+                                                 "process":  "OBS",
+                                                 "metric":  "GPU usage",
+                                                 "value":  "about 90% versus about 45% normally",
+                                                 "condition":  "within about 2 days of uptime, Sept 2025 reply"
+                                             },
+                                             {
+                                                 "process":  "OBS",
+                                                 "metric":  "GPU usage",
+                                                 "value":  "40%+ down to under 20%",
+                                                 "condition":  "after disabling Look-ahead and Adaptive Quantization, Feb 2026 reply"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "The only way I know to currently fix it is by restarting the PC or reinstalling/updating my NVIDIA Driver.",
+                       "absent_from_source":  [
+                                                  "OS",
+                                                  "GPU model of the original poster",
+                                                  "driver version",
+                                                  "root cause"
+                                              ]
+                   }
+}

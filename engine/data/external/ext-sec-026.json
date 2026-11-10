@@ -1,0 +1,49 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-026",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "input_loss",
+                    "scope":  "unknown",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "AhnLab Safe Transaction (ASTx)",
+                      "TouchEn nxKey",
+                      "Veraport"
+                  ],
+    "security":  {
+                     "realtime_av":  [
+                                         "알약",
+                                         "트렌드 마이크로",
+                                         "McAFee",
+                                         "360 시큐리티",
+                                         "AVAST",
+                                         "AVG"
+                                     ]
+                 },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://banking.nonghyup.com/help_guide2.html?idx=1\u0026idx2=5",
+                       "site":  "banking.nonghyup.com",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Bank FAQ: add ASTx as an exception in the antivirus or temporarily remove the antivirus; unblock listed local ports (Veraport 16105, ASTx 55920, INISAFE 4441); remove Fasoo DRM then reinstall ASTx; contact keyboard maker for N-key rollover errors",
+                       "category_reported":  "fin_security",
+                       "program":  "농협 인터넷뱅킹 보안모듈 (TouchEn nxKey, AhnLab Safe Transaction ASTx, Veraport, INISAFE)",
+                       "conflict_with":  "알약, 트렌드 마이크로, McAFee, 360 시큐리티 (ASTx install failure); AVAST, McAfee, AVG (local ports); Fasoo DRM; Virus Chaser; some gaming or mechanical keyboards (N-key rollover)",
+                       "mechanism":  "keyboard_hook",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "안랩 방화벽 보안프로그램이 설치되지 않을 수 있습니다.",
+                       "absent_from_source":  [
+                                                  "posted_date (footer copyright 2014 only)",
+                                                  "slowdown_not_mentioned",
+                                                  "bsod_not_mentioned"
+                                              ]
+                   }
+}

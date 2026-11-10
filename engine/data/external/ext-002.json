@@ -1,0 +1,57 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-002",
+    "marked_at":  "2019-06-23T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 10 (mentioned in post)"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "ntoskrnl.exe"
+                                         ],
+                    "target_process":  ""
+                },
+    "modules":  [
+                    {
+                        "name":  "ntoskrnl.exe",
+                        "version":  "10.0.17763.557 (WinBuild.160101.0800)"
+                    }
+                ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "ntoskrnl.exe",
+                          "bugcheck":  "MEMORY_MANAGEMENT 0x0000001a"
+                      }
+                  ],
+    "ground_truth":  {
+                         "layer":  "HW",
+                         "category":  "memory"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.tomshardware.com/threads/bluescreen-memory-management.3492788/",
+                       "site":  "Tom\u0027s Hardware Forum",
+                       "posted_date":  "Jun 23, 2019",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "defective RAM (poster: \u0027fairly confident\u0027)",
+                       "what_fixed_it":  "Post #10: \u0027He installed two new sticks and took out the two old ones and Windows booted fine.\u0027",
+                       "category_reported":  "memory",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Bug Check String : MEMORY_MANAGEMENT | Bug Check Code : 0x0000001a | Parameter 1 : 00000000`00041792 | Caused By Driver : ntoskrnl.exe | Caused By Address : ntoskrnl.exe+1b3ef0",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events",
+                                                  "drivers",
+                                                  "change_history"
+                                              ]
+                   }
+}

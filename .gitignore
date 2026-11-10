@@ -27,3 +27,6 @@ participant/study.local.json
 *.private.pem
 study-inbox/
 study-decrypted/
+
+# 재현·성능 측정 산출물 (개인 PC 프로세스 이름 포함) — 커밋 금지
+collector/experiments/repro-runs/

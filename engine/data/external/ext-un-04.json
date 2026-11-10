@@ -1,0 +1,67 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-un-04",
+    "marked_at":  "2017-11-18T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows"
+             },
+    "symptom":  {
+                    "type":  "slow",
+                    "target_process":  "Unity.exe",
+                    "scope":  "single_app"
+                },
+    "processes":  [
+                      "Antimalware Service Executable",
+                      "Unity.exe"
+                  ],
+    "modules":  [
+                    {
+                        "process":  "Unity.exe",
+                        "name":  "Razer Chroma Unity Plugin"
+                    }
+                ],
+    "security":  {
+                     "realtime_av":  [
+                                         "Windows Defender"
+                                     ]
+                 },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://discussions.unity.com/threads/antimalware-service-executable-causing-editor-slowdown.505086/",
+                       "site":  "discussions.unity.com",
+                       "posted_date":  "2017-11-18",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Excluding Unity.exe from Defender reported sufficient by several posters (2018 and 2021); folder exclusion alone did not help the original poster; one poster found the Razer Chroma plugin caused most of the extra CPU.",
+                       "category_reported":  "antivirus",
+                       "program":  "Unity",
+                       "conflict_with":  "Windows Defender Realtime Protection; Razer Chroma Unity Plugin (one poster)",
+                       "mechanism":  "realtime_scan",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "Antimalware Service Executable",
+                                                 "metric":  "CPU",
+                                                 "value":  "about 25%",
+                                                 "condition":  "Realtime Protection spike, Unity 2017.1"
+                                             },
+                                             {
+                                                 "process":  "Antimalware Service Executable",
+                                                 "metric":  "CPU",
+                                                 "value":  "about 20%",
+                                                 "condition":  "Editor at about 1 fps on an empty project"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Disabling the real time protection is the same as adding an exception to every program in your computer.",
+                       "absent_from_source":  [
+                                                  "Windows version",
+                                                  "Unity staff reply: none"
+                                              ]
+                   }
+}

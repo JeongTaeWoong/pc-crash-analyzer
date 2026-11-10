@@ -1,0 +1,74 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-ps-02",
+    "marked_at":  "2026-06-16T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "OpenCLOn12.dll"
+                                         ],
+                    "target_process":  ""
+                },
+    "modules":  [
+                    {
+                        "name":  "OpenCLOn12.dll",
+                        "version":  "0.0.0.0"
+                    }
+                ],
+    "drivers":  [
+                    {
+                        "name":  "NVIDIA Studio driver"
+                    },
+                    {
+                        "name":  "Intel Arc B390 GPU driver"
+                    },
+                    {
+                        "name":  "AMD graphics driver"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "app_version",
+                               "subject":  "Photoshop",
+                               "version":  "27.7.0.11"
+                           },
+                           {
+                               "kind":  "component",
+                               "subject":  "Microsoft.D3DMappingLayers",
+                               "version":  "1.2606.3.0"
+                           }
+                       ],
+    "events":  [
+                   {
+                       "faulting_module":  "OpenCLOn12.dll",
+                       "exception_code":  "0xc0000409"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://community.adobe.com/questions-712/p-photoshop-v27-7-crashes-on-launch-measuring-memory-update-gpu-drivers-1628115",
+                       "site":  "community.adobe.com",
+                       "posted_date":  "2026-06-16",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Individual posters: graphics driver update (marked answer); uninstalling AMD drivers and using Windows Update drivers; switching display profile from Display P3 to AdobeRGB or sRGB. No Adobe-confirmed cause.",
+                       "category_reported":  "gpu_driver",
+                       "program":  "Photoshop",
+                       "mechanism":  "other",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Update your graphics card, it solved the problem for me.",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "event provider and id",
+                                                  "minidumps",
+                                                  "culprit: Adobe gave troubleshooting steps only"
+                                              ]
+                   }
+}

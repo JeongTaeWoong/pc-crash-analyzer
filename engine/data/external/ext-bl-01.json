@@ -1,0 +1,73 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-bl-01",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows"
+             },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "scope":  "single_app",
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "Intel graphics driver (known to fail)",
+                        "version":  "20.19.15.5126"
+                    },
+                    {
+                        "name":  "Intel graphics driver (known to fail)",
+                        "version":  "20.19.15.5144"
+                    },
+                    {
+                        "name":  "Intel graphics driver (known to fail)",
+                        "version":  "20.19.15.5166"
+                    },
+                    {
+                        "name":  "Intel graphics driver (known to fail)",
+                        "version":  "20.19.15.5171"
+                    },
+                    {
+                        "name":  "Intel graphics driver (known to work)",
+                        "version":  "20.19.15.4835"
+                    },
+                    {
+                        "name":  "Intel graphics driver (known to work)",
+                        "version":  "20.19.15.4963"
+                    },
+                    {
+                        "name":  "Intel graphics driver (known to work)",
+                        "version":  "20.19.15.5063"
+                    }
+                ],
+    "ground_truth":  {
+                         "layer":  "DRIVER",
+                         "category":  "gpu_driver"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://docs.blender.org/manual/en/latest/troubleshooting/gpu/windows/intel.html",
+                       "site":  "docs.blender.org",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "Latest Intel driver on 3rd, 4th or 5th gen iGPUs, per Blender manual",
+                       "what_fixed_it":  "Install a previous version of the driver; the manual lists known-good builds.",
+                       "category_reported":  "gpu_driver",
+                       "program":  "Blender",
+                       "conflict_with":  "Latest Intel driver on 3rd, 4th or 5th gen iGPUs",
+                       "mechanism":  "M4",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "When running on Intel 3rd, 4th or 5th gen iGPUs, the latest Intel driver will crash on startup.",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "faulting module",
+                                                  "exception code",
+                                                  "exact Windows version"
+                                              ]
+                   }
+}

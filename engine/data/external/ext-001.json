@@ -1,0 +1,50 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-001",
+    "marked_at":  "2023-04-25T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system",
+                    "event_id":  4101
+                },
+    "host":  {
+                 "os":  "Windows 10 (page tag only)"
+             },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "scope":  "multiple_apps",
+                    "target_process":  ""
+                },
+    "events":  [
+                   {
+                       "provider":  "Display",
+                       "id":  4101,
+                       "subject":  "nvlddmkm"
+                   }
+               ],
+    "ground_truth":  {
+                         "layer":  "HW",
+                         "category":  "memory"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/4155833/fixed-nvlddmkm-gaming-video-crash-error-bad-ram",
+                       "site":  "Microsoft Q\u0026A",
+                       "posted_date":  "2023-04-25T09:01:31+00:00",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "faulty DIMM",
+                       "what_fixed_it":  "Original post: \u0027Removing the faulty DIMM solved the issue.\u0027 Re-inserting it brought the errors back; two new DIMMs bought, \u0027has never re-occurred 6-months later\u0027.",
+                       "category_reported":  "memory",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Display driver nvlddmkm stopped responding and successfully recovered. | Unreal Engine is exiting due to D3D device being lost",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "minidumps",
+                                                  "modules",
+                                                  "drivers",
+                                                  "change_history"
+                                              ]
+                   }
+}

@@ -25,6 +25,7 @@
 | **M4 GPU 드라이버 버전·TDR** | 특정 드라이버 범위에서 앱 크래시 또는 디스플레이 드라이버 재시작 | Adobe 공식: Premiere 15.2/AE 18.2가 NVIDIA 441.08–451.67 범위에서 크래시 [10]; Blender 공식 매뉴얼: 드라이버 갱신·클린 설치가 1차 조치 [11] | 4101(디스플레이 드라이버 응답 중지) 트리거 + `drivers.json` 버전 + GPU 센서(온도·클럭) — **4101 트리거 구현됨, 실수신 미확인** |
 
 이 PC에서 10/28 측정된 **M3의 실사례**가 이미 하나 있다: 금융보안 상주물(SignKoreaWD·Goji·SKBspmtmon)이 유휴 시 CPU 13–22%
+(**11/10 정정:** 논리 CPU 1개 기준이라 PC 전체로는 각 0.8~1.4%. SKBspmtmon은 통신사 속도 측정이라 금융 보안이 아니다 — `post-midterm-plan.md` 2절)
 (`post-midterm-plan.md` 2절). 이것이 12/11 "느려짐 진단 시연" 후보다.
 
 ---
@@ -183,7 +184,7 @@ case-<id>/
 [9] Microsoft Learn, "Dev Drive" (Defender 성능 모드) — https://learn.microsoft.com/windows/dev-drive/
 [10] Adobe Help, "Crash in Premiere Pro 15.2 and After Effects 18.2 on Windows laptops with older NVIDIA graphics card drivers" — https://helpx.adobe.com/x-productkb/multi/directX-crash.html
 [11] Blender Manual, "Troubleshooting Graphics Hardware" — https://docs.blender.org/manual/en/latest/troubleshooting/gpu/index.html
-[12] TouchEn nxKey·nProtect ↔ 게임 충돌: 10/28 검색에서 공식·학술·보도 출처 **없음**. 참고로 nxKey 1.0.0.87 이하 DLL 인젝션 취약점(AhnLab ASEC) — https://asec.ahnlab.com/en/82372/
+[12] TouchEn nxKey·nProtect ↔ 게임 충돌: 10/28 검색에서 공식·학술·보도 출처 **없음**. 11/10 재조사도 A·B·C 없음, 커뮤니티(D) 보고만 있음. nxKey 키보드 훅 × 게임 입력은 미관찰(`docs/external-survey.md`). 참고로 nxKey 1.0.0.87 이하 DLL 인젝션 취약점(AhnLab ASEC) — https://asec.ahnlab.com/en/82372/
 
 
 ## 10/29 실행 결과 (v0.6.1)

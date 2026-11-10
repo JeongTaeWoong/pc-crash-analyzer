@@ -1,0 +1,68 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-023",
+    "marked_at":  "2022-03-24T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 11 Pro, 21H2, 22000.556"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "Netwtw04.sys"
+                                         ],
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "Intel Dual Band Wireless-AC 3165 driver",
+                        "version":  "19.51.39.1"
+                    },
+                    {
+                        "name":  "Intel Dual Band Wireless-AC 3165 driver",
+                        "version":  "19.51.38.2"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "driver_rollback",
+                               "subject":  "Intel Dual Band Wireless-AC 3165 driver",
+                               "version":  "19.51.15.3"
+                           }
+                       ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "Netwtw04.sys",
+                          "bugcheck":  "SYSTEM_THREAD_EXCEPTION_NOT_HANDLED"
+                      }
+                  ],
+    "ground_truth":  {
+                         "layer":  "DRIVER",
+                         "category":  "network_driver",
+                         "subject":  "Netwtw04.sys"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://community.intel.com/t5/Wireless/Intel-Dual-Band-Wireless-AC-3165-BSOD-Netwtw04-sys/m-p/1371738",
+                       "site":  "Intel Community",
+                       "posted_date":  "March 24, 2022",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "Netwtw04.sys",
+                       "what_fixed_it":  "\u0027After installation of driver version 19.51.15.3 (date 03.09.2018) problem disappeared.\u0027",
+                       "category_reported":  "network_driver",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Stopcode: SYSTEM_THREAD_EXCEPTION_NOT_HANDLED | Reason of problem: Netwtw04.sys",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events",
+                                                  "modules"
+                                              ]
+                   }
+}

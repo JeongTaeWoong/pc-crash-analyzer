@@ -48,7 +48,7 @@
 
 | 신호 | 방법 | 상태 | 실측 |
 |---|---|---|---|
-| 프로세스별 CPU·WS·IO 상위 N | `Win32_PerfFormattedData_PerfProc_Process` | **검증됨** | 유휴 상태에서 chrome 93%, WmiPrvSE 31%, **SignKoreaWD 22%, Goji 22%, SKBspmtmon 13%** — 공인인증·금융보안 상주물이 CPU를 쓰고 있었음 |
+| 프로세스별 CPU·WS·IO 상위 N | `Win32_PerfFormattedData_PerfProc_Process` | **검증됨** | 유휴 상태에서 chrome 93%, WmiPrvSE 31%, **SignKoreaWD 22%, Goji 22%, SKBspmtmon 13%** — 공인인증·금융보안 상주물이 CPU를 쓰고 있었음. **11/10 정정:** 이 값들은 논리 CPU 1개 기준이다(같은 줄 합계 181%). 16스레드 PC 전체로는 1/16. SKBspmtmon은 금융 보안이 아니라 SK브로드밴드 속도 측정, Goji는 미확인 |
 | 메모리 압박 | `PerfOS_Memory` (AvailableMB, Commit%, Pages/s) | 검증됨 | 가용 48GB, 커밋 72%, 페이징 0 |
 | 디스크 부하 | `PerfDisk_PhysicalDisk(_Total)` (busy%, 큐 길이, B/s) | 검증됨 | busy 0%, 큐 0 |
 | 디스크 건강 | `Get-PhysicalDisk` HealthStatus/OperationalStatus | 검증됨 | 4개 전부 Healthy |
@@ -65,6 +65,7 @@
   `baseline_diff`(added/removed/changed)로 내보낸다.
 - 덤프 추가 필드(엔진 협의): `resource_top[]`, `startup{run,tasks}`, `disk_health`, `av_resource`.
 - 발표 사례 후보: 위 실측 그대로 — "작업관리자를 열지 않아도 금융보안 상주물 3개가 CPU 57%를 쓰고 있다는 걸 알려 준다".
+  **11/10 정정 — 이 문장은 쓰지 말 것.** 57%는 논리 CPU 1개 기준이라 PC 전체로는 약 3.6%이고, 셋 중 금융 보안은 1개다. 엔진 샘플 `s12_slow_app_memory.json`·스키마 예시의 `SignKoreaWD cpuAvg 13.9`도 이 수치에서 왔다. 실제 값(전체 기준 약 0.9%)이면 엔진 규칙 E(배경 CPU ≥10%)는 발동하지 않는다 — 엔진 담당 확인 필요.
 
 ---
 

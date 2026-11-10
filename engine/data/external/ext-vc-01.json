@@ -1,0 +1,37 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-vc-01",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "slow",
+                    "scope":  "single_app",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "Extension Host"
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://github.com/microsoft/vscode/wiki/performance-issues",
+                       "site":  "github.com/microsoft/vscode",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Reproduce with code --disable-extensions; if it clears, run Help: Start Extension Bisect and report to the extension author.",
+                       "category_reported":  "other_sw",
+                       "program":  "VS Code",
+                       "conflict_with":  "Extensions running in the Extension Host",
+                       "mechanism":  "other",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "High CPU consumption is often caused by an issue in an extension.",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "numbers",
+                                                  "named extensions"
+                                              ]
+                   }
+}

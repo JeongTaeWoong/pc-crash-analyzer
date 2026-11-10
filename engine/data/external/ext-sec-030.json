@@ -1,0 +1,66 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-030",
+    "marked_at":  "2018-01-06T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows 10 version 1709"
+             },
+    "symptom":  {
+                    "type":  "slow",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "nProtect Online Security",
+                      "Malware Protection Command Line Utility"
+                  ],
+    "security":  {
+                     "realtime_av":  [
+                                         "Windows Defender"
+                                     ]
+                 },
+    "ground_truth":  {
+                         "layer":  "SW",
+                         "category":  "fin_security"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.clien.net/service/board/lecture/11630466",
+                       "site":  "clien.net",
+                       "posted_date":  "2018-01-06",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "nProtect Online Security (poster\u0027s attribution)",
+                       "what_fixed_it":  "Uninstalling nProtect Online Security; symptoms returned on reinstall",
+                       "category_reported":  "fin_security",
+                       "program":  "nProtect Online Security",
+                       "mechanism":  "background_service",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "nProtect Online Security",
+                                                 "metric":  "CPU",
+                                                 "value":  "99% for over 10 seconds after logon",
+                                                 "condition":  "Poster\u0027s reading"
+                                             },
+                                             {
+                                                 "process":  "Malware Protection Command Line Utility",
+                                                 "metric":  "CPU",
+                                                 "value":  "99%",
+                                                 "condition":  "Poster\u0027s reading, shown with Windows Defender icon"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "nProtect Online Security 삭제해서 Windows 10 프리징을 해결합니다.",
+                       "absent_from_source":  [
+                                                  "driver_names",
+                                                  "nprotect_version",
+                                                  "other_pcs_not_verified"
+                                              ]
+                   }
+}

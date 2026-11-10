@@ -1,0 +1,57 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-ps-03",
+    "marked_at":  "2026-04-03T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows 11 (25H2)"
+             },
+    "symptom":  {
+                    "type":  "freeze",
+                    "scope":  "single_app",
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "Wacom driver",
+                        "version":  "6.4.12_3"
+                    },
+                    {
+                        "name":  "Wacom driver",
+                        "version":  "6.4.10-3"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "app_update",
+                               "subject":  "Photoshop",
+                               "version":  "first seen in 27.4.0.15; 27.3.1 reportedly worked; 27.5 affected"
+                           }
+                       ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://community.adobe.com/questions-712/also-photoshop-27-5-freezes-immediately-after-using-wacom-brushes-1556326",
+                       "site":  "community.adobe.com",
+                       "posted_date":  "2026-04-03",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Switching from WinTab to Windows Ink (poster\u0027s own testing)",
+                       "category_reported":  "peripheral_driver",
+                       "program":  "Photoshop",
+                       "conflict_with":  "Wacom driver in WinTab mode",
+                       "mechanism":  "other",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "they work perfectly with Windows Ink (as of now)",
+                       "absent_from_source":  [
+                                                  "evidence_kind: no log, measurement or vendor statement in the source",
+                                                  "events",
+                                                  "modules",
+                                                  "culprit",
+                                                  "Adobe staff reply: none"
+                                              ]
+                   }
+}

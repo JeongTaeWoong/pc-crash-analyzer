@@ -1,0 +1,50 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-020",
+    "marked_at":  "2025-10-09T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "vgk.sys"
+                                         ],
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "vgk.sys"
+                    }
+                ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "vgk.sys"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://support.riotgames.com/en-us/2xko/performance/vgksys-error-troubleshooting-13th-and-14th-generation-intel-cpus",
+                       "site":  "support.riotgames.com",
+                       "posted_date":  "2025-10-09",
+                       "grade":  "A",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "true",
+                       "label_withheld":  "true",
+                       "culprit_reported":  "Not attributed to Vanguard itself; page directs to CPU/BIOS steps",
+                       "what_fixed_it":  "Riot: update BIOS first; restore Intel baseline settings; further steps if crashes continue",
+                       "category_reported":  "anticheat",
+                       "program":  "Riot Vanguard (vgk.sys)",
+                       "conflict_with":  "13th/14th generation Intel CPUs (Riot lists BIOS update, baseline profile and multiplier steps)",
+                       "mechanism":  "M2",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "If you\u0027re experiencing BSOD (bluescreen) crashes that point to a vgk.sys driver",
+                       "absent_from_source":  [
+                                                  "bugcheck_code"
+                                              ]
+                   }
+}

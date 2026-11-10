@@ -1,0 +1,52 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-013",
+    "marked_at":  "2022-02-03T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 10"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "nvlddmkm.sys"
+                                         ],
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "nvlddmkm.sys"
+                    }
+                ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "nvlddmkm.sys",
+                          "bugcheck":  "video TDR failure"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.tomshardware.com/threads/nvlddmkm-sys-video-tdr-failure-bsod-whenever-i-attempt-to-go-through-windows-login-on-windows-startup.3748255/",
+                       "site":  "Tom\u0027s Hardware Forum",
+                       "posted_date":  "February 3, 2022",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Post #6: removed CMOS battery, GPU and RAM, cleaned dust, reseated everything: \u0027Seems to be gone.\u0027 A separate continuous-restart problem was reported later the same day.",
+                       "category_reported":  "gpu_driver",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "system32\\driverstore\\filerepository\\nv_dispig.inf_amd64_31a2adf8c49e7799\\nvlddmkm.sys",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events",
+                                                  "modules",
+                                                  "change_history",
+                                                  "culprit"
+                                              ]
+                   }
+}

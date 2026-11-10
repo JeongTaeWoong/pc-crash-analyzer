@@ -1,0 +1,58 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-pr-01",
+    "marked_at":  "2024-02-08T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows"
+             },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "scope":  "multiple_apps",
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "NVIDIA Studio driver (one user reverted; still crashed)",
+                        "version":  "551.23"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "app_version",
+                               "subject":  "Premiere Pro, After Effects, Media Encoder",
+                               "version":  "24.2"
+                           }
+                       ],
+    "ground_truth":  {
+                         "layer":  "SW",
+                         "category":  "other_sw"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://community.adobe.com/bug-reports-728/known-issue-crash-on-windows-with-some-nvidia-gpus-running-cuda-in-24-2-1330350",
+                       "site":  "community.adobe.com",
+                       "posted_date":  "2024-02-08",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "Premiere Pro 24.2 code, per Adobe",
+                       "what_fixed_it":  "Adobe: revert to 24.1 or update to 24.2.1; Adobe pulled 24.2 from Creative Cloud. Replies were mixed on 24.2.1; some report 24.3.0 no longer crashes at startup.",
+                       "category_reported":  "other_sw",
+                       "program":  "Premiere Pro",
+                       "conflict_with":  "Some CUDA-capable NVIDIA GPUs; Adobe attributes the bug to its own code",
+                       "mechanism":  "other",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "believed to be in the Adobe codebase",
+                       "absent_from_source":  [
+                                                  "specific GPU models in the original post",
+                                                  "faulting_module",
+                                                  "exception_code",
+                                                  "events"
+                                              ]
+                   }
+}

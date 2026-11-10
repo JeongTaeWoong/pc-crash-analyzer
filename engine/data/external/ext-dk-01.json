@@ -1,0 +1,52 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-dk-01",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows"
+             },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "scope":  "multiple_apps",
+                    "target_process":  ""
+                },
+    "security":  {
+                     "realtime_av":  [
+                                         "Avast"
+                                     ]
+                 },
+    "events":  [
+                   {
+                       "subject":  "Wsl/Service/RegisterDistro/CreateVm/HCS/ERROR_NOT_SUPPORTED"
+                   }
+               ],
+    "ground_truth":  {
+                         "layer":  "SW",
+                         "category":  "antivirus"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://docs.docker.com/desktop/troubleshoot-and-support/troubleshoot/topics/",
+                       "site":  "docs.docker.com",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "Avast hardened mode, per Docker documentation",
+                       "what_fixed_it":  "In Avast, clear Enable hardware-assisted virtualization under Menu \u003e Settings \u003e Troubleshooting; or uninstall the antivirus or add Docker to its exclusions.",
+                       "category_reported":  "antivirus",
+                       "program":  "Docker Desktop/WSL2",
+                       "conflict_with":  "Avast hardened mode (hardware-assisted virtualization)",
+                       "mechanism":  "other",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "claims exclusive access to Hyper-V, which blocks Docker Desktop and WSL from using it",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "Avast version",
+                                                  "Windows build"
+                                              ]
+                   }
+}

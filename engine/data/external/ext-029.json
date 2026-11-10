@@ -1,0 +1,60 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-029",
+    "marked_at":  "2025-02-25T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey",
+                    "event_id":  41
+                },
+    "host":  {
+                 "os":  "win 11 (replier reinstalled clean, without insider build)"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "change_history":  [
+                           {
+                               "kind":  "os_reinstall",
+                               "subject":  "uninstalled win 11 installed clean withoout insider build"
+                           },
+                           {
+                               "kind":  "bios_update",
+                               "subject":  "changed bios versions"
+                           }
+                       ],
+    "events":  [
+                   {
+                       "id":  41,
+                       "subject":  "41 63 with bug check code as 307"
+                   },
+                   {
+                       "provider":  "volmgr",
+                       "subject":  "critical error with volmgr"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/3897901/been-having-critical-kernel-power-id-41-error-for",
+                       "site":  "Microsoft Q\u0026A",
+                       "posted_date":  "2025-02-25T12:26:53+00:00",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "true",
+                       "label_withheld":  "true",
+                       "culprit_reported":  "heat sink (replier\u0027s conclusion)",
+                       "what_fixed_it":  "Replier reporting their own Yoga 520 laptop (not the machine in the question): \u0027cleaned them and reinstalled new heatsink ... OMG no more kernel 41 63. no bsod.\u0027",
+                       "category_reported":  "thermal",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "i had 41 63 with bug check code as 307 and no dump file was created that was also the critical error with volmgr",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events.provider",
+                                                  "minidumps",
+                                                  "modules",
+                                                  "drivers"
+                                              ]
+                   }
+}

@@ -1,0 +1,48 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-022",
+    "marked_at":  "2024-07-25T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 10 (OSNAME in dump; kernel line reads Windows 10 Kernel Version 22621)"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "RzDev_0203.sys"
+                                         ],
+                    "target_process":  ""
+                },
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "RzDev_0203.sys",
+                          "bugcheck":  "c4"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.tomshardware.com/threads/random-bsods.3850326",
+                       "site":  "Tom\u0027s Hardware Forum",
+                       "posted_date":  "Jul 25, 2024",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "RzDev_0203.sys (poster: minidump indicates it caused the bluescreen)",
+                       "category_reported":  "input_util",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "BUGCHECK_CODE: c4 | Code Integrity Issue: The caller specified an executable pool type. (Expected: NonPagedPoolNx) | IMAGE_NAME: RzDev_0203.sys | MODULE_NAME: RzDev_0203 | SYMBOL_NAME: RzDev_0203+24cf | Failure.Bucket: 0xc4_2000_RzDev_0203!unknown_function",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events",
+                                                  "modules",
+                                                  "drivers",
+                                                  "change_history",
+                                                  "resolution"
+                                              ]
+                   }
+}

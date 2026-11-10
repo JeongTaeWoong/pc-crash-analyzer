@@ -1,0 +1,61 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-021",
+    "marked_at":  "2024-07-02T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 10 (page tag only)"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "RzDev_0270.sys"
+                                         ],
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "RzDev_0270.sys"
+                    },
+                    {
+                        "name":  "rzcommon"
+                    }
+                ],
+    "events":  [
+                   {
+                       "subject":  "a lot of events about the NVIDIA LocalSystem Container service terminating unexpectedly"
+                   }
+               ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "RzDev_0270.sys"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/4005395/unknown-random-crashing",
+                       "site":  "Microsoft Q\u0026A",
+                       "posted_date":  "2024-07-01T19:50:19+00:00",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "RzDev_0270.sys; rzcommon (named by poster from Driver Verifier runs)",
+                       "what_fixed_it":  "Uninstalled all Razer drivers with the Razer Driver Cleanup tool. Separate reply: \u0027Now verifier is running for 6 hours, and it haven\u0027t crashed yet, so I guess the problem is fixed.\u0027 Reply carries the generic \u0027Anonymous\u0027 label also used on the question, so same authorship is not verifiable.",
+                       "category_reported":  "input_util",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "RzDev_0270.sys | some other Razer driver called rzcommon is indeed broken",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events.provider",
+                                                  "events.id",
+                                                  "modules",
+                                                  "change_history",
+                                                  "resolution.confirmed_by_poster"
+                                              ]
+                   }
+}

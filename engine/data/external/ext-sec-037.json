@@ -1,0 +1,47 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-037",
+    "marked_at":  "2024-01-07T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "slow",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "AhnLab Safe Transaction (listed under ASDF Service Application)"
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.clien.net/service/board/kin/18517347",
+                       "site":  "clien.net",
+                       "posted_date":  "2024-01-07",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "AhnLab Safe Transaction (poster\u0027s suspicion)",
+                       "category_reported":  "fin_security",
+                       "program":  "AhnLab Safe Transaction (AST)",
+                       "mechanism":  "background_service",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "Total CPU in Task Manager (poster names AhnLab Safe Transaction under ASDF Service Application)",
+                                                 "metric":  "CPU",
+                                                 "value":  "100%",
+                                                 "condition":  "Laptop turned on after a long time; poster\u0027s Task Manager reading"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "노트북을 오랜만에 켰더니 너무 버벅버려 작업관리자를 보니 CPU가 100%입니다.",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "asTx_version",
+                                                  "causality_not_verified",
+                                                  "no_confirmed_fix"
+                                              ]
+                   }
+}

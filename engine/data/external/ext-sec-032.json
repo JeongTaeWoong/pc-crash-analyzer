@@ -1,0 +1,60 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-032",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "symptom":  {
+                    "type":  "slow",
+                    "target_process":  "League of Legends client",
+                    "scope":  "system_wide"
+                },
+    "processes":  [
+                      "nosmain (Linux version, per page)"
+                  ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "bugcheck":  "0x000000BE"
+                      },
+                      {
+                          "kind":  "kernel",
+                          "bugcheck":  "0x100000BE"
+                      },
+                      {
+                          "kind":  "kernel",
+                          "bugcheck":  "0x000000C2"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://namu.wiki/w/nProtect",
+                       "site":  "namu.wiki",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "nProtect Online Security (wiki attribution; Vanguard uncertainty noted by page)",
+                       "category_reported":  "fin_security",
+                       "program":  "nProtect Online Security (NOS)",
+                       "conflict_with":  "League of Legends client; Overwatch (감사제 event)",
+                       "mechanism":  "background_service",
+                       "evidence_kind":  "log",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "League of Legends client",
+                                                 "metric":  "CPU and FPS",
+                                                 "value":  "100% CPU, \u0027FPS 현저하게 떨어짐\u0027",
+                                                 "condition":  "After installing NOS; page says it is unclear whether this is a conflict with Riot Vanguard; undated"
+                                             }
+                                         ],
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "CPU를 100% 차지해서 FPS(프레임)가 현저하게 떨어지는 현상이 있다.",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "nos_version",
+                                                  "exact_source_of_claims",
+                                                  "windows_version"
+                                              ]
+                   }
+}

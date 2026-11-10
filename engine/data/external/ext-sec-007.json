@@ -1,0 +1,42 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-007",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows 11"
+             },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "scope":  "unknown",
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "BEDaisy.sys"
+                    }
+                ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.battleye.com/support/faq/",
+                       "site":  "battleye.com",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Vendor says it fixed the incompatibility but the latest Windows 11 still blocks any version of its driver while the feature is enabled, and it is waiting for a Microsoft update; vendor FAQ also lists a workaround in Core isolation settings",
+                       "category_reported":  "anticheat",
+                       "program":  "BattlEye",
+                       "conflict_with":  "Windows 11 Hardware-enforced Stack Protection (Core isolation)",
+                       "mechanism":  "M2",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "Recently we have fixed this incompatibility, however, currently the latest Windows 11 is still blocking any version of our driver whenever this feature is enabled.",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "driver_version",
+                                                  "bugcheck"
+                                              ]
+                   }
+}

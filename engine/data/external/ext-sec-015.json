@@ -1,0 +1,58 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-015",
+    "marked_at":  "2025-01-10T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 11"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "target_process":  "Delta Force (DeltaForceClie in minidumps)",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "ace.base.sys / ACE-BASE.sys (Tencent Game Anti-Cheat driver, per Independent Advisor)"
+                                         ]
+                },
+    "processes":  [
+                      "DeltaForceClie"
+                  ],
+    "drivers":  [
+                    {
+                        "name":  "ACE-BASE.sys"
+                    }
+                ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "process":  "DeltaForceClie",
+                          "faulting_module":  "ace.base.sys / ACE-BASE.sys (Tencent Game Anti-Cheat driver, per Independent Advisor)",
+                          "bugcheck":  "Secure PCI config space access violation"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/3912832/bsod-everytime-i-run-delta-force-game",
+                       "site":  "learn.microsoft.com (Q\u0026A community)",
+                       "posted_date":  "2025-01-10",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "ACE-BASE.sys (per advisor reading of minidumps)",
+                       "category_reported":  "anticheat",
+                       "program":  "Tencent Anti-Cheat Expert (ACE)",
+                       "mechanism":  "M2",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Secure PCI config space access violation",
+                       "absent_from_source":  [
+                                                  "bugcheck_hex_code",
+                                                  "driver_version",
+                                                  "no_confirmed_fix",
+                                                  "only_advisor_interpretation"
+                                              ]
+                   }
+}

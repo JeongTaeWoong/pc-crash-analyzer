@@ -1,0 +1,53 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-011",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "target_process":  "VALORANT",
+                    "scope":  "single_app"
+                },
+    "drivers":  [
+                    {
+                        "name":  "ene.sys"
+                    },
+                    {
+                        "name":  "rtcore64.sys"
+                    },
+                    {
+                        "name":  "EPMVolFlt.sys"
+                    },
+                    {
+                        "name":  "inpoutx64.sys"
+                    },
+                    {
+                        "name":  "AsIO.sys"
+                    }
+                ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.thespike.gg/valorant/error-codes/fixing-the-valorant-incompatible-software-component-detected-error",
+                       "site":  "thespike.gg",
+                       "posted_date":  "06.02.2026 (Last Updated, as displayed)",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Guide recommends uninstalling the software that installed the flagged driver, then other steps including reinstalling Vanguard and contacting Riot Support",
+                       "category_reported":  "anticheat",
+                       "program":  "Riot Vanguard (VALORANT)",
+                       "conflict_with":  "ene.sys, rtcore64.sys, EPMVolFlt.sys, inpoutx64.sys, AsIO.sys (listed as frequently flagged); ASUS Aura Sync, old RGB utilities, legacy VPN, kernel monitoring tools",
+                       "mechanism":  "M2",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "VALORANT incompatible software component detected",
+                       "absent_from_source":  [
+                                                  "guide_article_no_logs",
+                                                  "which_game_cases",
+                                                  "driver_versions",
+                                                  "official_confirmation"
+                                              ]
+                   }
+}
