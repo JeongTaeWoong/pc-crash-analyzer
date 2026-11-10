@@ -769,3 +769,72 @@ SKB(통신사 속도 측정) 계열은 10/28 유휴 CPU 13~22% 관찰분과 같�
 
 - **분석 제외**: 참여 ID `r7gszmrm2b8p`(이 PC 비관리자 시험 참여, `%LOCALAPPDATA%\pcbb-real-e2e`) — 상태 확인 중 서명 개인키가 작업 기록에 찍혔다. 이 ID 로 들어온 봉투는 위장일 수 있으니 버린다. 자동 실행 바로가기는 지웠다(11/3).
 
+
+## 참여자판 0.8.2 — 연구 키 교체 (11/10)
+
+발단: 11/4 C드라이브 포맷·Windows 재설치로 `%USERPROFILE%\.pca-study` 의 개인키 `6e88a733c8746f43` 이 사라졌다. C·D·E·F 파일 이름 검색, Capstone2 내용 검색(UTF-8·UTF-16), zip 내부, D·E·F 휴지통에서 찾지 못했다. 그 키로 암호화된 봉투(11/3 내려받은 67개 포함)는 사본이 나오지 않는 한 열 수 없다.
+
+- `StudyTools keygen --rotate` → 새 키 ID `deed820e822d5d7f`. 수신 주소·토큰·연구 ID·수집 종료일 유지. 수집·전송 코드 변경 없음(전송 범위는 11/10 결정으로 유지 — 동의문의 "앞 5분·뒤 30초"보다 실제 덤프가 넓은 점(24시간 롤업, 30일 WER 폴더 이름, 하트비트 운영 로그)은 알려진 불일치로 남아 있다).
+- 버전을 올린 이유: `ElevatedAutostart.Install` 은 설치본과 ProductVersion 이 같으면 복사하지 않는다. 같은 버전으로 키만 바꾸면 Program Files 의 옛 study.json 으로 계속 암호화한다.
+- 동의는 연구 ID·수신 주소에 묶여 있어 키 교체로 다시 동의받지 않는다. 참여 ID 유지.
+- 재설치 후 .NET 8 런타임이 없다(SDK·런타임 10만) → 팀 PC 에서 StudyTools 실행에 `DOTNET_ROLL_FORWARD=Major`.
+- 배포본: `PcBlackBox-0.8.2-win-x64.zip` SHA-256 `4f1c759bb5ac62ccd442214702a0e63038241ba0cb89d3668c932181ff9de165`, 278파일.
+
+| 항목 | 분류 | 결과 |
+|---|---|---|
+| 배포본 자체 점검 → 시험 수신기(302 흉내) → 새 키로 `StudyTools decrypt` | **검증됨** | 11/10, 비관리자·127.0.0.1. dump·annotation·heartbeat 3건 kid `deed820e822d5d7f`, 복호화 실패 0 |
+| 실제 Apps Script 수신기 + 새 키 → Drive 내려받아 복호화 | 미확인 | 0.8.2 를 동의 후 실행하고 Drive 수신분을 `decrypt` |
+| 새 개인키 백업(USB) | 완료(사용자 확인) | 11/10 오전 사용자가 USB 복사 완료를 알림. 이번 사고의 원인 |
+| 이전 키 사본(USB·팀원·클라우드) | 미확인 | 있으면 `.pca-study` 에 함께 두면 옛 봉투도 풀린다 |
+
+## 외부 사례 조사·재현 (11/10)
+
+- 조사 정리: `docs/external-survey.md`. 변환본: `engine/data/external/`(89건, 실측 아님, 라벨 18건). 변환 도구: `tools/import-external-report.ps1`.
+- 재현 스크립트: `collector/experiments/repro/`. 트레이 앱을 끄고 콘솔 수집기(비관리자, `DOTNET_ROLL_FORWARD=Major`)로 로컬에만 저장.
+
+| 항목 | 분류 | 결과 |
+|---|---|---|
+| 실제 프로그램 크래시 → 이벤트 1000·1001 → 덤프 → 엔진 (AutoHotkey 2.0.29 AltTabMenu) | **검증됨** | 11/10, 3/3. 0xC000041D, 유의성 major, 엔진 1순위 AutoHotkey64.exe |
+| AutoHotkey 2.0.20 StrGet, CPython 3.13.5 os.execve | 미지원(재현 실패) | 크래시 없음. 이 PC·이 조건에서 재현 안 됨 |
+| 비관리자 수집의 모듈 포착 | 권한 필요 | ETW 없음. 10초 스냅샷으로 대상 exe 1개만 잡힘 |
+| 실제 Drive 수신분을 새 키로 복호화 | 미확인 | 0.8.2 배포 후 |
+
+### 보안 프로그램 영향 측정 준비 (11/10 밤)
+
+- 스크립트: `collector/experiments/repro/` — `perf-measure.ps1`(유휴·작업 부하), `perf-compare.ps1`, `morning-elevated.ps1`(관리자 1회 실행: 설치마다 변화 기록·측정·수동 마킹), `gui-npp-column.ps1`.
+- 일반 권한 설치 시도 10종 모두 설치 안 됨. 받은 파일·해시·서명: `repro-runs/installers/manifest.json`(커밋 제외).
+
+| 항목 | 분류 | 결과 |
+|---|---|---|
+| Godot 4.3 SVG 임포트, Notepad++ 8.6.7 Column Editor 크래시 → 덤프 | **검증됨** | 각 3/3 |
+| 이 PC 유휴 기준선(HVCI 켜짐) | **검증됨** | CPU 20~23%, NVIDIA Overlay·FvContainer·PresentMon 각 약 6.2%. 2회 동일 |
+| 측정 재현성 | **검증됨** | 같은 조건 2회: 읽기 14%, 삭제 24% 차이. spawn·build 2% 안쪽 |
+| 금융 보안 모듈 설치 후 영향 | 권한 필요 | `morning-elevated.ps1`, 관리자 승인 필요 |
+| `morning-elevated.ps1` 관리자 실행 | 미확인 | `-DryRun`(해시·서명 검증)만 통과 |
+| Vanguard·EAC 등 안티치트 영향 실측 | 권한 필요 | 게임 설치·관리자·재부팅 필요 |
+| 부팅 시간 측정 방법 | 미확인 | 방법 미정, 스파이크 필요 |
+
+### 아침 점검·관리자 실행 전 보강 (11/10 오전, 비관리자)
+
+- `morning-elevated.ps1`: `-Only a,b` 가 `-File` 실행에서 문자열 하나로 들어와 **0개를 고르던 버그** 수정. 상태 기록에 `listening`(TCP 수신 포트|프로세스) 추가. PC 블랙박스 로그온 작업이 켜져 있으면 시작 거부(검사만 하고 끄지는 않음 — 원칙 3).
+- 새 `conflict-evidence.ps1`(읽기 전용): 첫 설치 이후 오류 이벤트(System 41·1001·6008·219·7000~7034, Application 1000~1002, CodeIntegrity 3033·3076·3077)를 **직전 같은 길이 구간과 나란히**, 새 서비스·드라이버 파일의 버전·서명·일반 사용자 쓰기 권한(파일·폴더, SID 기준), 제품별 새 포트·루트 인증서·미니필터. 이 PC는 설치 없이도 7일간 서비스 시작 실패 34건(7026 15, 7001 12)이라 비교 구간이 필요하다.
+- 공개 취약점과 받은 버전 대조: `docs/external-survey.md` 7절.
+- 11/10 오후: 실사용 영향 실험 설계 `docs/security-impact-design.md`(v2), 국내 논문·뉴스·정책·측정 방법 조사 `docs/korea-ksa-research.md`. **설치(`morning-elevated.ps1`)는 S0 측정 뒤로 보류** — S0은 설치 전에만 잴 수 있다.
+- 11/10 저녁: 목표 재정의 `docs/capstone-plan-v2.md`, 제품 구조(위험도 점수·지식 팩·Claude API·실행기) `docs/product-architecture-v2.md`, 게임 보안·백신·논문·버그 리포트 조사 `docs/security-software-survey.md`(원자료 `engine/data/external/_reports/bug-reports-20261110.md`). 모두 설계·조사 초안이고 코드 변경은 없다.
+- 11/10 밤 결정(정태웅): 목표 재정의 동의 · 측정은 권장판, **무인 자동화 완성 뒤 실행** · 위험도 점수는 C# 라이브러리 · API 키는 빌드에 넣고 테스터·평가자에게만 공유 · 동의문 AI 항목은 다음 배포 때. 최종 목표를 "분야를 가리지 않는 감지·점검·치료·권고 + 프로그램 자체 버그"로 넓힘(`docs/capstone-plan-v2.md` 2절).
+
+| 항목 | 분류 | 결과 |
+|---|---|---|
+| `Get-State`(관리자 스크립트에서 아직 한 번도 안 돈 부분) | **검증됨** | 비관리자 1.3초, 예외 없음. 미니필터 0개 = 권한 필요 |
+| `-Only` 여러 개 | **검증됨** | 수정 전 0개, 수정 후 2개 검증 |
+| 수신 포트 신호 | **검증됨** | 스파이크 38개, 0.5초 |
+| `conflict-evidence.ps1` | **검증됨**(가짜 diff) | 실제 서비스·드라이버 4개 버전·서명, 없는 경로는 unavailable, Users 쓰기 폴더 양성 대조 잡힘·시스템 파일 음성, `%USERPROFILE%` 노출 없음 |
+| `conflict-evidence.ps1` 실제 설치 후 | 미확인 | 관리자 실행 후 |
+| 미니필터 목록 | 권한 필요 | `fltmc` |
+| PC 블랙박스 자동 실행 | **검증됨** | `\PcBlackBox\Autostart-<SID>` 로그온 트리거·Ready·한 번도 안 돎. Program Files 본은 **0.8.1, keyId 6e88(잃어버린 키)**. 재부팅하면 측정 중 실행됨 |
+| NVIDIA Overlay·FvContainer 점유 교차 확인 | **검증됨** | `Get-Process` CPU 초 차이로 각 10.0초/10초(스레드 1개). PresentMon 은 비관리자로 값 안 읽힘(권한 필요) |
+| 작업 부하의 `dotnet build` 성공 여부 | **검증됨** | 종료 코드 0, 3.3초 — 기준선 빌드 시간은 실제 빌드 |
+| 복원 지점 상태 | 권한 필요 | `Get-ComputerRestorePoint` 비관리자 실패 |
+| 드라이버 SHA-256 전수 계산 + LOLDrivers 대조 (11/10 오후 스파이크) | **검증됨** | 등록 드라이버 410개·316.5MB 1.5초, 목록 713건(해시 2,221개) 읽기 0.75초, 못 읽은 파일 0(비관리자). 해시 일치 0개. 이름만 일치 3개 중 2개는 Windows 정상 파일(`afd.sys`, `KslD.sys`) → 이름 대조는 판정에 쓰지 않음 |
+| `xhunter2.sys`(XIGNCODE3, 로스트아크) | 미확인 | 이 PC 2026.9.16.465, 실행 중·시작 유형 수동. 공개 취약 버전은 2026.6.1.192(CVE-2026-15430). 수정 여부는 공개 자료로 판정 불가 |
+| **10/28 PerfProc 수치의 단위 (정정)** | **검증됨** | `Win32_PerfFormattedData_PerfProc_Process.PercentProcessorTime` 은 논리 CPU 1개 기준. 359행 SignKoreaWD 22%·Goji 22%·SKBspmtmon 13%는 PC 전체로 각 1.4·1.4·0.8%(같은 스파이크의 chrome 93·WmiPrvSE 31 포함 합계 181%로 확인). 수집기 `ResourceSource` 는 이미 `/ProcessorCount`(전체 기준), 엔진 규칙 E(≥10%)도 전체 기준이라 서로는 맞다. 틀린 것은 문서와 엔진 샘플 s12 의 13.9 |
