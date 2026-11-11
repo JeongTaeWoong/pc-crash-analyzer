@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "note": "Settings for the lab virtual machines (lab/vm/*.ps1, lab/README.md). Decided 2026-11-12: VMs produce cases (installer rehearsal, conflict reproduction, executor and update tests). Timing measurements stay on the host; if a VM is ever timed, only one VM may run.",
+  "root": "F:\\pca-vm",
+  "prefix": "pca-",
+  "base_vm": "pca-base",
+  "cpu": 4,
+  "memory_gb": 8,
+  "disk_gb": 100,
+  "switch": "Default Switch",
+  "warn_running_above": 3
+}

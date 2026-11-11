@@ -2,6 +2,8 @@
 
 설계: `docs/security-impact-design.md`(특히 11절). 앱·브라우저를 띄우고 재부팅하는 코드라서 읽기 전용 원칙이 있는 `collector/` 밖에 둔다.
 
+> **상태(11/12):** 가상 머신을 사례 생산에 쓰기로 했고 스크립트를 만들었다(아래 "가상 머신" 절 — 실제 Windows 설치는 ISO를 받은 뒤). 호스트에는 보안 프로그램을 맨 마지막에 한 번만 설치한다(11/24~11/26 시작).
+>
 > **상태(11/11 저녁):** Hyper-V를 켰다(18:19 재부팅). 그 전에 잰 첫 실험(시범 3블록 + 설치 전 4블록, 재부팅·자동 로그인·자동 재개 동작 확인)은 `runs-before-hyperv-20261111\`에 보관했고, 이후 측정과 섞지 않는다. `runs\`가 비어 있으므로 **다음 세션은 시범부터 새 실험을 시작한다**(시범 약 75분 + 설치 전 최대 6블록, 하룻밤). **관리자 설치 단계는 아직 한 번도 돌리지 않았다.** 보안 프로그램은 설치되지 않았고, 설치는 미뤄 둔 상태다(11/11 결정).
 
 ## 한눈에
@@ -66,9 +68,73 @@ powershell -ExecutionPolicy Bypass -File lab\setup-once.ps1 -Remove    # 관리�
 
 자동 로그인 끄기, Windows 업데이트 다시 켜기, 보안 프로그램 제거(구라제거기)는 직접 한다.
 
-## 가상 머신 (Hyper-V) — 11/11 켬
+## 가상 머신 (Hyper-V) — 11/11 켬, 11/12 사례 생산용으로 확정
 
-가상 머신은 기능 시험용이다: 보안 프로그램 설치 예행연습(체크포인트로 되돌림), 실행기 시험, PC 블랙박스 설치·업데이트 시험. 성능 측정에는 쓰지 않는다.
+가상 머신에서 하는 일(11/12 결정): 보안 프로그램 설치와 설치 창 자동 클릭 예행연습, 공식 충돌 후보 재현과 덤프 확보, 조치 실행기 시험, PC 블랙박스의 실제 설치 위치 업데이트 시험. 체크포인트로 되돌릴 수 있고 호스트는 깨끗하게 남는다. **시간 측정은 호스트에서 한다.** 가상 머신에서 시간을 잰다면 한 번에 한 대만 켠다.
+
+### 구성
+
+| 항목 | 값 (`vm\vm.json`) |
+|---|---|
+| 저장 위치 | `F:\pca-vm` (NVMe). 원본 `base\base.vhdx`, 복제본 `clones\<이름>\` |
+| 한 대 | 2세대, 보안 부팅·가상 TPM, vCPU 4, 메모리 8GB 고정, 디스크 최대 100GB(동적), 기본 스위치 |
+| 동시에 | 2~3대 권장(호스트를 쓰면서). 4~6대는 호스트를 비워 둘 때. 4대부터 안내가 뜬다 |
+
+복제본은 원본의 차등 디스크라 몇 초에 생기고 처음에는 수 MB다. **봉인한 원본 디스크는 절대 고치지 않는다**(고치면 복제본이 전부 깨진다).
+
+### 한 번: 원본 만들기 (직접 하는 일 약 20분)
+
+1. Windows 11 Enterprise 평가판 ISO(64비트, 90일)를 받는다 — Microsoft 평가판 센터 `https://www.microsoft.com/evalcenter/evaluate-windows-11-enterprise`. 등록 양식이 있어 직접 받아야 한다. 호스트와 같은 한국어를 권한다.
+2. 원본 가상 머신을 만든다. 창이 열리면 "Press any key to boot from CD or DVD"에서 키를 누르고 Windows를 설치한다.
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File lab\vm\base.ps1 -Create -Iso "받은 ISO 경로"
+   ```
+3. 설치 중 계정은 **가상 머신 전용 로컬 관리자 계정**으로 만든다(예: 이름 `lab`). 암호는 꼭 넣되 실제로 쓰는 암호는 넣지 않는다. Microsoft 계정으로 로그인하지 않는다. (계정 화면의 문구는 평가판에서 확인 전이다 — 보통 "로그인 옵션 → 대신 도메인 가입"이 로컬 계정으로 가는 길이다.)
+4. 바탕 화면이 뜨면 봉인한다. 게스트를 종료시키고, ISO를 떼고, 디스크만 남긴다.
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File lab\vm\base.ps1 -Seal
+   ```
+5. 게스트 계정을 한 번 저장한다(이 Windows 사용자만 풀 수 있게 암호화해 `%LOCALAPPDATA%\pca-lab`에 둔다. 저장소·명령줄에는 남지 않는다).
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File lab\vm\guest.ps1 -SetCredential
+   ```
+
+### 복제본 쓰기
+
+```powershell
+powershell -ExecutionPolicy Bypass -File lab\vm\base.ps1 -Status                              # 원본·복제본·남은 용량
+powershell -ExecutionPolicy Bypass -File lab\vm\clone.ps1 -New finsec-a -Boot -Connect        # 만들고(체크포인트 clean) 켜고 창 열기
+powershell -ExecutionPolicy Bypass -File lab\vm\clone.ps1 -Save finsec-a -Label installed     # 지금 상태 저장
+powershell -ExecutionPolicy Bypass -File lab\vm\clone.ps1 -Restore finsec-a -Label clean -Boot  # 되돌리기(그 뒤의 변경은 사라진다)
+powershell -ExecutionPolicy Bypass -File lab\vm\clone.ps1 -Stop finsec-a                      # 게스트 종료(-TurnOff: 전원 끄기)
+powershell -ExecutionPolicy Bypass -File lab\vm\clone.ps1 -Remove finsec-a                    # 가상 머신과 파일 삭제
+powershell -ExecutionPolicy Bypass -File lab\vm\clone.ps1 -List
+
+powershell -ExecutionPolicy Bypass -File lab\vm\guest.ps1 -Name finsec-a -Wait                # 게스트의 Windows가 응답할 때까지
+powershell -ExecutionPolicy Bypass -File lab\vm\guest.ps1 -Name finsec-a -Run "Get-Service | Select-Object -First 5"
+powershell -ExecutionPolicy Bypass -File lab\vm\guest.ps1 -Name finsec-a -CopyTo C:\호스트\파일 -Dest C:\lab\파일
+powershell -ExecutionPolicy Bypass -File lab\vm\guest.ps1 -Name finsec-a -CopyFrom C:\lab\dumps -Dest F:\pca-vm\out\finsec-a
+```
+
+- 이름은 영문 소문자·숫자·`-`만 쓴다. 가상 머신 이름은 앞에 `pca-`가 붙는다.
+- 측정 세션 중에는 가상 머신을 켤 수 없다(스크립트가 거부). 반대로 가상 머신이 켜져 있으면 세션이 시작을 거부한다(`lab.json`의 금지 프로세스 `vmwp`, `vmmem`).
+- `guest.ps1 -Run`으로 실행한 명령에는 바탕 화면이 없다. 설치 창이나 브라우저처럼 창이 필요한 것은 게스트의 로그온 세션 안에서 실행해야 한다(게스트 안의 예약 작업이나 복사해 넣은 실행 스크립트).
+
+### 검증 상태 (11/12)
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| Hyper-V 켜기 (`enable-hyperv.ps1`) | 검증됨 | 11/11 실행, 재부팅 뒤 일반 권한 창에서 `Get-VM` 동작 |
+| 일반 권한에서 가상 머신 생성·가상 TPM·차등 디스크·체크포인트·복원·삭제 | 검증됨 | 11/12 스파이크 + `vm\test-vm-scripts.ps1` 24개 확인 통과(OS 없는 시험용 가상 머신, 두 대 동시 실행 포함, 끝나면 모두 삭제) |
+| 읽을 수 없는 ISO로 원본 만들기 | 검증됨 | 시작 실패 → 가상 머신과 폴더를 지우고 이유를 알려 줌 |
+| 복원 직후 상태 값 | 검증됨(주의) | 꺼진 상태의 체크포인트로 복원한 직후 약 4초 동안 다른 프로세스에는 `Running`으로 보였다. 상태가 멈출 때까지 기다린 뒤 보고하게 했다 |
+| 실제 Windows 설치, 봉인 뒤 복제본 부팅 | **미확인** | 이 PC에 ISO가 없다 |
+| 복제본의 가상 TPM이 원본과 달라도 Windows가 정상 부팅하는지 | **미확인** | 복제본마다 새 키 보호기를 만든다. 장치 암호화가 켜진 원본이면 문제가 될 수 있다 |
+| `guest.ps1`(PowerShell Direct) — 일반 권한 창에서 되는지 포함 | **미확인** | 게스트가 있어야 시험할 수 있다 |
+| GPU 없는 가상 머신에서 Blender·Godot 창이 뜨는지 | **미확인** | 안 뜨면 가상 머신에서는 그 작업을 못 돌린다 |
+| 금융 보안 모듈이 가상 머신에서 실제 PC와 같게 동작하는지 | **미확인** | 첫 설치 예행연습에서 프로세스·드라이버 목록으로 확인 |
+
+### Hyper-V 켜기 (11/11에 끝남 — 기록)
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File lab\vm\enable-hyperv.ps1 -Check                  # 지금 상태만 본다(바꾸는 것 없음)
@@ -76,13 +142,8 @@ powershell -ExecutionPolicy Bypass -File lab\vm\enable-hyperv.ps1 -AddMeToHyperV
 ```
 
 - 일반 PowerShell 창에서 실행해도 된다. 스크립트가 관리자 권한을 직접 요청한다(창이 `C:\WINDOWS\system32`에서 시작해도 관리자 창이 아닐 수 있다 — 제목에 "관리자:"가 있어야 관리자 창이다).
-- `-AddMeToHyperVAdmins`는 지금 계정을 "Hyper-V Administrators" 그룹에 넣는다. 그래야 이후 가상 머신을 일반 권한 창에서 만들고 다룰 수 있다. 빼면 가상 머신 작업마다 관리자 창이 필요하다.
-- 실행 뒤 **직접 재부팅**하고 `-Check`로 확인한다(기능 enabled, 서비스 vmms·vmcompute, `Get-VM` 사용 가능).
-- 켜면 호스트의 드라이버·서비스가 바뀐다. **그 전에 잰 자료(`runs\`)와 그 뒤에 잰 자료는 다른 실험이다.** 켠 뒤에는 `runs\`를 "Hyper-V 켜기 전" 자료로 보관하고 시범부터 다시 잰다.
-- 측정 세션 중에는 가상 머신을 끈다. 켜져 있으면 세션이 시작을 거부한다(`lab.json`의 금지 프로세스 `vmwp`, `vmmem`).
-- 게스트로 쓸 Windows 설치 파일(ISO)은 직접 받아야 한다(Microsoft 평가판 센터의 Windows 11 Enterprise 평가판, 90일). 11/11 현재 이 PC에 ISO 파일은 없다.
-- 11/11 실행 결과: 기능 켜기와 그룹 추가가 동작했고, 재부팅 뒤 서비스 vmms·vmcompute가 돌며 일반 권한 창에서 `Get-VM`이 된다. 가상 머신은 아직 없다(기본 스위치 `Default Switch`만 있음).
-- 다음: ISO를 받은 뒤 가상 머신 생성·체크포인트·게스트 안 실행 스크립트를 만든다. ISO 없이는 시험할 수 없어 아직 만들지 않았다.
+- `-AddMeToHyperVAdmins`는 지금 계정을 "Hyper-V Administrators" 그룹에 넣는다. 그래야 가상 머신을 일반 권한 창에서 만들고 다룰 수 있다.
+- 켜면 호스트의 드라이버·서비스가 바뀐다. **그 전에 잰 자료와 그 뒤에 잰 자료는 다른 실험이다.** 그 전 자료는 `runs-before-hyperv-20261111\`에 보관했고 시범부터 다시 잰다.
 
 ## 폴더
 
@@ -95,7 +156,7 @@ powershell -ExecutionPolicy Bypass -File lab\vm\enable-hyperv.ps1 -AddMeToHyperV
 | `lib/` | 공용: 프로세스 샘플러, UI 응답 탐침, 입력, 작업 드라이버, 배경 브라우저, 상태·지문·분석, 설치 창 자동 클릭 | 포함 |
 | `tasks/` | 고정 작업: `blender/bench.py`, `godot/make-project.ps1`·`bench.gd` | 포함 |
 | `spikes/` | 사전 확인과 모의 실행 테스트 | 포함 |
-| `vm/` | Hyper-V 켜기·상태 확인(`enable-hyperv.ps1`). 가상 머신 스크립트는 켠 뒤에 추가 | 포함 |
+| `vm/` | Hyper-V 켜기(`enable-hyperv.ps1`), 원본(`base.ps1`), 복제본·체크포인트(`clone.ps1`), 게스트 안 실행(`guest.ps1`), 설정(`vm.json`), 자체 시험(`test-vm-scripts.ps1`). 가상 머신 파일은 저장소 밖 `F:\pca-vm` | 포함 |
 | `tools/` | 측정에 쓰는 포터블 앱(Blender 5.2.3 LTS, Godot 4.7.2, Notepad++ 8.9.9) | 제외 |
 | `runs/` | 원자료(`boots\<블록>\run-NNN.json`), 상태(`state.json`), 로그, 보고서 | 제외 |
 

@@ -77,6 +77,10 @@ $guide = Get-Content (Join-Path $root "docs\participant-guide.md") -Raw -Encodin
 $bad = Get-ChildItem $appDir -Recurse -File | Where-Object { $_.Name -like "*.pem" -or $_.Name -like "*.pdb" -or $_.Name -eq "study.local.json" }
 if ($bad) { throw "배포 폴더에 들어가면 안 되는 파일: $($bad.FullName -join ', ')" }
 if ((Get-Content (Join-Path $appDir "study.json") -Raw) -match "PRIVATE") { throw "study.json 에 개인키" }
+# AI 서비스 키(sk-ant-…)가 든 빌드는 이 경로(참여자 zip·공개 Releases)로 내보내지 않는다 — docs/product-architecture-v2.md 3.4.
+# 파일마다 ASCII 와 UTF-16(.NET 문자열 저장 방식) 두 가지로 찾는다. 키를 쪼개거나 숨겨 넣은 것은 못 잡는다 — 그건 빌드 설정에서 막을 일이다.
+$keyHits = & (Join-Path $PSScriptRoot "find-api-key.ps1") -Dir $appDir
+if ($keyHits) { throw "배포 폴더에 AI 서비스 키로 보이는 문자열: $($keyHits -join ', ') — 배포 중단" }
 
 # 6) zip + SHA-256
 $zip = Join-Path $root "dist\$name.zip"

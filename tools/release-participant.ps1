@@ -104,6 +104,13 @@ $pv = (Get-Item $exe).VersionInfo.ProductVersion
 if ($pv -notlike "$Version+$head*") { Stop-With "built file says '$pv', expected $Version+$($head.Substring(0, 7))..." }
 Ok "built file records this commit ($pv)"
 
+# A build with an embedded AI service key must never reach public Releases (docs/product-architecture-v2.md 3.4).
+# publish-participant.ps1 already scans the staged folder; this scans what will actually be uploaded.
+$updZip = Join-Path $updDir $assets[0]
+$keyHits = & (Join-Path $PSScriptRoot 'find-api-key.ps1') -Zip $updZip
+if ($keyHits) { Stop-With "the update package contains what looks like an AI service key: $($keyHits -join ', ')" }
+Ok 'update package holds no AI service key (prefix scan, ASCII and UTF-16)'
+
 if ($Tag -and -not $existing) { G tag "v$Version" $head | Out-Null; Ok "created local tag v$Version (not pushed: git push origin v$Version)" }
 
 Write-Host ''

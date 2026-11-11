@@ -30,6 +30,7 @@ PcBlackBox.exe (트레이, 관리자 — UAC)                 Apps Script 웹 �
 | `participant/StudyTools` | 팀 도구: `keygen` `check` `receive`(시험 수신기) `decrypt` `summary`, 업데이트용 `update-keygen` `update-pack` `update-verify` `serve`(시험용 파일 서버) |
 | `participant/receiver` | Apps Script 수신기 `Code.gs`·`appsscript.json`, Node 규칙 시험 `test-receiver.js` |
 | `tools/publish-participant.ps1` | 배포 zip 빌드(설정 검증·금지 파일 점검·SHA-256) + 업데이트 묶음·서명한 안내문(0.9~) |
+| `tools/find-api-key.ps1` | AI 서비스 키(`sk-ant-…`)가 든 파일 찾기. 배포·릴리스 스크립트가 불러 쓰고, 찾으면 빌드를 멈춘다(11/12). 쪼개거나 숨긴 키는 못 찾는다 |
 | `tools/test-update.ps1` | 자동 업데이트 전체 흐름 시험(127.0.0.1, 실제 서명 키). `-Mode admin` 은 UAC 를 한 번 묻는다 |
 | `tools/release-participant.ps1` | 릴리스 전 점검(커밋 여부·버전·키·태그) + 빌드 + 올릴 세 파일 안내, `-Verify` 로 올린 뒤 확인. 커밋·푸시·올리기는 하지 않는다 |
 
