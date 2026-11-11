@@ -5,6 +5,7 @@ $runs = @(Get-ChildItem $Dir -Filter *.json | Sort-Object LastWriteTime | ForEac
 if ($runs.Count -eq 0) { throw "no runs in $Dir" }
 $b = $runs[0]
 function Get-Delta($now, $base) {
+    if ($null -eq $now) { return '-' }      # step not measured in this run (for example -NoBuild)
     if (-not $base) { return "$now" }
     return ("{0} ({1:+0.0;-0.0;0}%)" -f $now, ((($now - $base) / $base) * 100))
 }

@@ -30,3 +30,12 @@ study-decrypted/
 
 # 재현·성능 측정 산출물 (개인 PC 프로세스 이름 포함) — 커밋 금지
 collector/experiments/repro-runs/
+
+# 영향 실험(lab/): 받은 포터블 앱과 원자료 — 커밋 금지
+lab/tools/
+lab/runs/
+lab/runs-*/
+
+# API 키가 든 빌드 설정 — 커밋 금지 (docs/product-architecture-v2.md 3.4)
+*.apikey
+apikey.local.*

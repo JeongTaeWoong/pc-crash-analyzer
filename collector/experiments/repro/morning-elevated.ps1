@@ -9,13 +9,18 @@ param(
     [switch]$Interactive,   # do not pass silent flags; click through each installer yourself
     [string[]]$Only = @(),
     [int]$IdleSec = 180,
-    [int]$InstallTimeoutSec = 600
+    [int]$InstallTimeoutSec = 600,
+    # -Unattended (used by lab\install-elevated.ps1): nobody is at the PC. Installer windows are clicked through by
+    # auto-click.ps1, an installer that is still open after the timeout is closed, and nothing from a user-writable
+    # folder is executed with administrator rights: no collector, no project build in the workload.
+    [switch]$Unattended,
+    [string]$ManifestPath    # default: installers\manifest.json. The lab passes a copy kept where only administrators can write.
 )
 $ErrorActionPreference = 'Stop'
 # powershell -File hands "-Only a,b" over as the single string 'a,b'; split it so several slugs select several installers
 $Only = @($Only | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
 $repo = 'F:\2026CAU\Capstone2\pc-crash-analyzer'
-$here = "$repo\collector\experiments\repro"
+$here = $PSScriptRoot
 $runs = "$repo\collector\experiments\repro-runs"
 $dest = "$runs\installers"
 $diffDir = "$runs\install-diff"
@@ -29,7 +34,8 @@ if (-not $DryRun -and (Get-Process PcBlackBox -ErrorAction SilentlyContinue)) { 
 $autoOn = @(Get-ScheduledTask -TaskPath '\PcBlackBox\' -ErrorAction SilentlyContinue | Where-Object { $_.State -ne 'Disabled' })
 if (-not $DryRun -and $autoOn.Count) { throw ("PC BlackBox logon task is enabled. In this elevated window run first:`n  Disable-ScheduledTask -TaskPath '\PcBlackBox\' -TaskName '{0}'" -f $autoOn[0].TaskName) }
 
-$parsed = Get-Content "$dest\manifest.json" -Raw -Encoding UTF8 | ConvertFrom-Json
+if (-not $ManifestPath) { $ManifestPath = "$dest\manifest.json" }
+$parsed = Get-Content -LiteralPath $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $all = @($parsed) | Where-Object { $_.group -eq 'banking' }
 if ($Only.Count) { $all = $all | Where-Object { $Only -contains $_.slug } }
 $all = @($all)
@@ -75,12 +81,16 @@ $psi.WorkingDirectory = $runs
 $psi.UseShellExecute = $false
 $psi.RedirectStandardInput = $true
 $psi.CreateNoWindow = $true
-$c = [System.Diagnostics.Process]::Start($psi)
-function Send-Collector([string]$line) { $c.StandardInput.WriteLine($line); $c.StandardInput.Flush() }
+$c = if ($Unattended) { $null } else { [System.Diagnostics.Process]::Start($psi) }
+function Send-Collector([string]$line) { if ($c) { $c.StandardInput.WriteLine($line); $c.StandardInput.Flush() } }
+$measureArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $measure, '-IdleSec', $IdleSec)
+if ($Unattended) { $measureArgs += '-NoBuild' }
+$clicker = @("$here\auto-click.ps1", "$repo\lab\lib\auto-click.ps1") | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+$summary = @()
 try {
     Send-Collector ''   # lands any BOM on an empty line
-    Start-Sleep -Seconds 20
-    & powershell -NoProfile -ExecutionPolicy Bypass -File $measure -Label 'admin-baseline' -IdleSec $IdleSec
+    if ($c) { Start-Sleep -Seconds 20 }
+    & powershell @measureArgs -Label 'admin-baseline'
     foreach ($i in $all) {
         Write-Host "`n===== $($i.product) =====" -ForegroundColor Cyan
         $before = Get-State
@@ -89,7 +99,14 @@ try {
         $path = Join-Path $dest $i.file
         $p = if ($flags) { Start-Process -FilePath $path -ArgumentList $flags -PassThru } else { Start-Process -FilePath $path -PassThru }
         [void]$p.Handle
+        $click = $null
+        if ($Unattended -and $clicker) { $click = Start-Process powershell -WindowStyle Hidden -PassThru -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$clicker`"", '-ProcessId', $p.Id, '-TimeoutSec', $InstallTimeoutSec, '-LogFile', "`"$diffDir\$($i.slug).clicks.log`"" }
         $outcome = if ($p.WaitForExit($InstallTimeoutSec * 1000)) { 'exit 0x{0:X8}' -f $p.ExitCode } else { "still running after ${InstallTimeoutSec}s; continuing" }
+        if ($Unattended) {
+            if ($click) { [void]$click.WaitForExit(60000); if (-not $click.HasExited) { Stop-Process -Id $click.Id -Force -ErrorAction SilentlyContinue } }
+            # an installer window left open would sit on the desktop through every later measurement
+            if (-not $p.HasExited) { & "$env:SystemRoot\System32\taskkill.exe" /PID $p.Id /T /F 2>$null | Out-Null; $outcome = "closed after ${InstallTimeoutSec}s without finishing" }
+        }
         Write-Host "[install] $outcome"
         Start-Sleep -Seconds 30
         $after = Get-State
@@ -100,14 +117,16 @@ try {
         }
         [IO.File]::WriteAllText((Join-Path $diffDir "$($i.slug).json"), ($diff | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding($false)))
         Write-Host ("[diff] programs +{0} services +{1} drivers +{2} minifilters +{3} rootcerts +{4} tasks +{5} autoruns +{6} processes +{7} ports +{8}" -f @($diff.new_uninstall).Count, @($diff.new_services).Count, @($diff.new_drivers).Count, @($diff.new_minifilters).Count, @($diff.new_rootCerts).Count, @($diff.new_tasks).Count, @($diff.new_autoruns).Count, @($diff.new_processes).Count, @($diff.new_listening).Count)
-        & powershell -NoProfile -ExecutionPolicy Bypass -File $measure -Label "after-$($i.slug)" -IdleSec $IdleSec
+        $summary += [ordered]@{ slug = $i.slug; product = $i.product; outcome = $outcome; newPrograms = @($diff.new_uninstall); newServices = @($diff.new_services).Count; newDrivers = @($diff.new_drivers).Count }
+        [IO.File]::WriteAllText("$runs\install-summary.json", (ConvertTo-Json @($summary) -Depth 4), (New-Object Text.UTF8Encoding($false)))
+        & powershell @measureArgs -Label "after-$($i.slug)"
         Send-Collector "m slow"
         Start-Sleep -Seconds 45
     }
 }
 finally {
     try { Send-Collector 'q' } catch { }
-    if (-not $c.WaitForExit(120000)) { Stop-Process -Id $c.Id -Force -ErrorAction SilentlyContinue }
+    if ($c -and -not $c.WaitForExit(120000)) { Stop-Process -Id $c.Id -Force -ErrorAction SilentlyContinue }
     Get-Process BlackBox -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $collector } | Stop-Process -Force -ErrorAction SilentlyContinue
 }
 & powershell -NoProfile -ExecutionPolicy Bypass -File "$here\perf-compare.ps1"

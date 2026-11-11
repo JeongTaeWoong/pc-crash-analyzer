@@ -8,7 +8,8 @@ param(
     [int]$FileCount = 3000,
     [int]$SpawnCount = 200,
     [string]$OutDir = 'F:\2026CAU\Capstone2\pc-crash-analyzer\collector\experiments\repro-runs\perf',
-    [string]$BuildProject = 'F:\2026CAU\Capstone2\pc-crash-analyzer\participant\StudyTools\StudyTools.csproj'
+    [string]$BuildProject = 'F:\2026CAU\Capstone2\pc-crash-analyzer\participant\StudyTools\StudyTools.csproj',
+    [switch]$NoBuild    # skip the build step: building a project from a user-writable folder must not happen in an elevated, unattended run
 )
 $ErrorActionPreference = 'Stop'
 $WatchRx = '(?i)astx|ahnlab|nprotect|nos(svc|tray|bg)|npkcrypt|touchen|nxkey|veraport|wizvera|ipinside|i3gproc|delfino|anysign|magicline|inisafe|crossweb|keysharp|ksign|markany|maepagesafer|softcamp|vgc|vgtray|easyanticheat|beservice|battleye|xigncode|xhunter|gameguard|sguard'
@@ -103,13 +104,16 @@ $rows = for ($r = 1; $r -le $Rounds; $r++) {
     }
     $spawn = $sw.ElapsedMilliseconds
     $sw.Restart()
-    & dotnet build $BuildProject -c Debug --no-incremental --nologo -v q -p:UseSharedCompilation=false 2>&1 | Out-Null
-    $build = $sw.ElapsedMilliseconds
+    if ($NoBuild) { $build = $null }
+    else {
+        & dotnet build $BuildProject -c Debug --no-incremental --nologo -v q -p:UseSharedCompilation=false 2>&1 | Out-Null
+        $build = $sw.ElapsedMilliseconds
+    }
     [pscustomobject]@{ round = $r; createMs = $create; readMs = $read; deleteMs = $del; spawnMs = $spawn; buildMs = $build }
 }
 if (Test-Path $work) { Remove-Item -Recurse -Force $work }
 $median = [ordered]@{}
-foreach ($k in 'createMs', 'readMs', 'deleteMs', 'spawnMs', 'buildMs') { $median[$k] = Get-Median ($rows | ForEach-Object { $_.$k }) }
+foreach ($k in 'createMs', 'readMs', 'deleteMs', 'spawnMs', 'buildMs') { $median[$k] = Get-Median ($rows | ForEach-Object { $_.$k } | Where-Object { $null -ne $_ }) }
 
 $result = [ordered]@{ label = $Label; at = (Get-Date).ToString('s'); cores = $cores; fileCount = $FileCount; spawnCount = $SpawnCount; idle = $idle; facts = $facts; rounds = @($rows); median = $median }
 $out = Join-Path $OutDir ("{0}-{1}.json" -f ($Label -replace '[^\w.-]', '_'), (Get-Date -Format 'yyyyMMdd-HHmmss'))

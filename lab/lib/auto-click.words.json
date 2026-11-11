@@ -1,0 +1,6 @@
+{
+  "note": "Button and option names for auto-click.ps1. Kept in a UTF-8 data file because Windows PowerShell 5.1 reads a .ps1 without a byte-order mark as ANSI and would garble Korean text inside the script. Names are matched at the start of the button text, ignoring case and the & accelerator mark.",
+  "go": ["다음", "next", "설치", "install", "동의", "i agree", "agree", "수락", "accept", "확인", "ok", "예", "yes", "계속", "continue", "마침", "finish", "완료", "done", "닫기", "close"],
+  "never": ["취소", "cancel", "아니", "^no$", "^no\\b", "뒤로", "back", "이전", "제거", "remove", "uninstall", "삭제", "복구", "repair", "수정", "modify", "동의하지", "do not", "don.t", "거부", "decline"],
+  "acceptOption": ["동의", "accept", "agree"]
+}

@@ -257,7 +257,42 @@ A·B·C 등급의 측정값은 없다. 간접 자료는 메모리 무결성(HVCI
 
 Voicemeeter, `sprotect.sys`, `inpoutx64`, 안티치트 사례는 커널·계정 위험 때문에 제외한다.
 
+### 6.4 주변기기·모니터 유틸 (11/10 밤 추가, 정태웅 요청)
+
+로지텍 G HUB, 와콤 드라이버, LG 모니터 앱처럼 장치와 함께 깔리는 프로그램이 PC를 느리게 하거나 화면을 깜빡이게 한다는 이야기가 커뮤니티와 유튜브에 많다. 공식 자료를 찾아본 결과는 다음과 같다.
+
+| 프로그램 | 찾은 근거 | 등급 |
+|---|---|---|
+| Logitech G HUB | CPU가 갑자기 치솟는다는 사용자 보고(Blizzard·Steam 포럼). 2021년 Logitech 직원이 원인을 찾아 핫픽스를 냈다는 포럼 글. 릴리스 노트의 메모리 누수 수정 1건(Discord 연동 기능 한정). **공식 "알려진 문제" 문서는 못 찾음** | D (검색 요약) |
+| Wacom 드라이버 | Windows Ink를 켜면 Photoshop·Substance Painter에서 펜이 밀린다는 Adobe 커뮤니티 글 여러 건. 끄면 필압이 사라졌다는 보고도 있음. **Wacom 공식 문서는 못 찾음** | D (검색 요약) |
+| LG OnScreen Control | 켜 두면 Lightroom 화면이 멈추고 깜빡이며, 끄면 정상이 된다는 Adobe 커뮤니티 글(2022). Intel 커뮤니티에 게임 멈춤 보고. **LG 공식 문서에는 깜빡임·지연 언급 없음** | D (검색 요약) |
+| (비교) Corsair iCUE, Nahimic | 벤더가 직접 충돌 프로그램 목록·제거 안내를 냄(6.1절) | A |
+
+**이 PC에서 잰 값(11/10 밤, 30초, 비관리자).** Logitech G HUB 2026.7이 설치돼 동작 중이다.
+
+| 프로세스 | CPU (PC 전체 기준) | 전용 메모리 | 부팅 후 53.7시간 동안 쓴 CPU 시간 |
+|---|---|---|---|
+| `lghub_agent.exe` | 0.003% | 143.5MB | 2.4분 |
+| `lghub_system_tray.exe` | 0.003% | 87.2MB | 3.0분 |
+| `lghub_updater.exe` | 0% | 32.8MB | 0.1분 |
+| `logi_lamparray_service` | 0.01% | 4.7MB | 1.5분 |
+| (비교) NVIDIA Overlay + FvContainer + PresentMon | 6.1% + 6.1% + 6.1% | 1.6GB + 14MB + 20MB | 각각 약 48시간 |
+
+- G HUB는 지금 이 PC에서 CPU를 거의 쓰지 않는다. 메모리는 합쳐서 약 270MB다. 같은 PC에서 NVIDIA 앱의 통계 기능은 스레드 세 개를 부팅 이후 내내 쓰고 있다.
+- G HUB는 로컬 포트 3개(127.0.0.1의 45654, 9010, 9180)를 열고, 서비스 2개와 드라이버 4개를 둔다.
+- 커뮤니티 보고는 "가끔 갑자기 치솟는다"는 형태라, 30초 측정으로는 반박도 확인도 되지 않는다. 수집기의 24시간 분 단위 기록이 이런 간헐 증상을 잡는 용도다.
+- 이 PC에는 Wacom 태블릿 드라이버(Windows 기본 `WacomPen`만 있고 정지 상태)와 LG 모니터 앱이 없어 확인하지 못했다. DTS 오디오 처리 서비스(`DtsApo4Service`)가 동작 중인데, Nahimic과 같은 "오디오 효과" 계열이라 감시 목록에 넣는다.
+
+**설계에서 다루는 방법**
+
+- 이런 프로그램에는 공식 근거가 없으므로 "이 프로그램은 느리다"는 규칙을 만들지 않는다(D등급은 점수를 올리지 못한다). 대신 **이 PC에서 잰 자원 사용(C축)과 침투 깊이(F축: 서비스·드라이버·포트·주입 DLL)** 로 점수가 나온다. 문제가 있는 PC에서는 높게, 없는 PC에서는 낮게 나오는 것이 맞다.
+- `product-catalog` 팩에 이름을 넣어 "미분류"가 아니라 제품으로 묶이게 한다: `lghub_*`, `logi_*`(Logitech), `WTabletServicePro`·`Wacom*`(Wacom), `OnScreen Control`·`LG Switch`(LG), `DtsApo4Service`(DTS). 엔진 규칙에는 이미 `logi`(입력 유틸)와 `onscreen`(모니터 유틸) 범주가 있다. Wacom과 오디오 효과 계열은 없다.
+- 깜빡임은 엔진에 증상과 범주(`flicker` × 모니터 유틸)가 이미 있다. 점검은 "해당 유틸을 끄고 증상이 사라지는지"이고, Microsoft의 화면 깜빡임 안내도 같은 방법(의심 앱을 하나씩 제거)을 쓴다.
+- 영향 실험에서는 G HUB를 포함한 지금 상태가 "설치 전" 기준이다. 실험 기간에 G HUB를 켜거나 끄거나 업데이트하면 안 된다.
+
 ## 7. 못 찾은 것
+
+- Logitech G HUB·Wacom·LG 모니터 앱의 성능 문제에 대한 벤더 공식 문서
 
 - 국내 게임사(넥슨·스마일게이트·카카오게임즈·엔씨)의 공식 "충돌 프로그램" 목록 — 백신 예외 등록 안내뿐
 - 카카오톡·네이버 웨일의 보안 모듈 크래시 공지, nProtect Online Security 충돌에 대한 은행 FAQ
@@ -267,6 +302,13 @@ Voicemeeter, `sprotect.sys`, `inpoutx64`, 안티치트 사례는 커널·계정 
 - Fasoo·SoftCamp·MarkAny 등 문서 보안 제품의 공개 장애 보고
 - Microsoft의 최근 "크래시 중 서드파티 드라이버 비율"(2004년의 70%만 있음)
 - WinDbg식 결정적 분석과 LLM을 결합해 Windows 덤프로 평가한 논문
+
+## 출처 (6.4절, 검색 요약만 확인)
+
+- G HUB: https://us.forums.blizzard.com/en/wow/t/psa-logitech-g-hub-cpu-bug/798091 · https://steamcommunity.com/discussions/forum/11/3315110799617977308 · https://support.logi.com/hc/ko/articles/37661444333207-Logitech-G-HUB
+- Wacom × Windows Ink: https://community.adobe.com/questions-712/several-problems-including-brush-lag-with-new-wacom-tablet-windows-ink-photoshop-1113211 · https://community.adobe.com/t5/substance-3d-painter-bugs/substance-painter-11-1-0-pen-lagging/idi-p/15616740
+- LG OnScreen Control: https://community.adobe.com/questions-675/lightroom-is-lagging-and-freezing-due-to-lg-onscreen-control-965415 · https://community.intel.com/t5/Intel-ARC-Graphics/Valorant-crashes-Freezes-in-buy-menu-50-of-the-time/m-p/1645252
+- Microsoft 화면 깜빡임 안내: https://support.microsoft.com/zh-TW/Windows/Hardware/Display-Graphics/troubleshoot-screen-flickering-in-windows
 
 ## 출처 (6절)
 
