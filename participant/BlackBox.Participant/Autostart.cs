@@ -114,6 +114,14 @@ public sealed class ElevatedAutostart
         var dst = Path.GetFullPath(InstallDir);
         if (SameDir(src, dst)) return;
         if (File.Exists(InstalledExe) && Version(InstalledExe) == Version(Installation.ExePath)) return;
+        // 설치본이 더 새 버전이면 덮어쓰지 않는다(0.9~): 자동 업데이트로 올라간 설치본을, 내려받기 폴더에 남은 옛 exe 를 켰다고 되돌리지 않게.
+        // 예약 작업은 계속 설치본을 가리키므로 다음 로그인부터는 새 버전이 뜬다.
+        if (File.Exists(InstalledExe) && StudyCore.UpdateManifest.TryParseVersion(Version(InstalledExe), out var have)
+            && StudyCore.UpdateManifest.TryParseVersion(Version(Installation.ExePath), out var mine) && have > mine)
+        {
+            OpsLog.Write($"[autostart] 설치본({have.ToString(3)})이 지금 실행 파일({mine.ToString(3)})보다 새 버전이라 그대로 둠");
+            return;
+        }
 
         // 원본 폴더는 사용자가 쓸 수 있는 곳이다 — 그 안의 링크(정션·심볼릭 링크)를 따라가면 관리자 권한으로 남의 파일을
         // 누구나 읽을 수 있는 Program Files 로 복사하게 된다. 링크는 건너뛴다(배포 zip 에는 링크가 없다).
@@ -136,6 +144,9 @@ public sealed class ElevatedAutostart
     public void Uninstall()
     {
         var dst = Path.GetFullPath(InstallDir);
+        // 자동 업데이트가 옆에 남긴 폴더(이전 버전 .update-old 등)도 같이 지운다 — 우리 exe 가 든 것만
+        foreach (var side in new[] { StudyCore.DirSwap.OldOf(dst), StudyCore.DirSwap.NewOf(dst), StudyCore.DirSwap.FailedOf(dst) })
+            try { if (File.Exists(Path.Combine(side, "PcBlackBox.exe"))) StudyCore.DirSwap.DeleteDir(side); } catch { }
         if (!Directory.Exists(dst)) return;
         // 우리 설치 폴더라는 표시가 없으면 손대지 않는다
         if (!File.Exists(Path.Combine(dst, "PcBlackBox.exe")) || !File.Exists(Path.Combine(dst, "study.json"))) return;

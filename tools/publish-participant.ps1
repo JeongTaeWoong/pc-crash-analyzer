@@ -1,17 +1,28 @@
 ﻿# 참여자판 배포 빌드 — 지인 PC 에 .NET 설치 없이 풀어서 바로 쓰는 폴더(self-contained, win-x64)와 zip 을 만든다.
-# 사용: powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 [-Version 0.8.2] [-Config participant\study.local.json] [-AllowLoopback]
+# 사용: powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 [-Version 0.9.0] [-Notes "바뀐 점"] [-Config participant\study.local.json] [-AllowLoopback]
 # 결과: dist\PcBlackBox-<Version>-win-x64.zip (+ .sha256.txt). dist\ 는 커밋하지 않는다.
 # 안전장치:
 #  - 설정 검증(StudyTools check): https 수신 주소, 3072비트 이상 공개키, keyId 일치, 개인키가 섞여 있으면 거부
 #  - 127.0.0.1 시험 수신기 설정은 -AllowLoopback 일 때만(시험 빌드) — 실수로 시험 설정을 지인에게 보내지 않게
 #  - 배포 폴더에 *.pem·*.pdb·study.local.json 이 들어가면 실패
 #  - 시험 빌드는 zip 안 폴더 이름도 "PC블랙박스-팀시험용" — 지인에게 잘못 보내도 이름으로 알아보게(10/30)
+#
+# 자동 업데이트(0.9~): 업데이트 서명 키(%USERPROFILE%\.pca-study\update-signing.private.pem)가 있으면 업데이트 묶음도 만든다.
+#   dist\update\<이름>\  PcBlackBox-<Version>-win-x64-update.zip · update.json · update.json.sig  → GitHub Releases 에 올리는 세 파일
+#   묶음에는 연구 설정(study.json)이 없다 — 수신 주소·토큰·문의처가 공개되지 않는다. 설치된 PC 는 자기 study.json 을 이어 쓴다.
+#   참여자 zip(study.json 포함)은 지금처럼 새 참여자에게 한 번만 직접 건넨다. 이것은 Releases 에 올리지 않는다.
+#   시험 빌드는 -UpdateBaseUrl http://127.0.0.1:8788/ 를 줄 때만 묶음을 만든다(tools\test-update.ps1 이 쓴다).
 param(
-    [string]$Version = "0.8.2",
+    [string]$Version = "0.9.0",
     [string]$Config = "participant\study.local.json",
-    [switch]$AllowLoopback
+    [switch]$AllowLoopback,
+    [string]$Notes = "",
+    [string]$UpdateBaseUrl = "",
+    [string]$UpdateKey = (Join-Path $env:USERPROFILE ".pca-study\update-signing.private.pem"),
+    [switch]$NoUpdatePackage
 )
 $ErrorActionPreference = "Stop"
+if (-not $env:DOTNET_ROLL_FORWARD) { $env:DOTNET_ROLL_FORWARD = "Major" }   # 팀 PC 에 .NET 8 런타임이 없어도 StudyTools 가 돌게(11/10)
 $root = Split-Path -Parent (Split-Path -Parent $MyInvocation.MyCommand.Path)
 $configPath = if ([System.IO.Path]::IsPathRooted($Config)) { $Config } else { Join-Path $root $Config }
 if (-not (Test-Path $configPath)) { throw "설정 없음: $configPath — 먼저 StudyTools keygen 과 Apps Script 배포(docs\study-operations.md)" }
@@ -78,3 +89,22 @@ $files = (Get-ChildItem $appDir -Recurse -File | Measure-Object).Count
 Write-Host "[done] $zip  ($size MB, $files files)"
 Write-Host "       SHA-256 $hash"
 Write-Host "       받는 곳 $($uri.Host) · 키 $($cfg.keyId)$(if ($loopback) { ' · 시험 빌드(지인 배포 금지)' })"
+
+# 7) 업데이트 묶음 (연구 설정 없음) + 서명한 안내문
+if ($NoUpdatePackage) { return }
+if ($loopback -and -not $UpdateBaseUrl) { Write-Host "[update] 시험 빌드 — 업데이트 묶음은 -UpdateBaseUrl 을 줄 때만 만든다"; return }
+if (-not (Test-Path $UpdateKey)) {
+    Write-Host "[update] 서명 키 없음($UpdateKey) — 업데이트 묶음을 만들지 않았다. 처음이면 StudyTools update-keygen"
+    return
+}
+$updDir = Join-Path $root "dist\update\$name"
+if (Test-Path $updDir) { Remove-Item -Recurse -Force $updDir }
+$packArgs = @("update-pack", "--app", $appDir, "--version", $Version, "--out", $updDir, "--key", $UpdateKey)
+if ($Notes) { $packArgs += @("--notes", $Notes) }
+if ($UpdateBaseUrl) { $packArgs += @("--base-url", $UpdateBaseUrl) }
+& $toolsExe @packArgs
+if ($LASTEXITCODE -ne 0) { throw "업데이트 묶음 만들기 실패" }
+$verifyArgs = @("update-verify", "--dir", $updDir)
+if ($loopback) { $verifyArgs += "--allow-loopback" }
+& $toolsExe @verifyArgs
+if ($LASTEXITCODE -ne 0) { throw "업데이트 묶음 확인 실패" }

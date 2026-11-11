@@ -837,4 +837,64 @@ SKB(통신사 속도 측정) 계열은 10/28 유휴 CPU 13~22% 관찰분과 같�
 | 복원 지점 상태 | 권한 필요 | `Get-ComputerRestorePoint` 비관리자 실패 |
 | 드라이버 SHA-256 전수 계산 + LOLDrivers 대조 (11/10 오후 스파이크) | **검증됨** | 등록 드라이버 410개·316.5MB 1.5초, 목록 713건(해시 2,221개) 읽기 0.75초, 못 읽은 파일 0(비관리자). 해시 일치 0개. 이름만 일치 3개 중 2개는 Windows 정상 파일(`afd.sys`, `KslD.sys`) → 이름 대조는 판정에 쓰지 않음 |
 | `xhunter2.sys`(XIGNCODE3, 로스트아크) | 미확인 | 이 PC 2026.9.16.465, 실행 중·시작 유형 수동. 공개 취약 버전은 2026.6.1.192(CVE-2026-15430). 수정 여부는 공개 자료로 판정 불가 |
+| 프로세스 샘플러 3종 비교 (11/10 밤, `lab/spikes/spike-probes.ps1`, 게임 실행 중) | **검증됨** | `NtQuerySystemInformation` 7.1ms / PerformanceCounter `ReadCategory` 966ms(10/29 유휴 때는 260ms) / WMI PerfProc 645ms. 앞의 것은 비관리자로 SYSTEM 프로세스(MsMpEng·PresentMon)의 CPU 시간도 읽힘, 프로세스 365개 일치. 반공개 API라 수집기 본 코드에 넣을지는 미정(실험 스크립트에서만 사용, 시작 시 구조 자기 점검) |
+| UI 응답 탐침(WM_NULL 왕복) | **검증됨** | 300ms 멈춤 6회 중 6회 감지, 평소 0.07ms, 부하 스레드 하나의 0.5% |
+| `GetLastInputInfo` | 일부 검증 | `SendInput` 도 값을 바꿈 → 스크립트 입력 구간에서는 사람 입력 감지 불가. 무입력 시 안정성은 미확인 |
+| Defender·Windows Update 이벤트(비관리자) | **검증됨** | Defender 검사 시작 6회/7일, 정의 갱신 36회/7일. Windows Update 설치 96건/14일(드라이버 10, 스토어 앱 63, 정의 18) — 업데이트 일시 중지 안 된 상태 |
+| 실험용 앱 3종 받기·검증 (11/10 밤) | **검증됨** | Blender 5.2.3 LTS·Godot 4.7.2·Notepad++ 8.9.9 포터블. 공식 체크섬 일치, 서명 Valid. `lab/tools.lock.json` 에 고정 |
+| Blender 작업 변동 (`lab/spikes/spike-tasks.ps1`, 같은 부팅 4회) | **검증됨** | 전체 16.0초 변동계수 0.3%, 렌더 13.4초 0.4%, 물리 2.0초 0.8%. 부팅 후 첫 실행은 31초 |
+| Godot 작업 변동 (같은 부팅 4회) | **검증됨** | 임포트 3.97초 0.2%, 스크립트 계산 4.0%, 파일 입출력 5.2% |
+| Logitech G HUB 자원 사용 (30초, 비관리자) | **검증됨**(이 시점 값) | CPU 합계 0.02% 미만, 전용 메모리 약 270MB, 로컬 포트 3개·서비스 2개·드라이버 4개. 간헐적 급증 여부는 미확인(24시간 기록 필요) |
+| Wacom 드라이버, LG 모니터 앱 | 미확인 | 이 PC에 없음 |
+| 영향 실험 자동화 `lab/` (11/10 오후, 사용자 외출 중 구현·시험) | 아래 | 사용법 `lab/README.md` |
+| ├ 작업 3종(Blender·Godot·Notepad++)과 지표 | **검증됨** | Notepad++ 입력 지연 중앙값 0.68ms·p95 1.04ms(작은 파일). 50MB 파일에서는 앱 자체가 몇 글자마다 0.6초 멈춰 입력 지연 측정에 부적합 → 큰 파일은 열기·저장에만 사용 |
+| ├ 배경 3종(유튜브·은행 페이지·문서 순환) | **검증됨** | 은행 페이지는 Chrome 157에서 로컬 네트워크 권한 창이 뜸 → 실험용 프로필에만 `LocalNetworkAccessChecks` 끔 |
+| ├ 블록 전체 | **검증됨** | 시험용 15런 5.8분. 실제 대기 시간 리허설 33런 43.8분, 오류 0·제외 0. 같은 부팅 안 흔들림 0.4% 안팎, 배경 브라우저만으로 Blender +3.9%·Godot 임포트 +4~5% |
+| ├ 상태 기계(시범→계획→설치 전→설치→적응→설치 후, 정지·재개, 시간 부족, 설치 실패) | **검증됨(모의)** | 재부팅 대신 재호출. 실제 재부팅·자동 로그인·화면 잠금은 미확인 |
+| ├ 설치 창 자동 클릭 | 일부 검증 | 시험용 마법사 통과. 실제 설치 창 미확인. 이 PC에서 UIA 는 WinForms 버튼을 Pane 으로만 보여 줘 Win32 `BM_CLICK` 으로 구현 |
+| ├ `setup-once.ps1`·관리자 예약 작업 | 검증됨 | 11/10 저녁 사용자가 관리자 창에서 실행. 8개 파일이 `C:\Program Files\PcaLab`에 복사됐고 해시가 원본과 일치, 일반 권한으로는 쓰기 거부, `\PcaLab\Install`은 트리거 없음·최고 권한·실행 이력 없음 |
+| ├ `install-elevated.ps1`(설치 단계 본체) | 미확인 | 등록만 됨. `-AllowInstall` 세션에서 처음 동작 |
+| ├ 앱 패키지 설치·업데이트 감지 (AppXDeploymentServer/Operational 400) | **검증됨** | 비관리자로 읽힘, 한 번 확인에 14ms. `DeploymentOperation` 값(이 PC 14일 271건에서 메시지와 대조): 1 Add·2 Remove·4 Stage·5 DeStage·6 Register·27 OnDemandRegister·29 Provision·33 Deprovision. Store 앱 업데이트는 `svchost.exe,wuauserv`가 Stage로 수행(73건). 1·2·4·5가 런 구간에 있으면 제외. 11/10 04:59 Claude 앱 자체 업데이트(Add)를 잡고, 05:10 Register만 있는 구간과 리허설 구간은 깨끗하다고 판정 |
+| ├ Microsoft Store 앱 자동 업데이트 끄기 | 미확인 | 11/10 Store 설정에서 "이 장치에서 업데이트를 일시 중지하려면 관리자 권한이 필요합니다"로 거부됨(계정은 관리자 그룹). 원인 모름. 정책 키 `HKLM\SOFTWARE\Policies\Microsoft\WindowsStore`는 없음. 끄지 못하므로 위 감지로 대신한다 |
+| ├ 자동 로그인(Sysinternals Autologon) | **검증됨** | 11/10 첫 시도는 "The user name or password is invalid"(이 PC의 계정은 Microsoft 계정). 사용자가 다시 설정한 뒤 `AutoAdminLogon=1`, 평문 암호 없음. 11/11 세션에서 재부팅 6번 모두 자동 로그인됨 |
+| ├ 실제 재부팅 후 자동 재개·세션 끝 잠금 | **검증됨** | 11/11 02:22~07:25 첫 실제 세션. 재부팅 6번, 시범 3블록(각 25분) + 설치 전 4블록(각 56분), 201런 중 오류 1·제외 1. 끝낼 시각 57분 전에 "블록 하나 더 돌 시간 없음"으로 스스로 끝내고 런처를 지움 |
+| ├ 부팅 간 흔들림 (설치 전 4부팅) | **검증됨** | Blender 작업 13.0초 CV 0.4%, Godot 임포트 3.44초 CV 0.05% 이하, Godot 에디터 창 2.6초 CV 0.5~1.1%, Notepad++ 50MB 열기 CV 0.4~5%, 시작 4.5~9%, 입력 지연 p95 2~4%. 배경 브라우저만의 영향: Blender 유튜브 +0.8%·문서 +0.9%·은행 페이지 0.0%, Godot 임포트 ±0.5% 안. **11/10 리허설의 "+3.9%, +4~5%"는 PC를 쓰던 상태의 값이라 과대였다(정정)** |
+| ├ Defender 정의 업데이트 뒤 첫 실행이 느려짐 | **검증됨** | 11/11 03:25:58 정의 갱신(Defender/Operational 2000, WindowsUpdateClient 19·43으로도 보임. Windows 업데이트 일시 중지와 무관하게 들어온다). 직후 Godot 임포트 3.44→4.52초, Blender 창 1.0→2.7초, 그다음 실행부터 정상. 최근 7일 하루 2~3번. "정의 갱신 뒤 각 앱의 첫 실행"을 제외 규칙에 추가(설치 전 4블록 안에는 갱신 없음) |
+| ├ 환경 지문 기준 (버그) | **검증됨(수정)** | 기준을 첫 세션 시작(재부팅 전)에 저장한 탓에 측정한 부팅 전부와 달랐다: 에디션 Home→Enterprise 전환이 첫 재부팅에서 끝났고(AppVClient·AssignedAccessManagerSvc·AppMgmt·CSC 등장, 두 번째 부팅부터 Sense·MsSecCore), 와콤 드라이버(`WacHidRouterPro`, `wacomrouterfilter`)가 올라옴. 사용자별 서비스 접미사(`CDPUserSvc_d5677`)도 로그온마다 바뀐다. 수정: 접미사 정규화, 세션 시작은 최근 블록과 등록 드라이버 기준 비교, 블록끼리 비교 기록, 지문에 에디션 추가. 실제 상태 사본으로 다음 세션 시작을 모의 실행 → 차단 0건 |
+| ├ Godot 표준 오류 한 줄에 런이 죽음 (버그) | **검증됨(수정)** | s0-04 38번 런 "Unicode parsing error: Unpaired trail surrogate". PS 5.1은 `$ErrorActionPreference='Stop'`에서 `2>&1`의 첫 stderr 줄을 종료 오류로 만든다. 측정 명령은 그대로 두고 그 구간만 `Continue`로, stderr 줄은 `console_stderr`로 기록. Godot가 그 줄을 낸 원인은 미확인(67런 중 1번) |
+| ├ Windows 에디션 | 미확인 | 11/10 낮까지 Home, 11/11 02:24 부팅부터 Enterprise(`EditionID=Enterprise`, 설치일은 11/04 그대로). 누가 왜 바꿨는지는 사용자 확인 필요. 측정한 블록은 전부 Enterprise 상태 |
+| ├ 와콤 타블렛 드라이버 6.3.46-2 | **검증됨**(설치 사실) | 11/10 저녁~11/11 02:22 사이 설치됨. 프로그램 목록의 표시 이름에 깨진 UTF-16 문자가 들어 있음. 설치 전·후 측정에 똑같이 포함된다. 848행의 "이 PC에 없음"은 11/10 낮 기준 |
+| └ 함정 | — | Windows PowerShell 5.1 은 BOM 없는 .ps1 을 ANSI 로 읽는다 → 스크립트 안의 한글 문자열이 깨져 정규식이 안 맞았다. lab 스크립트는 ASCII 만 쓰고 한글은 UTF-8 JSON 에서 읽는다. `shutdown /a` 는 대기 중인 종료가 없으면 오류를 내므로 `$ErrorActionPreference='Stop'` 에서 스크립트를 죽인다(정지 스크립트가 이 때문에 동작하지 않던 것을 모의 실행에서 발견) |
 | **10/28 PerfProc 수치의 단위 (정정)** | **검증됨** | `Win32_PerfFormattedData_PerfProc_Process.PercentProcessorTime` 은 논리 CPU 1개 기준. 359행 SignKoreaWD 22%·Goji 22%·SKBspmtmon 13%는 PC 전체로 각 1.4·1.4·0.8%(같은 스파이크의 chrome 93·WmiPrvSE 31 포함 합계 181%로 확인). 수집기 `ResourceSource` 는 이미 `/ProcessorCount`(전체 기준), 엔진 규칙 E(≥10%)도 전체 기준이라 서로는 맞다. 틀린 것은 문서와 엔진 샘플 s12 의 13.9 |
+
+## 참여자판 0.9.0 — 자동 업데이트 (11/11)
+
+발단: 버전이 바뀔 때마다(0.8.1 → 0.8.2) 새 zip 을 참여자마다 다시 건네야 했다. 11/11 결정: 공개 GitHub Releases 로 내보낸다(학교 지원 조건이 오픈소스 공개). 절차·보안 모델은 `docs/study-operations.md` 2-5절.
+
+- 수집 코드(`collector/`)는 바꾸지 않았다. 바뀐 곳은 `participant/` 와 `tools/` 뿐이다.
+- 판단·검증 로직은 `participant/StudyCore/Update.cs`(서명·버전·주소 규칙, 묶음 풀기, 폴더 바꿔치기), 네트워크·프로세스는 `participant/BlackBox.Participant/Updater.cs`.
+- 저절로 설치하지 않는다. 새 버전은 알림만 띄우고 참여자가 "업데이트"를 눌러야 바뀐다(CLAUDE.md 3: 사용자 선택 없는 자동 조치 금지).
+- 공개 묶음에는 `study.json` 이 없다(수신 주소·토큰·문의처 비공개). 설치본의 것을 이어 쓴다. 묶음만 받은 사람은 앱을 켤 수 없다.
+- 믿는 것은 업데이트 서명 키(ECDSA P-256) 하나. 개인키 `%USERPROFILE%\.pca-study\update-signing.private.pem`(11/11 만듦, 저장소 밖), 공개키는 `UpdateTrust.Keys`.
+- 관리자 실행은 `C:\Program Files\PcBlackBox` 설치본만 바꾼다. 받은 묶음은 `C:\ProgramData\PcBlackBox\<SID>\update\` 에 풀고 거기서 실행한다.
+- 교체는 새 exe 가 한다(`--apply-update`): 이전 버전의 코드는 받기·확인·넘기기만 하므로, 교체 단계의 버그는 다음 버전에서 고칠 수 있다.
+- 0.8.x 설치본에는 이 기능이 없다 → 0.9.0 zip 을 한 번 더 직접 건네야 한다.
+- `ElevatedAutostart.Install` 은 설치본이 더 새 버전이면 덮어쓰지 않는다(내려받기 폴더의 옛 exe 를 켜도 설치본이 되돌아가지 않게).
+- 문의처를 학교 메일로 바꿨다(`participant/study.local.json`, 커밋 제외). 바꾸기 전 파일은 `%USERPROFILE%\.pca-study\study.local.json.bak-20261111`.
+
+| 항목 | 분류 | 결과 |
+|---|---|---|
+| 서명·버전·주소 규칙, 묶음 풀기(폴더 밖 이름·상한), 폴더 바꿔치기·되돌리기 | **검증됨** | StudyCore.Tests 90건(기존 48 + 업데이트 42). 서명 뒤 고친 안내문, 다른 키 서명, 남의 저장소·http·127.0.0.1 주소, 낮거나 같은 버전, `..`·절대 경로·드라이브 문자 이름, 사용 중인 폴더(아무것도 안 바뀜) |
+| 전체 흐름 — 표준 사용자 경로 (`tools\test-update.ps1`, 비관리자, `__COMPAT_LAYER=RunAsInvoker`) | **검증됨(이 PC)** | 11/11, 3회 실행 중 마지막 28개 확인 모두 통과. 실제 서명 키로 서명한 0.9.1 묶음(67.7MB, 277파일)을 127.0.0.1 에서 받음. ① 0.9.0 → 0.9.1: 확인·받기·SHA-256·풀기·시험 실행·수집 정지·교체·재시작·수집기 시작 확인까지 38~43초(시험은 켜고 25초 뒤에 시작), `study.json`·참여 ID 유지, 이전 폴더 정리 ② 낮은 버전 제안 무시 ③ 새 버전이 못 뜸(흉내) → 0.9.0 으로 되돌리고 다시 켬, 0.9.1 을 건너뛸 버전으로 기억 ④ 건너뛴 버전 다시 안 받음 ⑤ 서명 뒤 고친 안내문 → 서명 확인에서 거부, 받지 않음 ⑥ 같은 크기로 1바이트 바꾼 묶음 → SHA-256 에서 거부, 풀지 않고 받은 파일 삭제 |
+| 전체 흐름 — 관리자 경로(예약 작업 + 설치본 교체) | **미확인** | `tools\test-update.ps1 -Mode admin`. 시험용 예약 작업(`-TEST`)과 시험 폴더만 쓴다. 11/11 17:56 첫 시도는 "Mode admin needs an elevated PowerShell" 로 멈췄다 — 창이 `C:\WINDOWS\system32` 에서 시작했지만 관리자 창이 아니었다(그 창의 프로세스 토큰을 확인: 권한 상승 아님, 부모 explorer). 스크립트를 고쳐 일반 창에서 실행하면 일반 권한으로 빌드한 뒤 UAC 를 한 번 묻고 관리자 쪽을 돌리게 했다(관리자 쪽 절반은 아직 실행된 적 없음) |
+| 릴리스 도우미 `tools\release-participant.ps1` | **검증됨(예행)** | 11/11. 커밋 전에는 빌드를 거부(실제 저장소에서 확인). 임시 복제본에 커밋해 끝까지 실행: 실제 설정으로 빌드, 세 파일 생성·검증, 빌드한 exe 의 버전 정보가 `0.9.0+<그 커밋 해시>` 인 것 확인, 로컬 태그. `-Verify` 는 릴리스가 없는 지금 세 주소 모두 실패(404)로 보고 — 올린 뒤의 성공 경로는 미확인. `gh` 가 이 PC 에 없어 `-Publish` 는 미확인 |
+| 실제 설치 위치(`C:\Program Files\PcBlackBox`, `C:\ProgramData\PcBlackBox\<SID>\update`)에서의 교체 | **미확인** | 시험은 시험 폴더에서만 돈다. 관리자 실행의 대상·실행 위치 제한(설치본만, 보호된 폴더에서만)은 실제 경로에서만 걸린다. 첫 실제 릴리스 전에 팀 PC 또는 Hyper-V 가상 머신에서 pre-release 가 아닌 흐름으로 한 번 |
+| GitHub Releases 에서 받기(`/releases/latest/download/update.json` → 302 → 파일) | **미확인** | 릴리스를 아직 올리지 않았다. 주소 형식은 GitHub 문서 기준. 릴리스가 없을 때의 404 는 "받을 것 없음"으로 처리 |
+| github.com 이 막힌 망(회사·학교) | 미지원 | 확인 실패로 남는다(하트비트 `update.checkError`) → zip 을 직접 건넨다 |
+| 교체 도중 강제 종료(전원·로그오프) | 미확인 | 이름 바꾸기 두 번 사이에 끊기면 설치 폴더가 없는 상태가 될 수 있다(창은 매우 짧다). 그 밖의 시점은 이전 버전 그대로이거나, 다음 실행에서 새 버전이 스스로 확인 |
+| 뜨기는 하지만 잘못 동작하는 새 버전 | 미지원 | 되돌리기 기준은 "수집기가 떴는가"뿐이다. 팀 PC·pre-release 로 먼저 확인 |
+| 동의 화면의 업데이트 안내 한 줄 | 추가됨 | 동의 버전은 올리지 않았다(다음 참여자 배포 때 AI 전송 문구와 함께 개정 예정 — 11/10 결정). 기존 참여자는 업데이트 확인 창과 `읽어주세요.txt` 7절에서 본다 |
+| 저장소 `LICENSE` 파일 | 없음 | README 는 MIT 라고 적고 링크만 있다. 11/11 결정: 추가하지 않고 진행 |
+| 릴리스 게시 | 하지 않음 | 11/11 "릴리즈 진행" 지시를 받았으나 두 가지가 먼저다: ① 릴리스 빌드는 커밋된 소스에서만 만든다 — 커밋은 역할별 작성자로 직접 하기로 한 부분(11/10), 그리고 푸시하면 원격에 없는 커밋 전부가 공개된다 ② GitHub 에 릴리스를 만들 수단(`gh` 또는 브라우저 로그인)이 이 세션에 없다. 관리자 경로 시험도 남아 있다 |
+| Hyper-V | 꺼져 있음 | 11/11 18:00 확인: 기능 `Microsoft-Hyper-V-All` 등 disabled(이 에디션에 제공됨), 서비스 vmms·vmcompute 없음, `Get-VM` 없음, ISO 파일 없음. 켜려면 관리자 권한과 재부팅이 필요해 진행하지 못했다. `lab\vm\enable-hyperv.ps1`(UAC 한 번, 재부팅 안 함) 준비 — 관리자 쪽 절반 미확인. "Hyper-V Administrators" 그룹(S-1-5-32-578)과 `-NoRestart` 매개변수가 있는 것은 확인 |
+| Windows 에디션이 Enterprise 가 된 이유(단서) | 미확인 | `dsregcmd /status`: `WorkplaceJoined: YES`(회사·학교 계정이 이 PC 에 등록돼 있음), AzureAdJoined·DomainJoined 는 NO. 학교 계정 등록과 에디션 전환의 관계는 추정일 뿐이다 |

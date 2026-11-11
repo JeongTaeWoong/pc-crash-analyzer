@@ -27,7 +27,12 @@ internal sealed class TrayApp : ApplicationContext
     private readonly string _dumpRoot;
     private readonly Control _ui = new();
     private readonly NotifyIcon _tray;
-    private readonly ToolStripMenuItem _statusItem, _pauseItem, _autostartItem;
+    private readonly ToolStripMenuItem _statusItem, _pauseItem, _autostartItem, _updateItem;
+    private readonly Updater _updater;
+    private readonly System.Windows.Forms.Timer _updateTimer = new() { Interval = 12 * 60 * 60 * 1000 };
+    private Action? _balloonAction;
+    private bool _updating;
+    private string _startError = "";
     private readonly CollectorHost _host;
     private readonly HotkeyListener _hotkey = new();
     private readonly UploadService _uploads;
@@ -44,7 +49,7 @@ internal sealed class TrayApp : ApplicationContext
     private static readonly TimeSpan ManualDebounce = TimeSpan.FromSeconds(30);
     private SourceStatus? _hotkeyStatus;
 
-    public static string Version => typeof(TrayApp).Assembly.GetName().Version?.ToString(3) ?? "0.8.2";
+    public static string Version => typeof(TrayApp).Assembly.GetName().Version?.ToString(3) ?? "0.9.0";
 
     public TrayApp(AppOptions opt, StudyConfig study, ParticipantState state)
     {
@@ -65,6 +70,8 @@ internal sealed class TrayApp : ApplicationContext
         _autostartItem = new ToolStripMenuItem("Windows 시작 시 자동 실행", null, (_, _) => ToggleAutostart());
         menu.Items.Add(_autostartItem);
         menu.Items.Add(new ToolStripMenuItem("참여 정보", null, (_, _) => ShowAbout()));
+        _updateItem = new ToolStripMenuItem("업데이트 확인", null, async (_, _) => await UpdateFromMenu());
+        menu.Items.Add(_updateItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(new ToolStripMenuItem("참여 그만두기…", null, async (_, _) => await Withdraw()));
         menu.Items.Add(new ToolStripMenuItem("종료", null, (_, _) => ExitFromMenu()));
@@ -72,7 +79,12 @@ internal sealed class TrayApp : ApplicationContext
 
         _tray = new NotifyIcon { Icon = AppIcons.Recording, Text = "PC 블랙박스 · 시작하는 중…", ContextMenuStrip = menu, Visible = true };
         _tray.DoubleClick += (_, _) => ShowRecords();
-        _tray.BalloonTipClicked += (_, _) => { if (_balloonDumpDir != null) Annotate(_balloonDumpDir); };
+        _tray.BalloonTipClicked += (_, _) =>
+        {
+            if (_balloonAction is { } act) { _balloonAction = null; act(); }
+            else if (_balloonDumpDir != null) Annotate(_balloonDumpDir);
+        };
+        _updater = new Updater(opt, study);
 
         _host = new CollectorHost(new CollectorHostOptions
         {
@@ -106,6 +118,22 @@ internal sealed class TrayApp : ApplicationContext
         if (!opt.Autostart)
             ShowBalloon("PC 블랙박스가 켜졌어요", $"문제가 생기면 {Texts.HotkeyText} 를 눌러 주세요. 프로그램 강제 종료 같은 문제는 저절로 기록돼요.", null);
 
+        // 자동 업데이트: 방금 바뀌었으면 알리고, 켜진 지 5분 뒤 뒷정리와 첫 확인, 그 뒤 12시간마다. 알리기만 하고 바꾸는 것은 참여자가 고른다.
+        if (opt.UpdatedFrom != null) { OpsLog.Write($"[update] {opt.UpdatedFrom} → {Version} 로 바뀌어 켜짐"); ShowBalloon("업데이트했어요", $"PC 블랙박스가 {Version} 버전이 됐어요. 기록은 계속됩니다.", null); }
+        else if (opt.RolledBackFrom != null) { OpsLog.Write($"[update] {opt.RolledBackFrom} 가 시작되지 않아 {Version} 로 되돌려짐"); ShowBalloon("업데이트를 되돌렸어요", $"새 버전({opt.RolledBackFrom})이 이 PC에서 켜지지 않아 이전 버전으로 돌아왔어요. 기록은 계속됩니다.", null); }
+        else if (opt.UpdateFailed) { OpsLog.Write("[update] 바꾸지 못해 이전 버전으로 다시 켜짐"); ShowBalloon("업데이트하지 못했어요", "지금 버전 그대로 계속 기록합니다. 나중에 다시 시도할 수 있어요.", null); }
+        var lastUpdate = UpdateState.Load(opt.DataDir);
+        if (lastUpdate.LastResult.Length > 0) OpsLog.Write($"[update] 지난 결과: {lastUpdate.LastResult} — {lastUpdate.LastDetail} ({lastUpdate.LastAt:MM-dd HH:mm})");
+        _updateTimer.Tick += async (_, _) => await CheckUpdateQuietly();
+        _updateTimer.Start();
+        After(opt.HasTestFlags ? 45 : 300, async () =>
+        {
+            if (_updating) return; // 지금 받는 중인 묶음을 지우지 않게
+            _updater.Cleanup(_collectorReady, _state.Autostart);
+            await CheckUpdateQuietly();
+        });
+        if (opt.TestUpdateAfterSec > 0) After(opt.TestUpdateAfterSec, async () => await UpdateFromMenu(auto: true));
+
         if (opt.TestMarkAfterSec > 0) After(opt.TestMarkAfterSec, () => OnHotkey());
         if (opt.TestExitAfterSec > 0) After(opt.TestExitAfterSec, () => Shutdown(confirm: false));
         if (opt.TestWithdrawAfterSec > 0) After(opt.TestWithdrawAfterSec, () => _ = Withdraw(auto: true));
@@ -117,11 +145,15 @@ internal sealed class TrayApp : ApplicationContext
     {
         try
         {
+            // 시험(127.0.0.1 설정)에서만: 이 버전이 "켜지지 않는 버전"인 척한다 — 업데이트 되돌리기 시험용
+            if (_study.IsLoopbackEndpoint && Environment.GetEnvironmentVariable("PCBB_TEST_FAIL_VERSION") == Version)
+                throw new InvalidOperationException("시험: 시작 실패 흉내");
             _host.Start(OpsLog.Write);
             _hotkeyStatus = _hotkey.Start(OnHotkey);
             _host.Statuses.Add(_hotkeyStatus);
             OpsLog.Write($"[source] {Json.Serialize(_hotkeyStatus)}");
             _collectorReady = true;
+            ReportUpdateHealth(true, "");
             PruneLocal();
             PostUi(() =>
             {
@@ -133,7 +165,118 @@ internal sealed class TrayApp : ApplicationContext
         catch (Exception ex)
         {
             OpsLog.Write($"[start-error] {ex.GetType().Name}: {ex.Message}");
+            _startError = $"{ex.GetType().Name}: {ex.Message}";
+            ReportUpdateHealth(false, _startError);
             PostUi(() => _tray.Text = "PC 블랙박스 · 시작 오류 (참여 정보 참고)");
+        }
+    }
+
+    /// <summary>방금 업데이트로 바뀐 버전이면, 수집기가 떴는지 못 떴는지를 교체 프로그램(UpdateApply)에게 알린다. 못 떴으면 이전 버전으로 되돌려진다.</summary>
+    private void ReportUpdateHealth(bool ok, string detail)
+    {
+        try
+        {
+            if (UpdateState.Load(_opt.DataDir).PendingTo == Version) UpdateHealth.Write(_opt.DataDir, Version, ok, detail);
+        }
+        catch (Exception ex) { OpsLog.Write($"[update] 시작 확인 기록 실패: {ex.Message}"); }
+    }
+
+    // ───────── 자동 업데이트 ─────────
+
+    /// <summary>주기 확인: 새 버전이 있으면 알림만 띄운다. 실패는 조용히 기록(하트비트로 팀이 본다).</summary>
+    private async Task CheckUpdateQuietly()
+    {
+        if (_exiting || _updating) return;
+        try
+        {
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            var m = await _updater.CheckAsync(cts.Token);
+            if (m == null) return;
+            OpsLog.Write($"[update] 새 버전 {m.Version} 있음");
+            ShowBalloon($"새 버전 {m.Version} 이 나왔어요", "이 알림이나 아이콘 메뉴의 \"업데이트\"를 누르면 바꿀 수 있어요.", null, () => _ = UpdateFromMenu());
+        }
+        catch (Exception ex) { OpsLog.Write($"[update] 확인 실패: {ex.GetType().Name}: {ex.Message}"); }
+    }
+
+    /// <param name="auto">시험 전용(127.0.0.1 설정): 묻지 않고 진행.</param>
+    private async Task UpdateFromMenu(bool auto = false)
+    {
+        if (_exiting || _updating) return;
+        _updating = true;
+        try
+        {
+            UpdateManifest? m;
+            try
+            {
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+                m = await _updater.CheckAsync(cts.Token);
+            }
+            catch (Exception ex)
+            {
+                OpsLog.Write($"[update] 확인 실패: {ex.GetType().Name}: {ex.Message}");
+                if (!auto) MessageBox.Show($"업데이트를 확인하지 못했어요. 인터넷 연결을 확인하고 나중에 다시 해 주세요.\n\n({ex.Message})", Texts.AppTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            if (m == null)
+            {
+                if (!auto)
+                    MessageBox.Show(_updater.LastOfferedSkipped
+                            ? $"새 버전 {_updater.LastOffered} 은 이 PC에서 켜지지 않아 이전에 되돌렸어요. 고친 버전이 나오면 다시 알려 드릴게요.\n\n지금 버전: {Version}"
+                            : $"지금 버전({Version})이 최신이에요.",
+                        Texts.AppTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            var (target, why) = _updater.Target(_state.Autostart);
+            if (target == null)
+            {
+                OpsLog.Write($"[update] {m.Version} 있음 — 이 실행 방식에서는 바꿀 수 없음");
+                if (!auto) MessageBox.Show($"새 버전 {m.Version} 이 있어요.\n\n{why}", Texts.AppTitle, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+            if (!auto)
+            {
+                var notes = m.Notes.Length > 0 ? $"\n\n바뀐 점: {m.Notes}" : "";
+                var ask = $"새 버전 {m.Version} 으로 바꿀까요? (지금 {Version}){notes}\n\n" +
+                          $"· 약 {Math.Max(1, m.Size / 1048576)}MB 를 내려받아요(github.com).\n" +
+                          "· PC 블랙박스가 잠깐 꺼졌다가 새 버전으로 다시 켜져요. 그동안(1분 안팎)은 기록되지 않아요.\n" +
+                          "· 새 버전이 이 PC에서 켜지지 않으면 지금 버전으로 저절로 돌아와요.\n" +
+                          "· 참여 ID 와 지금까지의 기록은 그대로예요.";
+                if (MessageBox.Show(ask, Texts.AppTitle, MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            }
+
+            string staged;
+            try
+            {
+                _updateItem.Enabled = false;
+                OpsLog.Write($"[update] {m.Version} 내려받기 시작 ({m.Size / 1048576}MB)");
+                using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(30));
+                staged = await Task.Run(() => _updater.StageAsync(m, target, pct => PostUi(() => _updateItem.Text = $"업데이트 받는 중… {pct}%"), cts.Token));
+            }
+            catch (Exception ex)
+            {
+                OpsLog.Write($"[update] 준비 실패: {ex.GetType().Name}: {ex.Message}");
+                if (auto) Console.Error.WriteLine($"[update] 준비 실패: {ex.Message}");
+                else MessageBox.Show($"업데이트를 준비하지 못했어요. 지금 버전은 그대로 동작해요.\n\n({ex.Message})", Texts.AppTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // 새 exe 를 먼저 띄운다(이 프로세스가 끝나기를 기다렸다가 폴더를 바꾼다). 못 띄우면 아무것도 멈추지 않고 그대로 계속 돈다.
+            try { _updater.StartApply(staged, target); }
+            catch (Exception ex)
+            {
+                OpsLog.Write($"[update] 넘기기 실패: {ex.GetType().Name}: {ex.Message}");
+                if (!auto) MessageBox.Show($"업데이트를 시작하지 못했어요. 지금 버전은 그대로 동작해요.\n\n({ex.Message})", Texts.AppTitle, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+            // 여기부터는 되돌아오지 않는다: 수집·전송을 정상 종료하고 끝낸다
+            _updateItem.Text = "업데이트하는 중…";
+            if (await StopAllAsync(flush: true)) _uploads.Dispose();
+            ExitThread();
+        }
+        finally
+        {
+            _updating = false;
+            if (!_exiting) { _updateItem.Enabled = true; RefreshMenu(); }
         }
     }
 
@@ -356,6 +499,7 @@ internal sealed class TrayApp : ApplicationContext
         try { _openReport?.Close(); } catch { }
         _tray.Visible = false;
         _fgTimer.Stop();
+        _updateTimer.Stop();
         SystemEvents.SessionEnded -= OnSessionEnded;
         try { _hotkey.Dispose(); } catch { }
         await _uploads.StopLoopAsync();
@@ -385,6 +529,7 @@ internal sealed class TrayApp : ApplicationContext
         _pauseItem.Checked = _state.UploadsPaused;
         _pauseItem.Text = _state.UploadsPaused ? "전송 일시중지됨 (눌러서 재개)" : "전송 일시중지";
         _autostartItem.Checked = _state.Autostart; // 관리자면 확인에 schtasks 가 필요해 메뉴를 열 때마다 부르지 않는다
+        if (!_updating) _updateItem.Text = _updater.Available is { } a ? $"업데이트 ({a.Version} 으로 바꾸기)…" : "업데이트 확인";
     }
 
     private void UpdateTrayText()
@@ -400,13 +545,15 @@ internal sealed class TrayApp : ApplicationContext
         _tray.Icon = _state.UploadsPaused ? AppIcons.Paused : AppIcons.Recording;
     }
 
-    private void ShowBalloon(string title, string text, string? dumpDir)
+    /// <param name="onClick">알림을 눌렀을 때 할 일(업데이트 알림). 없으면 dumpDir 의 메모 창.</param>
+    private void ShowBalloon(string title, string text, string? dumpDir, Action? onClick = null)
     {
         if (_exiting) return;
         // 알림 폭주 방지 — 자동 감지 알림은 3분에 한 번
         if (dumpDir != null && DateTimeOffset.Now - _lastBalloon < BalloonGap) return;
         if (dumpDir != null) _lastBalloon = DateTimeOffset.Now;
         _balloonDumpDir = dumpDir;
+        _balloonAction = onClick;
         _tray.ShowBalloonTip(10000, title, text, ToolTipIcon.Info);
     }
 
@@ -477,7 +624,26 @@ internal sealed class TrayApp : ApplicationContext
             consentVersion = _state.ConsentVersion,
             autostart = _state.Autostart,
             uploadsPaused = _state.UploadsPaused,
+            update = UpdateSummary(),
             log = OpsLog.Tail(80),
+        };
+    }
+
+    /// <summary>하트비트에 싣는 업데이트 상태 — 팀이 "누가 어느 버전이고, 왜 안 바뀌는지"를 원격으로 본다.</summary>
+    private object UpdateSummary()
+    {
+        var st = UpdateState.Load(_opt.DataDir);
+        return new
+        {
+            available = _updater.Available?.Version,
+            lastCheck = _updater.LastCheck,
+            checkError = _updater.LastError,
+            canApply = _updater.Target(_state.Autostart).Dir != null,
+            lastResult = st.LastResult,
+            lastDetail = st.LastDetail,
+            lastAt = st.LastAt,
+            skipVersion = st.SkipVersion,
+            startError = _startError,
         };
     }
 
@@ -487,6 +653,7 @@ internal sealed class TrayApp : ApplicationContext
         {
             _tray.Dispose();
             _fgTimer.Dispose();
+            _updateTimer.Dispose();
             _ui.Dispose();
         }
         base.Dispose(disposing);

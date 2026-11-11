@@ -30,6 +30,8 @@ internal static class Program
 
         if (opt.RenderFormsDir != null) return RenderForms.Run(opt.RenderFormsDir);
         if (opt.CheckDataDir) return CheckDataDir();
+        // 자동 업데이트의 교체 단계(받아 둔 새 exe 가 이 모드로 뜬다) — 창 없이 끝난다
+        if (opt.ApplyUpdate) return UpdateApply.Run(opt);
 
         // 1) 연구 설정 (배포본: exe 옆 study.json)
         StudyConfig study;
@@ -41,6 +43,7 @@ internal static class Program
         var errors = study.Validate();
         if (errors.Count > 0)
             return Fail("설정 파일(study.json)이 올바르지 않아요. 연구팀에 알려 주세요.\n\n" + string.Join("\n", errors), opt.Headless, 2);
+        if (opt.Probe) return Updater.ProbeSelf(opt); // 업데이트 전 확인: 이 exe 가 이 PC 에서 뜨고 설정을 읽는가
 
         // 시험 전용 옵션(동의 건너뛰기 등)은 127.0.0.1 시험 수신기에서만 — 배포본에서 동의 화면을 건너뛸 길을 막는다
         if (opt.HasTestFlags && !study.IsLoopbackEndpoint)

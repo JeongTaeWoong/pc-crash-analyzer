@@ -4,7 +4,12 @@
 //   receive  127.0.0.1 시험 수신기 (Apps Script 와 같은 규칙, --mimic-apps-script 로 302 리디렉션 흉내)
 //   decrypt  받은 봉투(*.pcae.json) → 참여자별 덤프 폴더
 //   summary  복호화한 폴더 요약(참여자별 최근 하트비트·기록 수·철회 여부)
+//   update-keygen  업데이트 서명 키 만들기(개인키는 저장소 밖) — 공개키를 StudyCore/Update.cs 의 UpdateTrust.Keys 에 넣는다
+//   update-pack    게시한 앱 폴더 → 업데이트 묶음(zip, 연구 설정 없음) + update.json + update.json.sig
+//   update-verify  만든 묶음을 앱과 같은 코드로 확인
+//   serve          127.0.0.1 파일 서버(업데이트 시험용)
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Security.Cryptography;
@@ -31,6 +36,10 @@ try
         "receive" => await Receive(),
         "decrypt" => Decrypt(),
         "summary" => Summary(),
+        "update-keygen" => UpdateKeygen(),
+        "update-pack" => UpdatePack(),
+        "update-verify" => UpdateVerify(),
+        "serve" => await Serve(),
         _ => Usage(),
     };
 }
@@ -49,8 +58,156 @@ int Usage()
           receive --config FILE --out DIR [--port 8787] [--mimic-apps-script] [--max-posts N]
           decrypt --in DIR --out DIR [--key-dir DIR]
           summary --in DIR
+          update-keygen [--key-dir DIR]
+          update-pack   --app DIR --version X.Y.Z --out DIR [--notes TEXT] [--base-url URL] [--key FILE]
+          update-verify --dir DIR [--allow-loopback]
+          serve         --dir DIR [--port 8788] [--max-seconds N]
         """);
     return 64;
+}
+
+// ───────── 업데이트 서명·묶음 ─────────
+string UpdateKeyPath() => Path.GetFullPath(Opt("--key") ?? Path.Combine(Opt("--key-dir") ?? DefaultKeyDir(), "update-signing.private.pem"));
+
+int UpdateKeygen()
+{
+    var keyPath = UpdateKeyPath();
+    if (InsideGitRepo(Path.GetDirectoryName(keyPath)!))
+        throw new InvalidOperationException($"개인키 폴더가 git 저장소 안이다: {keyPath}");
+    if (File.Exists(keyPath))
+        throw new InvalidOperationException($"이미 있다: {keyPath} — 덮어쓰지 않는다. 이 키를 잃으면 배포된 앱에 업데이트를 보낼 수 없다");
+    using var key = UpdateSigning.NewKey();
+    Directory.CreateDirectory(Path.GetDirectoryName(keyPath)!);
+    File.WriteAllText(keyPath, key.ExportPkcs8PrivateKeyPem());
+    Console.WriteLine($"""
+        [update-keygen] 업데이트 서명 키(ECDSA P-256)
+          개인키: {keyPath}
+            - 이 파일로 서명한 버전만 참여자 PC 가 받아들인다. 잃으면 업데이트를 못 보내고, 새면 남이 보낼 수 있다.
+            - USB 등 다른 곳에 백업. 채팅·메일·저장소·GitHub(Actions 비밀 포함)에 올리지 않는다.
+          공개키(StudyCore/Update.cs 의 UpdateTrust.Keys 에 넣는다 — 공개해도 된다):
+            {UpdateSigning.PublicKeyBase64(key)}
+        """);
+    return 0;
+}
+
+int UpdatePack()
+{
+    var appDir = Path.GetFullPath(Opt("--app") ?? throw new ArgumentException("--app 필요"));
+    var version = Opt("--version") ?? throw new ArgumentException("--version 필요");
+    var outDir = Path.GetFullPath(Opt("--out") ?? throw new ArgumentException("--out 필요"));
+    var baseUrl = Opt("--base-url") ?? $"{UpdateTrust.AssetPrefix}v{version}/";
+    if (!baseUrl.EndsWith('/')) baseUrl += "/";
+    var keyPath = UpdateKeyPath();
+    if (!File.Exists(keyPath)) throw new FileNotFoundException($"업데이트 서명 키 없음: {keyPath} (update-keygen 으로 한 번 만든다)");
+
+    var exe = Path.Combine(appDir, UpdatePackage.MainExe);
+    var fileVersion = File.Exists(exe) ? FileVersionInfo.GetVersionInfo(exe).ProductVersion : null;
+    if (!UpdateManifest.TryParseVersion(fileVersion, out var fv) || !UpdateManifest.TryParseVersion(version, out var want) || fv != want)
+        throw new InvalidDataException($"앱 폴더의 버전({fileVersion ?? "없음"})이 --version {version} 과 다르다");
+
+    Directory.CreateDirectory(outDir);
+    var zipName = $"PcBlackBox-{version}-win-x64-update.zip";
+    var zipPath = Path.Combine(outDir, zipName);
+    int files = UpdatePackage.Create(appDir, zipPath);
+
+    var manifest = new UpdateManifest
+    {
+        Version = version,
+        Url = baseUrl + zipName,
+        Size = new FileInfo(zipPath).Length,
+        Sha256 = UpdatePackage.Sha256Hex(zipPath),
+        Published = DateTimeOffset.Now.ToString("yyyy-MM-ddTHH:mm:sszzz"),
+        Notes = Opt("--notes") ?? "",
+    };
+    bool loopback = manifest.Uri is { IsLoopback: true };
+    var errors = manifest.Validate(u => UpdateTrust.IsReleaseAsset(u) || u.IsLoopback);
+    if (errors.Count > 0) throw new InvalidDataException("안내문 문제: " + string.Join(", ", errors));
+
+    using var key = ECDsa.Create();
+    key.ImportFromPem(File.ReadAllText(keyPath));
+    var bytes = manifest.ToBytes();
+    var sig = UpdateSigning.Sign(bytes, key);
+    File.WriteAllBytes(Path.Combine(outDir, "update.json"), bytes);
+    File.WriteAllText(Path.Combine(outDir, "update.json.sig"), sig, new UTF8Encoding(false));
+
+    // 앱과 같은 코드로 다시 확인 — 앱이 믿지 않는 키로 서명했으면 여기서 멈춘다
+    UpdateManifest.ReadVerified(bytes, sig, UpdateTrust.Keys, u => UpdateTrust.IsReleaseAsset(u) || u.IsLoopback);
+
+    Console.WriteLine($"""
+        [update-pack] {version} — {files}개 파일, {manifest.Size / 1048576.0:0.0}MB
+          {zipPath}
+          {Path.Combine(outDir, "update.json")} (+ .sig)
+          SHA-256 {manifest.Sha256}
+          받는 주소 {manifest.Url}{(loopback ? "  ← 시험용(127.0.0.1) — GitHub 에 올리지 말 것" : "")}
+        """);
+    if (!loopback)
+        Console.WriteLine($"  올리기: GitHub → Releases → 새 릴리스, 태그 v{version}, 위 세 파일 첨부, \"Set as the latest release\". 시험판은 pre-release 로(참여자에게 안 간다).");
+    return 0;
+}
+
+int UpdateVerify()
+{
+    var dir = Path.GetFullPath(Opt("--dir") ?? throw new ArgumentException("--dir 필요"));
+    bool allowLoopback = Flag("--allow-loopback");
+    var bytes = File.ReadAllBytes(Path.Combine(dir, "update.json"));
+    var sig = File.ReadAllText(Path.Combine(dir, "update.json.sig"));
+    var m = UpdateManifest.ReadVerified(bytes, sig, UpdateTrust.Keys, u => UpdateTrust.IsReleaseAsset(u) || (allowLoopback && u.IsLoopback));
+    var zip = Path.Combine(dir, Path.GetFileName(m.Uri!.LocalPath));
+    if (!File.Exists(zip)) throw new FileNotFoundException($"묶음 없음: {zip}");
+    if (new FileInfo(zip).Length != m.Size) throw new InvalidDataException("묶음 크기가 안내문과 다르다");
+    if (UpdatePackage.Sha256Hex(zip) != m.Sha256) throw new InvalidDataException("묶음 SHA-256 이 안내문과 다르다");
+    var tmp = Path.Combine(Path.GetTempPath(), "pcbb-verify-" + Guid.NewGuid().ToString("N")[..8]);
+    try
+    {
+        int files = UpdatePackage.Extract(zip, tmp);
+        bool hasStudy = Directory.EnumerateFiles(tmp, "study*.json", SearchOption.AllDirectories).Any();
+        Console.WriteLine($"[update-verify] OK — {m.Version}, 서명·크기·SHA-256 일치, {files}개 파일, 연구 설정 포함: {(hasStudy ? "예 ★문제" : "아니오")}");
+        return hasStudy ? 1 : 0;
+    }
+    finally { try { Directory.Delete(tmp, true); } catch { } }
+}
+
+// ───────── serve (시험용 파일 서버) ─────────
+async Task<int> Serve()
+{
+    var dir = Path.GetFullPath(Opt("--dir") ?? throw new ArgumentException("--dir 필요"));
+    int port = int.Parse(Opt("--port") ?? "8788");
+    int maxSeconds = int.Parse(Opt("--max-seconds") ?? "0");
+    var listener = new TcpListener(IPAddress.Loopback, port);
+    listener.Start();
+    Console.WriteLine($"[serve] http://127.0.0.1:{port}/ ← {dir}");
+    using var stop = maxSeconds > 0 ? new CancellationTokenSource(TimeSpan.FromSeconds(maxSeconds)) : new CancellationTokenSource();
+    try
+    {
+        while (true)
+        {
+            using var client = await listener.AcceptTcpClientAsync(stop.Token);
+            try
+            {
+                using var stream = client.GetStream();
+                stream.ReadTimeout = 30000;
+                var (method, path, _) = ReadRequest(stream);
+                var name = Uri.UnescapeDataString(path.TrimStart('/').Split('?')[0]);
+                var file = Path.Combine(dir, name);
+                // 폴더 바로 아래 파일만
+                bool ok = method == "GET" && name.Length > 0 && name == Path.GetFileName(name) && File.Exists(file);
+                if (!ok)
+                {
+                    stream.Write(Encoding.ASCII.GetBytes("HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"));
+                    Console.WriteLine($"[serve] {method} {path} → 404");
+                    continue;
+                }
+                using var fs = File.OpenRead(file);
+                stream.Write(Encoding.ASCII.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nContent-Length: {fs.Length}\r\nConnection: close\r\n\r\n"));
+                fs.CopyTo(stream);
+                Console.WriteLine($"[serve] GET {path} → 200 ({fs.Length} bytes)");
+            }
+            catch (Exception ex) { Console.WriteLine($"[serve] 요청 처리 실패: {ex.Message}"); }
+        }
+    }
+    catch (OperationCanceledException) { }
+    listener.Stop();
+    return 0;
 }
 
 // ───────── keygen ─────────

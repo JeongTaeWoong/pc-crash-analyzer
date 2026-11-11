@@ -42,9 +42,26 @@ public sealed class AppOptions
     /// <summary>팀 점검용: 관리자 실행의 기록 폴더(C:\ProgramData\PcBlackBox\&lt;SID&gt;)를 준비·검사한 결과만 출력하고 끝난다.</summary>
     public bool CheckDataDir { get; private set; }
 
-    public bool Headless => SelfTest || RenderFormsDir != null || CheckDataDir;
+    // ── 자동 업데이트(0.9~, Updater.cs) ──
+    /// <summary>받아 둔 새 exe 를 창 없이 한 번 띄워 보는 확인(--out 에 버전을 적는다).</summary>
+    public bool Probe { get; private set; }
+    /// <summary>받아 둔 새 exe 가 설치 폴더(--target)를 자기 내용으로 바꾼다. --wait-pid 가 끝난 뒤에.</summary>
+    public bool ApplyUpdate { get; private set; }
+    public string? UpdateTarget { get; private set; }
+    public int WaitPid { get; private set; }
+    /// <summary>업데이트 직후 켜짐: 알림에 쓸 이전 버전 / 되돌린 버전 / 바꾸기 실패.</summary>
+    public string? UpdatedFrom { get; private set; }
+    public string? RolledBackFrom { get; private set; }
+    public bool UpdateFailed { get; private set; }
+    /// <summary>시험: 업데이트 안내문 주소(127.0.0.1 만). 서명 키는 시험에서도 실제 키다.</summary>
+    public string? UpdateFeed { get; private set; }
+    /// <summary>시험: N초 뒤 업데이트를 확인하고 묻지 않고 진행.</summary>
+    public int TestUpdateAfterSec { get; private set; }
 
-    public bool HasTestFlags => TestConsent || TestMarkAfterSec > 0 || TestAutoAnswer || TestExitAfterSec > 0 || TestWithdrawAfterSec > 0 || StartupDir != null;
+    public bool Headless => SelfTest || RenderFormsDir != null || CheckDataDir || Probe;
+
+    public bool HasTestFlags => TestConsent || TestMarkAfterSec > 0 || TestAutoAnswer || TestExitAfterSec > 0 || TestWithdrawAfterSec > 0 || StartupDir != null
+        || UpdateFeed != null || TestUpdateAfterSec > 0;
 
     /// <summary>같은 데이터 폴더로 두 개가 돌지 않게 한다.</summary>
     public string MutexName => @"Local\PcBlackBox-" +
@@ -74,6 +91,15 @@ public sealed class AppOptions
                 case "--test-exit-after": o.TestExitAfterSec = NextInt(); break;
                 case "--test-withdraw-after": o.TestWithdrawAfterSec = NextInt(); break;
                 case "--startup-dir": o.StartupDir = Path.GetFullPath(Next()); break;
+                case "--probe": o.Probe = true; break;
+                case "--apply-update": o.ApplyUpdate = true; break;
+                case "--target": o.UpdateTarget = Path.GetFullPath(Next()); break;
+                case "--wait-pid": o.WaitPid = NextInt(); break;
+                case "--updated-from": o.UpdatedFrom = Next(); break;
+                case "--update-rolled-back": o.RolledBackFrom = Next(); break;
+                case "--update-failed": o.UpdateFailed = true; break;
+                case "--update-feed": o.UpdateFeed = Next(); break;
+                case "--test-update-after": o.TestUpdateAfterSec = NextInt(); break;
                 default: break; // 모르는 인자는 무시(바로가기 인자 호환)
             }
         }

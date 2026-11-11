@@ -25,11 +25,13 @@ PcBlackBox.exe (트레이, 관리자 — UAC)                 Apps Script 웹 �
 
 | 폴더 | 역할 |
 |---|---|
-| `participant/StudyCore` | 연구 설정 검증, 암호 봉투(`Envelope`), 전송 대기열(`Outbox`), 수신 규칙(`ReceiverRules`), zip 묶음 |
+| `participant/StudyCore` | 연구 설정 검증, 암호 봉투(`Envelope`), 전송 대기열(`Outbox`), 수신 규칙(`ReceiverRules`), zip 묶음, 업데이트 검증(`Update.cs`: 서명·버전·묶음 풀기·폴더 교체) |
 | `participant/BlackBox.Participant` | 참여자 앱(WinForms 트레이). exe 이름 `PcBlackBox.exe` |
-| `participant/StudyTools` | 팀 도구: `keygen` `check` `receive`(시험 수신기) `decrypt` `summary` |
+| `participant/StudyTools` | 팀 도구: `keygen` `check` `receive`(시험 수신기) `decrypt` `summary`, 업데이트용 `update-keygen` `update-pack` `update-verify` `serve`(시험용 파일 서버) |
 | `participant/receiver` | Apps Script 수신기 `Code.gs`·`appsscript.json`, Node 규칙 시험 `test-receiver.js` |
-| `tools/publish-participant.ps1` | 배포 zip 빌드(설정 검증·금지 파일 점검·SHA-256) |
+| `tools/publish-participant.ps1` | 배포 zip 빌드(설정 검증·금지 파일 점검·SHA-256) + 업데이트 묶음·서명한 안내문(0.9~) |
+| `tools/test-update.ps1` | 자동 업데이트 전체 흐름 시험(127.0.0.1, 실제 서명 키). `-Mode admin` 은 UAC 를 한 번 묻는다 |
+| `tools/release-participant.ps1` | 릴리스 전 점검(커밋 여부·버전·키·태그) + 빌드 + 올릴 세 파일 안내, `-Verify` 로 올린 뒤 확인. 커밋·푸시·올리기는 하지 않는다 |
 
 ## 2. 처음 한 번 (팀)
 
@@ -72,14 +74,57 @@ PcBlackBox.exe --check-data-dir   # 기록 폴더 보호 확인(OK 가 나와야
 ### 2-4. 배포 빌드
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.8.2
-# → dist\PcBlackBox-0.8.2-win-x64.zip (+ .zip.sha256.txt)
+powershell -ExecutionPolicy Bypass -File tools\publish-participant.ps1 -Version 0.9.0 -Notes "바뀐 점 한 줄"
+# → dist\PcBlackBox-0.9.0-win-x64.zip (+ .zip.sha256.txt)          새 참여자에게 한 번 직접 건네는 것(study.json 포함)
+# → dist\update\PcBlackBox-0.9.0-win-x64\                          GitHub Releases 에 올리는 세 파일(study.json 없음)
+#      PcBlackBox-0.9.0-win-x64-update.zip · update.json · update.json.sig
 ```
 
 - 127.0.0.1 시험 설정이면 거부한다(시험 빌드는 `-AllowLoopback`, zip 이름에 `-LOCALTEST`, 안 폴더 이름 `PC블랙박스-팀시험용`). 시험 빌드를 지인 PC 에서 그냥 켜면 "연구팀 내부 시험용" 안내가 뜨고 멈춘다.
 - `collectUntil`(수집 종료일)도 배포본 study.json 에 옮긴다(0.8.0 까지는 빠져 있었다).
 - 설정에 개인키가 섞였거나 배포 폴더에 `*.pem`·`*.pdb`·`study.local.json` 이 있으면 실패한다.
 - 크기 약 65MB(.NET·WinForms 런타임 포함, 설치 불필요). 카카오톡·Google Drive 링크로 전달하고 SHA-256 을 함께 알린다.
+
+### 2-5. 업데이트 내보내기 (0.9~, 11/11)
+
+0.9 이상이 깔린 PC 는 새 zip 을 받지 않고 스스로 바뀐다. 0.8.x 가 깔린 PC 에는 0.9.0 zip 을 **마지막으로 한 번** 직접 건네야 한다(0.8.x 에는 이 기능이 없다).
+
+**구조**
+
+```
+팀 PC                                   GitHub Releases (공개)                      참여자 PC (0.9~)
+publish-participant.ps1                 v0.9.1                                      하루 두 번쯤 확인(켜고 5분 뒤, 그 뒤 12시간마다)
+ → update.zip (study.json 없음)   ──→    PcBlackBox-0.9.1-win-x64-update.zip    ←──  /releases/latest/download/update.json (+ .sig)
+ → update.json  (버전·주소·크기·해시)     update.json                                  서명 확인 → 버전이 높을 때만 알림
+ → update.json.sig (팀 서명)             update.json.sig                              참여자가 "업데이트"를 누르면: 받기 → 크기·SHA-256 → 풀기
+   서명 키는 팀 PC 에만                                                                → 새 exe 시험 실행(--probe) → 수집 정지 → 폴더 교체(.update-old 보관)
+                                                                                     → 새 버전 시작 확인 → 실패하면 .update-old 로 되돌림
+```
+
+- **믿는 것은 서명 키 하나**다. 내려받는 곳(GitHub)은 믿지 않는다 — 계정이 뚫려 파일이 바뀌어도 서명이 틀리면 버리고, 예전에 서명한 안내문을 다시 올려도 버전이 높지 않아 버린다.
+- **묶음에 연구 설정이 없다.** 수신 주소·토큰·문의처는 공개되지 않는다. 설치된 PC 는 자기 `study.json` 을 이어 쓴다. 그래서 공개 묶음만 받은 사람은 앱을 켤 수 없다(설정 없음 안내) — 초대하지 않은 사람의 기록이 들어오지 않는다.
+- **저절로 설치하지 않는다.** 알림만 띄우고 참여자가 눌러야 바뀐다(CLAUDE.md: 사용자 선택 없는 자동 조치 금지).
+- 관리자 실행에서는 `C:\Program Files\PcBlackBox` 설치본만 바꾼다. 받은 묶음은 `C:\ProgramData\PcBlackBox\<SID>\update\`(일반 권한으로 못 씀)에 풀고 거기서 실행한다. 자동 실행을 꺼 둔 관리자 실행(내려받기 폴더에서 도는 경우)은 바꾸지 않고 "자동 실행을 켜 달라"고 안내한다.
+- 표준 사용자 계정(관리자 아님)은 지금 실행 중인 폴더를 바꾼다.
+
+**처음 한 번 — 서명 키 (11/11 만듦)**
+
+`StudyTools update-keygen` → `%USERPROFILE%\.pca-study\update-signing.private.pem` (ECDSA P-256). 공개키는 `participant/StudyCore/Update.cs` 의 `UpdateTrust.Keys` 에 들어 있다(공개해도 된다).
+
+- **이 키를 잃으면 배포된 앱에 업데이트를 보낼 수 없다**(다시 zip 을 직접 건네야 한다). **새면 남이 참여자 PC 에 관리자 권한으로 도는 프로그램을 보낼 수 있다.** USB 에 백업하고, 채팅·메일·저장소·GitHub(Actions 비밀 포함)에 올리지 않는다. 서명은 팀 PC 에서만 한다.
+- 키를 바꿀 때: 새 공개키를 `UpdateTrust.Keys` 에 **더한** 버전을 옛 키로 서명해 먼저 내보내고, 다들 올라온 뒤에 옛 키를 뺀다.
+
+**매번**
+
+1. `participant/BlackBox.Participant/BlackBox.Participant.csproj` 의 `<Version>` 을 올린다(숫자 세 칸, 예 0.9.1).
+2. 팀 PC 에서 먼저 확인: `tools\test-update.ps1`, `tools\test-update.ps1 -Mode admin`(아래 6절). 관리자 쪽은 일반 창에서 실행해도 UAC 를 한 번 묻고 진행한다.
+3. 바뀐 소스를 **커밋한 뒤** `tools\release-participant.ps1 -Notes "바뀐 점"`. 빌드에 들어가는 소스가 커밋돼 있는지, csproj 버전, 서명 키, 태그를 확인하고 `publish-participant.ps1` 을 돌린 다음, 빌드한 파일에 지금 커밋 해시가 찍혔는지 본다(파일 버전 정보에 커밋 해시가 들어가므로, 커밋 전 빌드는 다른 소스를 가리킨다 — 그래서 커밋 전에는 빌드를 거부한다). 커밋·푸시·올리기는 하지 않는다. 끝나면 올릴 세 파일이 든 폴더와 GitHub 의 새 릴리스 화면을 연다.
+4. 소스를 푸시하고 GitHub → Releases → 새 릴리스: 태그 `v0.9.1`, `dist\update\PcBlackBox-0.9.1-win-x64\` 의 **세 파일**을 첨부, "Set as the latest release". 올린 뒤 `tools\release-participant.ps1 -Verify` — GitHub 가 내주는 파일이 로컬과 바이트까지 같고 앱의 검사를 통과하는지 확인한다.
+   - 참여자 zip(`dist\PcBlackBox-0.9.1-win-x64.zip`)은 **올리지 않는다** — 그 안에 수신 주소·토큰이 있다.
+   - 팀 안에서만 먼저 써 보려면 "pre-release" 로 올린다. `latest` 주소에 안 잡혀 참여자에게 가지 않는다.
+5. 며칠 뒤 `StudyTools summary` 의 버전 열과 하트비트의 `update`(확인 오류·마지막 결과·되돌린 버전)로 누가 올라왔는지 본다.
+
+**잘못된 버전을 내보냈을 때**: 릴리스를 지우지 말고 고친 **더 높은** 버전을 올린다(낮은 버전으로는 되돌릴 수 없다). 켜지지 않는 버전은 각 PC 가 스스로 이전 버전으로 돌아가고 그 버전을 다시 받지 않는다.
 
 ## 3. 받기 (주 1~2회)
 
@@ -124,6 +169,9 @@ StudyTools summary --in D:\pca\study-decrypted
 | 개인정보 | 창 제목·키 입력·화면·파일 내용·통신 내용 수집 안 함. 프로필 경로(8.3 짧은 경로 포함, 다른 사용자 폴더 오치환 없음)·사용자 이름·PC 이름 치환. 짧은 이름(예: 두 글자)은 경로 조각·도메인\이름 형태에서 치환. ETW 명령줄 인자 삭제 | 일반 문장 속 두 글자 이름, 파일·폴더 이름(예: 프로젝트 이름)은 남는다 — 동의 화면에 명시 |
 | 참여자 PC 디스크·네트워크 | 로컬 기록 200MB·300건(하드 400MB) + 대기열 100MB·500건·30일, 같은 대상 자동 덤프 시간당 6건, 수동 기록 30초 연타 무시, 끊긴 임시 파일 정리 | 없음 |
 | 관리자 권한 악용(0.8~) | 기록 폴더는 일반 권한으로 못 쓰는 ProgramData 하위(소유자·쓰기 권한·OWNER RIGHTS·연결 여부 확인, 선점돼 있으면 멈춤). 자동 실행은 Program Files 복사본만 가리킴(복사할 때 원본 폴더의 링크는 따라가지 않음). 작업 인자는 고정(`--autostart`). 관리자 프로세스는 사용자 시작 프로그램 폴더를 건드리지 않고, 자동 실행 여부는 보호된 participant.json 만 믿음(10/30 보안 검토) | 사용자가 다운로드 폴더에서 직접 켤 때(UAC 승인) 그 폴더에 미리 심긴 DLL 은 막지 못한다 — 일반 설치 파일과 같은 위험 |
+| 업데이트 경로로 가짜 프로그램 보내기(0.9~: GitHub 계정 탈취, 내려받기 가로채기, 예전 버전 다시 올리기) | 안내문에 팀 서명(ECDSA P-256, 키는 팀 PC 에만) — 서명이 맞아야 해석한다. 묶음은 안내문의 크기·SHA-256 과 같아야 하고, 주소는 이 저장소의 릴리스 파일만, 버전은 지금보다 높아야 한다. 받은 묶음은 관리자만 쓸 수 있는 폴더에 풀고(폴더 밖 이름·크기 상한 확인) 그 자리에서 실행한다. 참여자가 눌러야 진행 | 서명 키 유출(팀 PC 침해) — 유출되면 참여자 PC 에서 관리자 권한 실행이 가능하다. 키는 저장소·GitHub 에 두지 않는다 |
+| 업데이트 기능을 빌려 엉뚱한 폴더 바꾸기(`--apply-update` 를 다른 프로그램이 부름) | 관리자 실행에서는 Program Files 설치본만, 그리고 보호된 기록 폴더 아래에서 실행된 exe 만 교체를 한다. 대상에 `PcBlackBox.exe`·`study.json` 이 있어야 하고 연결(정션)이면 거부 | 시험 설정(127.0.0.1)이 든 폴더는 이 제한이 풀린다 — 넣는 내용은 서명된 앱 파일뿐이고, UAC 승인이 있어야 한다 |
+| 잘못 만든 새 버전 | 바꾸기 전 새 exe 를 한 번 띄워 봄(`--probe`), 폴더는 이름 바꾸기로 통째 교체(반쯤 섞이지 않음), 새 버전이 수집기까지 못 뜨면 이전 폴더로 되돌리고 그 버전을 다시 받지 않음 | 뜨기는 하지만 잘못 동작하는 버전은 못 거른다 — 팀 PC·시험판(pre-release)으로 먼저 확인 |
 | 참여자 PC 안정성 | 관리자 권한은 읽기에만, 커널 드라이버 없음(센서 라이브러리는 PawnIO 미설치면 드라이버를 올리지 않음), 읽기 전용, 자동 조치 없음, 전체 화면 중 창 안 띄움, 한 번만 실행, 로그오프 "취소" 뒤에도 정상(SessionEnded 에서만 정리), 종료 때 UI 를 막지 않음 | 코드 서명이 없어 SmartScreen 경고, 일부 백신의 평판 기반 차단 가능 |
 | 안티치트 보호 게임 | 모듈 열거가 거부된 PID 는 살아 있는 동안 다시 열지 않음(10초마다 시도하지 않음) | 첫 1회 열기 시도는 남는다 — 반응은 미확인 |
 | 동의 없는 수집 | 동의 체크 필수, 거절 시 저장 없음. 동의는 연구 ID·받는 곳에 묶임(시험 동의가 실제 배포본으로 넘어가지 않음). 시험 옵션은 127.0.0.1 설정 + 별도 `--data-dir` 에서만. `--selftest` 는 그 연구에 동의한 PC 에서만 | 없음 |
@@ -154,6 +202,9 @@ StudyTools summary --in D:\pca\study-decrypted
 | 관리자 경로(0.8): 기록 폴더 선점 방어·ACL, 예약 작업 등록·실행(관리자 토큰), 설치본, 그만두기 정리, 일반 권한 쓰기·권한 변경 거부 | **검증됨(10/30 재시험, ACL 수정분 포함)** | `tools/test-participant-admin.ps1` (UAC 한 번). 자세한 결과는 collector/NOTES.md 0.8.0·0.8.1 절 |
 | 예약 작업으로 띄운 인스턴스의 ETW, ETW 명령줄 인자 삭제(관리자) | **미확인** | 10/30 시험은 시험 도구 문제(설치본을 %TEMP% 에 둠)로 무효 — 고친 도구로 다시. 명령줄 삭제는 복호화본에서 확인 |
 | 참여자 PC 장기(2주) 안정성 | **미확인** | 하트비트 `self.cpuPctOfMachine`·`privateMB` 로 원격 관찰 |
+| 자동 업데이트(0.9): 서명·버전·주소 규칙, 묶음 풀기, 폴더 교체·되돌리기 | **검증됨(11/11)** | StudyCore.Tests 90건(업데이트 42건) |
+| 자동 업데이트 전체 흐름 — 표준 사용자 경로 | **검증됨(11/11, 이 PC)** | `tools\test-update.ps1`: 업데이트·낮은 버전 무시·되돌리기·건너뛰기·고친 안내문 거부·바뀐 묶음 거부 |
+| 자동 업데이트 전체 흐름 — 관리자 경로, 실제 설치 위치, GitHub 에서 받기 | **미확인** | 관리자 PowerShell 에서 `tools\test-update.ps1 -Mode admin`. 실제 위치·GitHub 는 첫 릴리스 전에 한 번 |
 
 ## 7. 문제 해결
 
@@ -166,4 +217,9 @@ StudyTools summary --in D:\pca\study-decrypted
 | `JSON 아닌 응답` | 배포 접근 권한이 "모든 사용자"가 아니면 Google 로그인 페이지(HTML)가 온다 |
 | 단축키가 안 됨 | 다른 앱이 Ctrl+Shift+F12 를 씀 — 트레이 메뉴 "지금 문제 기록하기" 사용(시작 시 알림으로 안내됨) |
 | 팀: "시험 수신기 설정이나 --test-* 옵션은 --data-dir …" | 시험 설정(127.0.0.1)으로는 기본 데이터 폴더를 쓰지 않는다 — `--data-dir <임시 폴더>` 를 준다 |
-| 참여자: 새 버전으로 바꾸기 | 아이콘 → 종료 → 새 zip 을 풀고 새 PcBlackBox.exe 실행(같은 참여 ID 유지, 자동 실행 바로가기는 새 경로로 고쳐짐) |
+| 참여자: 새 버전으로 바꾸기 (0.8.x → 0.9.0, 마지막 수동) | 아이콘 → 종료 → 새 zip 을 풀고 새 PcBlackBox.exe 실행(같은 참여 ID 유지, 자동 실행 바로가기는 새 경로로 고쳐짐) |
+| 참여자: 새 버전으로 바꾸기 (0.9~) | 알림을 누르거나 아이콘 → "업데이트". 알림이 안 오면 아이콘 → "업데이트 확인" |
+| 하트비트 `update.checkError` 가 계속 남음 | github.com 접속이 막힌 PC(회사·학교망) — zip 을 직접 건넨다 |
+| 하트비트 `update.lastResult` = `rolled-back` | 그 PC 에서 새 버전의 수집기가 뜨지 못했다. `lastDetail` 과 `startError` 를 보고 고친 **더 높은** 버전을 올린다(되돌린 버전은 그 PC 가 다시 받지 않는다) |
+| 하트비트 `update.canApply` = false | 자동 실행을 꺼 둔 관리자 실행 — 참여자에게 자동 실행을 켜 달라고 하거나 zip 을 건넨다 |
+| 내려받기 폴더의 옛 exe 를 다시 켰다 | 0.9 부터는 설치본(Program Files)이 더 새 버전이면 덮어쓰지 않는다. 다음 로그인부터 새 버전이 뜬다 |
