@@ -1,0 +1,57 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-014",
+    "marked_at":  "2020-06-14T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "scope":  "unknown",
+                    "faulting_modules":  [
+                                             "amdkmdag.sys"
+                                         ],
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "Adrenalin",
+                        "version":  "20.4.2"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "driver_rollback",
+                               "subject":  "DDU, then previous Radeon software",
+                               "version":  "20.4.2"
+                           }
+                       ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "amdkmdag.sys"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.tomshardware.com/threads/keep-getting-amdkmdag-sys-error-crash.3617757/",
+                       "site":  "Tom\u0027s Hardware Forum",
+                       "posted_date":  "Jun 14, 2020",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "\u0027performed a DDU (thx again for the help there) and installed previous Radeon software\u0027; \u0027still haven\u0027t had a crash in about 2-3 days now (touch wood)\u0027. Short-term report; other posters in the thread had no success with DDU.",
+                       "category_reported":  "gpu_driver",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "keep getting amdkmdag.sys error \u0026 crash",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "target_process",
+                                                  "symptom_type",
+                                                  "events",
+                                                  "modules",
+                                                  "culprit"
+                                              ]
+                   }
+}

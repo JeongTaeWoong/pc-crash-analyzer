@@ -13,7 +13,8 @@ namespace BlackBox.Sources;
 /// </summary>
 public sealed class EtwKernelSource : ISignalSource
 {
-    private const string SessionName = "CrashCollector-BlackBox-Kernel";
+    public const string DefaultSessionName = "CrashCollector-BlackBox-Kernel";
+    private readonly string _sessionName;
 
     private static readonly string[] ExcludedPathParts =
     {
@@ -28,6 +29,15 @@ public sealed class EtwKernelSource : ISignalSource
     private long _imageLoadTotal;
     private long _imageLoadKept;
     private long _processEvents;
+    private readonly bool _stripArgs;
+
+    /// <param name="stripCommandLineArgs">true 면 processStart 명령줄에서 인자를 지우고 실행 파일만 남긴다(참여자판).</param>
+    /// <param name="sessionName">같은 이름의 세션은 새로 만들 때 대체되므로, 판(콘솔·참여자·자체 점검)마다 다른 이름을 쓴다.</param>
+    public EtwKernelSource(bool stripCommandLineArgs = false, string? sessionName = null)
+    {
+        _stripArgs = stripCommandLineArgs;
+        _sessionName = sessionName ?? DefaultSessionName;
+    }
 
     public string Name => "etw-kernel";
 
@@ -45,7 +55,7 @@ public sealed class EtwKernelSource : ISignalSource
                 return SourceStatus.Unavailable(Name, "권한 필요: NT Kernel Logger는 관리자 필수 — 비관리자에선 스텁 동작 유지");
 
             // 같은 이름의 세션이 남아 있으면(비정상 종료 등) 새로 만들며 대체된다
-            _session = new TraceEventSession(SessionName);
+            _session = new TraceEventSession(_sessionName);
             _session.EnableKernelProvider(KernelTraceEventParser.Keywords.Process | KernelTraceEventParser.Keywords.ImageLoad);
 
             var kernel = _session.Source.Kernel;
@@ -85,6 +95,7 @@ public sealed class EtwKernelSource : ISignalSource
     {
         Interlocked.Increment(ref _processEvents);
         string cmd = data.CommandLine ?? "";
+        if (_stripArgs) cmd = CommandLineText.ExecutableOnly(cmd);
         if (cmd.Length > 200) cmd = cmd[..200] + "...";
         OnSignal?.Invoke(SignalEvent.Create(Name, new
         {

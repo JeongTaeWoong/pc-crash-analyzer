@@ -59,11 +59,11 @@ bool sameSubject(const std::string& a, const std::string& b) {
 
 Layer layerOfCategory(const std::string& category) {
   const char* sw[] = {"anticheat", "antivirus", "fin_security", "security_firewall",
-                      "overlay",   "input_util", "other_sw"};
+                      "overlay",   "input_util", "other_sw",    "app_memory"};
   const char* drv[] = {"gpu_driver",     "display_util", "peripheral_driver",
                        "network_driver", "os_update",    "other_driver"};
   const char* hw[] = {"thermal", "power", "connection", "storage", "memory"};
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < 8; i++) {
     if (category == sw[i]) return Layer::Software;
   }
   for (int i = 0; i < 6; i++) {
@@ -76,6 +76,14 @@ Layer layerOfCategory(const std::string& category) {
 }
 
 // ---------------------------------------------------------------- 템플릿
+
+bool Rules::isAutoUpdateNoise(const std::string& subject) const {
+  const std::string s = toLower(subject);
+  for (std::size_t i = 0; i < autoupdate_noise.size(); i++) {
+    if (!autoupdate_noise[i].empty() && s.find(toLower(autoupdate_noise[i])) != std::string::npos) return true;
+  }
+  return false;
+}
 
 bool CheckTemplate::appliesTo(const std::string& category, Layer layer) const {
   if (listHas(categories, category)) return true;
@@ -301,6 +309,7 @@ Rules Rules::fromJson(const json::Value& v) {
   }
 
   r.baseline_checklist = v["baseline_checklist"].asStringList();
+  r.autoupdate_noise = v["autoupdate_noise"].asStringList();
 
   const json::Array& cs = v["cases"].asArray();
   for (std::size_t i = 0; i < cs.size(); i++) {
@@ -429,6 +438,7 @@ json::Value Rules::toJson() const {
   out.set("remedies", rs);
 
   out.set("baseline_checklist", stringListToJson(baseline_checklist));
+  if (!autoupdate_noise.empty()) out.set("autoupdate_noise", stringListToJson(autoupdate_noise));
 
   json::Value ce = json::Value::makeArray();
   for (std::size_t i = 0; i < cases.size(); i++) {

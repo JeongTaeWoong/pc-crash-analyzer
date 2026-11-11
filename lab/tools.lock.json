@@ -1,0 +1,43 @@
+{
+  "note": "Pinned workload apps for the lab. The binaries live in lab/tools (git-ignored). Scripts must refuse to run if an exe hash differs from this file.",
+  "recorded_at": "2026-11-10",
+  "tools": [
+    {
+      "id": "blender",
+      "version": "5.2.3 LTS",
+      "archive": "blender/blender-5.2.3-windows-x64.zip",
+      "archive_sha256": "723f08a4401502561eb763cdeacf8745b31e5f3f154d287d3830d97cf75dc2fb",
+      "archive_checked_against": "https://download.blender.org/release/Blender5.2/blender-5.2.3.sha256 (match; downloaded via the mirror.nju.edu.cn mirror)",
+      "exe": "blender/blender-5.2.3-windows-x64/blender.exe",
+      "exe_sha256": "e546b2a0d81ae19bd5b306b668733102d91d23db2e2be02d68b7ecbe548af0a1",
+      "signer": "CN=Blender Foundation",
+      "signature": "Valid"
+    },
+    {
+      "id": "godot",
+      "version": "4.7.2.stable.official.ed1daf0bf",
+      "archive": "godot/Godot_v4.7.2-stable_win64.exe.zip",
+      "archive_sha256": "731980f9608d61333e5baf54a2ef17210acc7a538446c0cb9969f002aca1e953",
+      "archive_sha512": "83decd58fdf67b9d657958a1ae6bf1929c20785315a81effe245874cdc57acb709bf868e00778a96984338c1b29dafdb453c6847747694621c6ecf5da2259993",
+      "archive_checked_against": "SHA512-SUMS.txt of the 4.7.2-stable release on github.com/godotengine/godot (match)",
+      "exe": "godot/Godot_v4.7.2-stable_win64.exe",
+      "exe_sha256": "ab1824f85bfd8e0e4128182c000c4003a3e042245b2967848d089b2a04b22424",
+      "console_exe": "godot/Godot_v4.7.2-stable_win64_console.exe",
+      "console_exe_sha256": "c8f0a6bc45a19b33541501e57f6f7cd972ab18453743266339d495cbbe846643",
+      "signer": "CN=Prehensile Tales B.V.",
+      "signature": "Valid",
+      "self_contained_marker": "godot/_sc_ (editor data stays in lab/tools/godot/editor_data, not in the user profile)"
+    },
+    {
+      "id": "notepadpp",
+      "version": "8.9.9",
+      "archive": "notepadpp/npp.8.9.9.portable.x64.zip",
+      "archive_sha256": "96a8216930f5316ed5961663b2cc92a62ec7d303b6c3077b92a7cfc38a8761b7",
+      "archive_checked_against": "SHA-256 listed on https://github.com/notepad-plus-plus/notepad-plus-plus/releases/tag/v8.9.9 (match)",
+      "exe": "notepadpp/npp/notepad++.exe",
+      "exe_sha256": "b1bb271b558f6e33f357276fa530363c18494a4e9d3be973e3ccd8cb626b867d",
+      "signer": "E=don.h@free.fr",
+      "signature": "Valid"
+    }
+  ]
+}

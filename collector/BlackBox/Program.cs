@@ -1,7 +1,9 @@
-// BlackBox 수집기 v0.2 — 수집·버퍼·덤프만 한다. 분석 없음, 자동 조치 없음, 마킹 전 디스크 쓰기 없음.
+// BlackBox 수집기 콘솔판 — 수집·버퍼·덤프만 한다. 분석 없음, 자동 조치 없음, 마킹 전 디스크 쓰기 없음.
 // v0.2: 자동 감지 마킹 (Application 1000/1001, System 41/4101/WHEA 수신 → 즉시 자동 덤프)
+// v0.7: 조립은 Hosting/CollectorHost 로 옮김 — 참여자판(participant/BlackBox.Participant)과 같은 조립을 쓴다.
 using BlackBox.Bench;
 using BlackBox.Core;
+using BlackBox.Hosting;
 using BlackBox.Marking;
 using BlackBox.Sources;
 
@@ -17,66 +19,54 @@ if (args.Contains("--bench-sensors"))
     SnapshotBench.RunSensors();
     return;
 }
-
-var pre = TimeSpan.FromMinutes(5);    // 마킹 전 구간
-var post = TimeSpan.FromSeconds(30);  // 마킹 후 구간
-
-// 버퍼 보존 기간: T+post 시점 덤프에서 T-pre 이벤트가 밀려나지 않도록 pre+post+여유
-var buffer = new RingBuffer(pre + post + TimeSpan.FromSeconds(30));
-
-// 모듈 스냅샷 전략: 2026-10-08 벤치 결과 ForegroundPlusRecent 확정 — 344ms/60s (1코어 0.69%)
-// vs FullSweepEvery60s 3859ms/60s (1코어 7.05%). NOTES.md "자동 감지 마킹" 절 참고.
-var snapshotStrategy = SnapshotStrategy.ForegroundPlusRecent;
-
-var eventLogSource = new EventLogSource();
-var sensorSource = new SensorSource();
-var etwSource = new EtwKernelSource(); // 관리자: Kernel Process+ImageLoad 구독 / 비관리자: 스텁(unavailable)
-var sources = new ISignalSource[]
+if (Array.IndexOf(args, "--verify-eventlog") is var vi && vi >= 0)
 {
-    eventLogSource,
-    sensorSource,
-    new ProcessListSource(snapshotStrategy),
-    etwSource,
-};
-
-var statuses = new List<SourceStatus>();
-foreach (var source in sources)
-{
-    source.OnSignal += buffer.Append;
-    var status = source.Start();
-    statuses.Add(status);
-    Console.WriteLine($"[source] {Json.Serialize(status)}");
+    // 과거 이벤트 로그를 실시간 구독과 같은 파서·분류기로 다시 읽는다 (읽기 전용, 덤프 없음). 인자: 일수(생략·0 = 로그 전체)
+    int days = vi + 1 < args.Length && int.TryParse(args[vi + 1], out var d) ? d : 0;
+    Console.WriteLine(Json.Serialize(EventLogSource.VerifyHistory(days), indented: true));
+    return;
 }
 
-var snapshotter = new StateSnapshotter(sensorSource);
-var writer = new DumpWriter(Path.Combine(Environment.CurrentDirectory, "dumps"));
-var markService = new MarkService(buffer, snapshotter, writer, pre, post, statuses);
-
-// 자동 감지: 구독 중인 이벤트(= 전부 크래시/전원/디스플레이/WHEA 계열)는 수신 즉시 자동 마킹
-eventLogSource.OnTrigger += markService.OnAutoTrigger;
+var host = new CollectorHost(new CollectorHostOptions
+{
+    DumpRoot = Path.Combine(Environment.CurrentDirectory, "dumps"),
+    Edition = "console",
+});
+host.Start();
+var markService = host.Marks;
 
 using var hotkey = new HotkeyListener();
 var hotkeyStatus = hotkey.Start(() => markService.MarkManual("hotkey"));
-statuses.Add(hotkeyStatus);
+host.Statuses.Add(hotkeyStatus);
 Console.WriteLine($"[source] {Json.Serialize(hotkeyStatus)}");
 
-Console.WriteLine($"[ready] 버퍼 {pre.TotalMinutes:0}분 유지, 마킹 윈도 -{pre.TotalMinutes:0}분~+{post.TotalSeconds:0}초, 모듈 스냅샷 전략={snapshotStrategy}");
-Console.WriteLine("[ready] 수동 마킹: Ctrl+Shift+F12 또는 m+Enter | 버퍼 통계: s+Enter | 종료: q+Enter");
+var pre = host.Options.Pre;
+var post = host.Options.Post;
+Console.WriteLine($"[ready] 버퍼 {pre.TotalMinutes:0}분 유지, 마킹 윈도 -{pre.TotalMinutes:0}분~+{post.TotalSeconds:0}초, 모듈 스냅샷 전략={host.Strategy}");
+Console.WriteLine("[ready] 수동 마킹: Ctrl+Shift+F12 또는 m+Enter (증상·대상 지정: m slow blender) | 버퍼 통계: s+Enter | 종료: q+Enter");
 
 while (true)
 {
     var line = Console.ReadLine();
     if (line == null) break; // stdin EOF
-    switch (line.Trim().ToLowerInvariant())
+    var cmd = line.Trim();
+    if (cmd.StartsWith("m ", StringComparison.OrdinalIgnoreCase))
+    {
+        // m [증상] [대상]  예: m slow blender / m freeze / m Unity.exe
+        var manual = ManualMark.Parse(cmd[2..]);
+        markService.MarkManual("console", manual);
+        continue;
+    }
+    switch (cmd.ToLowerInvariant())
     {
         case "m":
             markService.MarkManual("console");
             break;
         case "s":
-            var (count, bytes) = buffer.Stats;
-            var bySource = buffer.StatsBySource()
+            var (count, bytes) = host.Buffer.Stats;
+            var bySource = host.Buffer.StatsBySource()
                 .ToDictionary(kv => kv.Key, kv => new { count = kv.Value.Count, bytes = kv.Value.Bytes });
-            var etw = etwSource.Counters;
+            var etw = host.Etw.Counters;
             Console.WriteLine($"[stats] {Json.Serialize(new
             {
                 at = DateTimeOffset.Now,
@@ -85,6 +75,7 @@ while (true)
                 approxKB = Math.Round(bytes / 1024.0, 1),
                 bySource,
                 etwCounters = new { imageLoadTotal = etw.ImageLoadTotal, imageLoadKept = etw.ImageLoadKept, processEvents = etw.ProcessEvents },
+                rollup = new { minutes = host.Rollup.Count, approxKB = Math.Round(host.Rollup.ApproxBytes / 1024.0, 1) },
                 gcTotalMB = Math.Round(GC.GetTotalMemory(false) / 1048576.0, 1),
             })}");
             break;
@@ -93,17 +84,13 @@ while (true)
         case "":
             break;
         default:
-            Console.WriteLine("[help] m=마킹, s=통계, q=종료");
+            Console.WriteLine("[help] m=마킹, m <증상> <대상>=지정 마킹(증상: slow freeze app_crash fps_drop …), s=통계, q=종료");
             break;
     }
 }
 
 shutdown:
 Console.WriteLine("[shutdown] 진행 중인 덤프 대기...");
-markService.Drain(TimeSpan.FromSeconds(60));
-foreach (var source in sources)
-{
-    try { source.Stop(); source.Dispose(); } catch { }
-}
-var finalStats = buffer.Stats;
+host.Stop(TimeSpan.FromSeconds(60));
+var finalStats = host.Buffer.Stats;
 Console.WriteLine($"[exit] {Json.Serialize(new { bufferEvents = finalStats.Count, approxBytes = finalStats.ApproxBytes })}");

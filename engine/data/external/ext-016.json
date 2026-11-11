@@ -1,0 +1,64 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-016",
+    "marked_at":  "2021-03-17T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "target_process":  "Valorant",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "RTSSHooks64.dll_unloaded"
+                                         ]
+                },
+    "modules":  [
+                    {
+                        "process":  "Valorant",
+                        "name":  "RTSSHooks64.dll",
+                        "version":  "0.0.0.0"
+                    }
+                ],
+    "drivers":  [
+                    {
+                        "name":  "NVIDIA driver",
+                        "version":  "461.91"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "driver_rollback",
+                               "subject":  "NVIDIA driver rolled back from 461.91",
+                               "version":  "461.40"
+                           }
+                       ],
+    "events":  [
+                   {
+                       "subject":  "bad_module_info",
+                       "faulting_module":  "RTSSHooks64.dll_unloaded",
+                       "exception_code":  "0xc0000005"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.guru3d.com/threads/rtss-7-3-1-issues-with-valorant-2-05-and-or-461-91.437172/",
+                       "site":  "Guru3D Forums",
+                       "posted_date":  "Mar 17, 2021",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Post #1: \u0027i turned of MSI Afterburner along with RTSS et voila.\u0027 Post #5: \u0027After rolling back to 461.40 all is back to normal.\u0027",
+                       "category_reported":  "overlay",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Name of faulty application: bad_module_info, Version: 0.0.0.0, Zeitstempel: 0x00000000 Name of faulty module: RTSSHooks64.dll_unloaded, Version: 0.0.0.0, Zeitstempel: 0x6047e336 Exception Code: 0xc0000005 Error offset: 0x000000000007d940",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "events.provider",
+                                                  "events.id",
+                                                  "minidumps",
+                                                  "culprit"
+                                              ]
+                   }
+}

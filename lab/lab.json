@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "note": "Fixed settings for the impact experiment (docs/security-impact-design.md). Change nothing after the first measured boot; if you must, record what and why in collector/NOTES.md.",
+  "work_root": "%LOCALAPPDATA%\\Temp\\pca-lab",
+  "chrome": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+
+  "apps": ["blender", "godot", "notepadpp"],
+  "main_backgrounds": ["B0", "B2"],
+  "sub_backgrounds": ["B1", "B3"],
+  "pilot": { "boots": 3, "reps_main": 2, "reps_sub": 0 },
+  "default_plan": { "k": 4, "reps_main": 3, "reps_sub": 2 },
+  "k_min": 3,
+  "k_max": 6,
+  "target_half_width": 0.05,
+  "settle_boots_after_install": 2,
+
+  "timing": {
+    "post_boot_wait_sec": 300,
+    "idle_window_sec": 10,
+    "idle_stable_points": 3.0,
+    "idle_max_wait_sec": 600,
+    "background_settle_sec": 30,
+    "rest_sec": 30,
+    "task_timeout_sec": 300,
+    "block_estimate_min": 60,
+    "session_margin_min": 10
+  },
+
+  "backgrounds": {
+    "B1": { "kind": "video", "urls": ["https://www.youtube.com/watch?v=aqz-KE-bpKQ"] },
+    "B2": { "kind": "bank", "urls": ["https://www.kebhana.com/common/login.do", "https://banking.nonghyup.com/nhbank.html"], "max_loads_per_boot": 24 },
+    "B3": { "kind": "browse", "interval_sec": 20, "urls": [
+      "https://ko.wikipedia.org/wiki/%EC%9A%B4%EC%98%81_%EC%B2%B4%EC%A0%9C",
+      "https://en.wikipedia.org/wiki/Device_driver",
+      "https://docs.blender.org/manual/en/latest/",
+      "https://docs.godotengine.org/en/stable/",
+      "https://developer.mozilla.org/en-US/docs/Web/HTTP",
+      "https://learn.microsoft.com/en-us/windows/win32/procthread/processes-and-threads",
+      "https://git-scm.com/doc",
+      "https://en.wikipedia.org/wiki/Antivirus_software",
+      "https://ko.wikipedia.org/wiki/%EC%9D%B8%ED%84%B0%EB%84%B7_%EB%B1%85%ED%82%B9",
+      "https://www.python.org/doc/"
+    ] }
+  },
+
+  "notepad": { "file_mb": 50, "type_chars": 300, "type_gap_ms": 20 },
+
+  "forbidden_processes_note": "Blocking: games and anti-cheat (the lab must never send input while a game runs), the PC BlackBox tray (it would upload these events), and a running virtual machine (vmwp = Hyper-V VM worker, vmmem = VM / WSL2 memory; added 2026-11-11 with the decision to enable Hyper-V: a VM running during a session would take CPU from the measurement).",
+  "forbidden_processes": "^(LOSTARK|VALORANT.*|LeagueClient.*|League of Legends|vgc|vgtray|EasyAntiCheat.*|BEService.*|GameGuard.*|PcBlackBox|vmwp|vmmem.*)$",
+  "noisy_processes_note": "Warned about and recorded, not blocking: launchers and always-on apps. Several start by themselves at logon on this PC (Steam, Discord, KakaoTalk, Wallpaper Engine, OneDrive), so they are part of both the before and the after state. They can still add noise (self-updates, animated wallpaper); turning their autostart off for the experiment period gives cleaner data.",
+  "noisy_processes": "^(steam|steamwebhelper|STOVE|stove_watchdog|StoveCefHelper|EpicGamesLauncher|Battle\\.net|RiotClientServices|RiotClientUx|Discord|KakaoTalk|OneDrive|wallpaper(32|64)|webwallpaper(32|64))$",
+  "security_modules": "(?i)astx|ahnlab|stsess|nprotect|nos(svc|tray|bg|starter)|npk|touchen|nxkey|ckagent|crossex|veraport|wizvera|ipinside|i3g(proc|mgr|main)|delfino|anysign|magicline|inisafe|crossweb|keysharp|ksign|markany|ma?epagesafer|softcamp|skcert|signkorea|unisign|unicrs|ezpdf",
+  "watch_processes": "(?i)^(chrome|blender|godot|notepad\\+\\+|msmpeng|nvidia|fvcontainer|presentmon|lghub|logi_|dwm|system|searchindexer|wmiprvse|steam|stove|discord|kakaotalk|onedrive|wallpaper|webwallpaper|msedge)"
+}

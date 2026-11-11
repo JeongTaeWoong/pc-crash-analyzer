@@ -1,0 +1,66 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-un-01",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows"
+             },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "scope":  "single_app",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "Discord",
+                      "Steam",
+                      "MSI Afterburner"
+                  ],
+    "modules":  [
+                    {
+                        "name":  "amdxc64.dll"
+                    },
+                    {
+                        "name":  "atidxx64.dll"
+                    },
+                    {
+                        "name":  "igc64.dll"
+                    },
+                    {
+                        "name":  "igd10um64.dll"
+                    },
+                    {
+                        "name":  "igd10um64xe.dll"
+                    },
+                    {
+                        "name":  "nvwgf2umx.dll"
+                    },
+                    {
+                        "name":  "nvoglv64.dll"
+                    }
+                ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://docs.unity.com/en-us/engine/6000.5/manual/platform-specific/windows/develop/troubleshoot-gpu-crash",
+                       "site":  "docs.unity.com",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Disable overlays, reset GPU clocks, update OS and drivers, clean driver install, clear Library/ShaderCache and driver caches, fall back to DX11 temporarily.",
+                       "category_reported":  "gpu_driver",
+                       "program":  "Unity",
+                       "conflict_with":  "Overlays from Discord, Steam or MSI Afterburner; GPU driver DLLs",
+                       "mechanism":  "M4",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "A GPU crash can cause the Unity Editor to close unexpectedly and return a graphics error.",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "driver versions",
+                                                  "reproduction steps",
+                                                  "faulting module for a specific case"
+                                              ]
+                   }
+}

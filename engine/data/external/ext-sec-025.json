@@ -1,0 +1,47 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-025",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "input_loss",
+                    "scope":  "unknown",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "Delfino-g3.exe"
+                  ],
+    "security":  {
+                     "realtime_av":  [
+                                         "Kaspersky"
+                                     ]
+                 },
+    "ground_truth":  {
+                         "layer":  "SW",
+                         "category":  "fin_security"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://biz.hanabank.com/cont/customer/customer04/customer047/customer0473/index.jsp",
+                       "site":  "biz.hanabank.com",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "Keyboard security program (bank attribution when only keyboard input fails)",
+                       "what_fixed_it":  "Bank FAQ: use the virtual keypad or mouse input, reinstall the keyboard security program, reissue the certificate; change or remove the antivirus/firewall setting",
+                       "category_reported":  "fin_security",
+                       "program":  "하나은행 기업뱅킹 보안프로그램 (키보드보안, Delfino, Veraport)",
+                       "conflict_with":  "PC 내 백신(방화벽) 프로그램; Kaspersky; corporate firewalls or storage-blocking security tools",
+                       "mechanism":  "keyboard_hook",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "가상 키패드와 마우스 로그인은 정상인데 키보드 입력에서만 응답이 없을 경우",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "slowdown_or_bsod_not_mentioned",
+                                                  "product_name_of_keyboard_security"
+                                              ]
+                   }
+}

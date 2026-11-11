@@ -10,3 +10,32 @@ logs/
 # Python cache (ui prototype)
 __pycache__/
 *.pyc
+collector/experiments/FaultLab/plugin/build/
+dumps_archive/
+
+# 개인 화면 녹화 (데모 영상) — 커밋 금지
+recordings/
+
+# 배포 빌드 산출물 (tools/publish-collector.ps1)
+dist/
+
+# 골든 셋 케이스(개인 PC 덤프 파생) — FaultLab 합성 케이스만 검토 후 수동 커밋
+cases/
+
+# 참여자판 연구 설정·키·받은 데이터 (participant/, docs/study-operations.md) — 커밋 금지
+participant/study.local.json
+*.private.pem
+study-inbox/
+study-decrypted/
+
+# 재현·성능 측정 산출물 (개인 PC 프로세스 이름 포함) — 커밋 금지
+collector/experiments/repro-runs/
+
+# 영향 실험(lab/): 받은 포터블 앱과 원자료 — 커밋 금지
+lab/tools/
+lab/runs/
+lab/runs-*/
+
+# API 키가 든 빌드 설정 — 커밋 금지 (docs/product-architecture-v2.md 3.4)
+*.apikey
+apikey.local.*

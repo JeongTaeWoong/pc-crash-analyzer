@@ -1,0 +1,51 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-011",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows 10"
+             },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "target_process":  "Firefox",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "nzbrcom.dll@0x20846"
+                                         ]
+                },
+    "modules":  [
+                    {
+                        "process":  "Firefox",
+                        "name":  "nzbrcom.dll"
+                    }
+                ],
+    "minidumps":  [
+                      {
+                          "kind":  "app",
+                          "process":  "Firefox (Nightly 20161025030205)",
+                          "faulting_module":  "nzbrcom.dll@0x20846"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://bugzilla.mozilla.org/show_bug.cgi?id=1313963",
+                       "site":  "Mozilla Bugzilla",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "nzbrcom.dll (reporter: part of AhnLab Safe Transaction)",
+                       "category_reported":  "fin_security",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "Crash in nzbrcom.dll@0x20846 | EXCEPTION_ACCESS_VIOLATION_READ",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "events",
+                                                  "drivers",
+                                                  "change_history",
+                                                  "resolution"
+                                              ]
+                   }
+}

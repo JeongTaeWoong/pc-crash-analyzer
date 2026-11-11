@@ -1,0 +1,974 @@
+[
+  {
+    "id": "ext-001",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/4155833/fixed-nvlddmkm-gaming-video-crash-error-bad-ram",
+    "site": "Microsoft Q&A",
+    "posted_date": "2023-04-25T09:01:31+00:00",
+    "grade": "D",
+    "symptom_type": "app_crash",
+    "scope": "multiple_apps",
+    "os": "Windows 10 (page tag only)",
+    "target_process": "",
+    "events": [
+      {"provider": "Display", "id": 4101, "subject": "nvlddmkm", "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [],
+    "modules": [],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Original post: 'Removing the faulty DIMM solved the issue.' Re-inserting it brought the errors back; two new DIMMs bought, 'has never re-occurred 6-months later'.",
+      "confirmed_by_poster": true
+    },
+    "culprit": "faulty DIMM",
+    "category": "memory",
+    "verbatim_excerpt": "Display driver nvlddmkm stopped responding and successfully recovered. | Unreal Engine is exiting due to D3D device being lost",
+    "missing": ["target_process", "minidumps", "modules", "drivers", "change_history"]
+  },
+  {
+    "id": "ext-002",
+    "source_url": "https://forums.tomshardware.com/threads/bluescreen-memory-management.3492788/",
+    "site": "Tom's Hardware Forum",
+    "posted_date": "Jun 23, 2019",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Windows 10 (mentioned in post)",
+    "target_process": "",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "ntoskrnl.exe", "bugcheck": "MEMORY_MANAGEMENT 0x0000001a"}
+    ],
+    "modules": [
+      {"name": "ntoskrnl.exe", "company": null, "version": "10.0.17763.557 (WinBuild.160101.0800)"}
+    ],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Post #10: 'He installed two new sticks and took out the two old ones and Windows booted fine.'",
+      "confirmed_by_poster": true
+    },
+    "culprit": "defective RAM (poster: 'fairly confident')",
+    "category": "memory",
+    "verbatim_excerpt": "Bug Check String : MEMORY_MANAGEMENT | Bug Check Code : 0x0000001a | Parameter 1 : 00000000`00041792 | Caused By Driver : ntoskrnl.exe | Caused By Address : ntoskrnl.exe+1b3ef0",
+    "missing": ["target_process", "events", "drivers", "change_history"]
+  },
+  {
+    "id": "ext-003",
+    "source_url": "https://forums.tomshardware.com/threads/crashing-kernel-power-41-bug-check-code-0.3727486/",
+    "site": "Tom's Hardware Forum",
+    "posted_date": "Oct 5, 2021",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": null,
+    "target_process": "",
+    "events": [
+      {"provider": "Kernel Power", "id": 41, "subject": null, "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [],
+    "modules": [],
+    "drivers": [],
+    "change_history": [
+      {"kind": "setting_change", "subject": "XMP re-enabled; two Kernel 41 crashes reported after", "version": null}
+    ],
+    "resolution": {
+      "what_fixed_it": "Oct 17, 2021: 'Manually setting the memory timings and voltage rather than simply enabling xmp seems to have solved the issue.' Short test only; poster said more testing was planned.",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "memory",
+    "verbatim_excerpt": "Event Viewer lists Event ID: 41 \"Kernel Power\"",
+    "missing": ["os", "target_process", "minidumps", "modules", "drivers", "culprit"]
+  },
+  {
+    "id": "ext-004",
+    "source_url": "https://steamcommunity.com/app/1172710/discussions/0/546746241084651807/?ctp=3",
+    "site": "Steam Community",
+    "posted_date": "14 Nov 2025",
+    "grade": "D",
+    "symptom_type": "launch_fail",
+    "scope": "unknown",
+    "os": null,
+    "target_process": "PUBG",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "BEDaisy.sys", "bugcheck": "SYSTEM_SERVICE_EXCEPTION"}
+    ],
+    "modules": [],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Post #37, by a poster other than the topic starter, about their own PC: 'tried another older version of the gpu driver and VOILA! It started and have no issues for now!' Version not given.",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "anticheat",
+    "verbatim_excerpt": "BEDaisy.sys with a SYSTEM_SERVICE_EXCEPTION",
+    "missing": ["os", "events", "modules", "drivers", "change_history", "culprit"]
+  },
+  {
+    "id": "ext-005",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/3980333/valorant-vanguard-anti-cheat-related-bsod-vgk-sys",
+    "site": "Microsoft Q&A",
+    "posted_date": "2024-08-14T08:19:43+00:00",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "single_app",
+    "os": "Windows 11 (page tag only)",
+    "target_process": "valorant",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "vgk.sys", "bugcheck": "DRIVER_IRQL_NOT_LESS_OR_EQUAL"}
+    ],
+    "modules": [],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Reply: 'Already uninstalled the anti cheat, no crashes for now.' Reply carries the generic 'Anonymous' label also used on the question, so same authorship is not verifiable.",
+      "confirmed_by_poster": false
+    },
+    "culprit": null,
+    "category": "anticheat",
+    "verbatim_excerpt": "Stop code:DRIVER_IRQL_NOT_LESS_OR_EQUAL | What Failed; vgk.sys",
+    "missing": ["events", "modules", "drivers", "change_history", "culprit", "resolution.confirmed_by_poster"]
+  },
+  {
+    "id": "ext-006",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/698256/my-pc-keeps-getting-bsod",
+    "site": "Microsoft Q&A",
+    "posted_date": "2022-01-17T15:12:51.433+00:00",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": null,
+    "target_process": "",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "aswNetHub.sys", "bugcheck": null},
+      {"kind": "kernel", "process": null, "faulting_module": null, "bugcheck": "KMODE_EXCEPTION_NOT_HANDLED"},
+      {"kind": "kernel", "process": null, "faulting_module": null, "bugcheck": "ATTEMPTED_SWITCH_FROM_DPC"}
+    ],
+    "modules": [],
+    "drivers": [
+      {"name": "aswnethub.sys", "version": null},
+      {"name": "bddci.sys", "version": null},
+      {"name": "rt640x64.sys", "version": null}
+    ],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "'I think this fixed it, I uninstalled Avast and since then nothing has happened. Thank you!'",
+      "confirmed_by_poster": true
+    },
+    "culprit": "aswNetHub.sys (AVast), per accepted answer",
+    "category": "antivirus",
+    "verbatim_excerpt": "011722-9640-01.dmp was due to aswNetHub.sys (AVast).",
+    "missing": ["os", "target_process", "events", "modules", "change_history"]
+  },
+  {
+    "id": "ext-007",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/4296142/losing-my-mind-blue-screen-loop-no-options",
+    "site": "Microsoft Q&A",
+    "posted_date": "2023-01-29, 13:30:41 UTC",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Win 10 21H1 (19044.2364)",
+    "target_process": "",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "klif.sys", "bugcheck": "SYSTEM SCAN AT RAISED IRQL CAUGHT IMPROPER DRIVER UPLOAD"}
+    ],
+    "modules": [],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Replier reporting their own machine (Samsung R780, Kaspersky Free): deleted klif.sys via recovery cmd, rebooted, uninstalled Kaspersky. 'The problem seems to be resolved.'",
+      "confirmed_by_poster": true
+    },
+    "culprit": "klif.sys",
+    "category": "antivirus",
+    "verbatim_excerpt": "Stop Code: SYSTEM SCAN AT RAISED IRQL CAUGHT IMPROPER DRIVER UPLOAD | What failed: klif.sys",
+    "missing": ["target_process", "events", "modules", "drivers", "change_history"]
+  },
+  {
+    "id": "ext-008",
+    "source_url": "https://github.com/safing/portmaster/issues/1587",
+    "site": "GitHub",
+    "posted_date": "Jun 14, 2024",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Windows 10 Prof x64, Build 10.0.19045.4412",
+    "target_process": "",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "portmaster_kext_v1_1_2+0x8ec4", "bugcheck": "KERNEL_MODE_HEAP_CORRUPTION; 00000000`0000013a"}
+    ],
+    "modules": [],
+    "drivers": [
+      {"name": "portmaster-kext_v1-1-2.sys", "version": null}
+    ],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Reporter moved to the beta channel kext suggested by the maintainer: 'While that fixed that particular problem, it introduced another, which killed my entire IPv4 network system'.",
+      "confirmed_by_poster": true
+    },
+    "culprit": "portmaster-kext_v1-1-2.sys",
+    "category": "security_firewall",
+    "verbatim_excerpt": "BSOD \"KERNEL_MODE_HEAP_CORRUPTION\" with portmaster-kext_v1-1-2.sys | 00000000`0000013a | portmaster_kext_v1_1_2+0x8ec4",
+    "missing": ["target_process", "events", "modules", "change_history"]
+  },
+  {
+    "id": "ext-009",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/2441022/netio-sys-bsod-help-needed",
+    "site": "Microsoft Q&A",
+    "posted_date": "2010-03-09T03:24:34+00:00",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Windows 7 64-bit (as stated)",
+    "target_process": "vsmon.exe",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": "vsmon.exe", "faulting_module": "NETIO.SYS", "bugcheck": "SYSTEM_SERVICE_EXCEPTION (3b)"}
+    ],
+    "modules": [],
+    "drivers": [
+      {"name": "vsdatant.sys", "version": null}
+    ],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Reply: uninstalled the ZoneAlarm Anti-Phishing/Site Status Toolbar, 'which seems to have stopped the BSODs so far (fingers crossed)'. Reply carries the generic 'Anonymous' label also used on the question, so same authorship is not verifiable.",
+      "confirmed_by_poster": false
+    },
+    "culprit": null,
+    "category": "security_firewall",
+    "verbatim_excerpt": "BugCheck 3B, {c0000005, fffff8800142558d, fffff88002984150, 0} | Unable to load image vsdatant.sys, Win32 error 0n2 | Probably caused by : NETIO.SYS ( NETIO!CalloutStreamDataInit+1d ) | IMAGE_NAME: NETIO.SYS | PROCESS_NAME: vsmon.exe",
+    "missing": ["events", "modules", "change_history", "culprit", "resolution.confirmed_by_poster"]
+  },
+  {
+    "id": "ext-010",
+    "source_url": "https://www.clien.net/service/board/park/1517186",
+    "site": "클리앙",
+    "posted_date": "2011-03-07 16:24:13",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "unknown",
+    "os": "Windows 7 (윈도7)",
+    "target_process": "",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "JRSUKD25.SYS ( JRSUKD25+1870 )", "bugcheck": null}
+    ],
+    "modules": [],
+    "drivers": [
+      {"name": "JRSUKD25.sys", "version": null}
+    ],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": null,
+      "confirmed_by_poster": false
+    },
+    "culprit": "은행권 보안 소프트 (post title); dump points to JRSUKD25.SYS",
+    "category": "fin_security",
+    "verbatim_excerpt": "Probably caused by : JRSUKD25.SYS ( JRSUKD25+1870 ) | JRSUKD25.sys ClientKeeper Keypro Keyboard Driver",
+    "missing": ["target_process", "events", "modules", "change_history", "resolution"]
+  },
+  {
+    "id": "ext-011",
+    "source_url": "https://bugzilla.mozilla.org/show_bug.cgi?id=1313963",
+    "site": "Mozilla Bugzilla",
+    "posted_date": null,
+    "grade": "D",
+    "symptom_type": "app_crash",
+    "scope": "single_app",
+    "os": "Windows 10",
+    "target_process": "Firefox",
+    "events": [],
+    "minidumps": [
+      {"kind": "app", "process": "Firefox (Nightly 20161025030205)", "faulting_module": "nzbrcom.dll@0x20846", "bugcheck": null}
+    ],
+    "modules": [
+      {"name": "nzbrcom.dll", "company": null, "version": null}
+    ],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": null,
+      "confirmed_by_poster": false
+    },
+    "culprit": "nzbrcom.dll (reporter: part of AhnLab Safe Transaction)",
+    "category": "fin_security",
+    "verbatim_excerpt": "Crash in nzbrcom.dll@0x20846 | EXCEPTION_ACCESS_VIOLATION_READ",
+    "missing": ["posted_date", "events", "drivers", "change_history", "resolution"]
+  },
+  {
+    "id": "ext-012",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/3990816/once-again-bsod-video-tdr-failure-with-nvlddmkm-sy",
+    "site": "Microsoft Q&A",
+    "posted_date": "2024-08-17T15:11:14+00:00",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "unknown",
+    "os": "Windows 10 (page tag only)",
+    "target_process": "",
+    "events": [
+      {"provider": "nvlddmkm", "id": null, "subject": "21 errors with the source being nvlddmkm", "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "nvlddmkm.sys", "bugcheck": "VIDEO_TDR_FAILURE"}
+    ],
+    "modules": [],
+    "drivers": [
+      {"name": "NVIDIA driver", "version": "560.81"},
+      {"name": "NVIDIA driver", "version": "560.94"}
+    ],
+    "change_history": [
+      {"kind": "driver_reinstall", "subject": "NVIDIA driver reinstalled using DDU", "version": "560.94"}
+    ],
+    "resolution": {
+      "what_fixed_it": "Reply 2024-08-22: 'I've now reinstalled the new Nvidia drivers using DDU. It _seems_ to have fixed the BSOD issue for now.' Reply carries the generic 'Anonymous' label also used on the question, so same authorship is not verifiable.",
+      "confirmed_by_poster": false
+    },
+    "culprit": null,
+    "category": "gpu_driver",
+    "verbatim_excerpt": "VIDEO_TDR_FAILURE | nvlddmkm.sys | 21 errors with the source being nvlddmkm",
+    "missing": ["target_process", "events.id", "modules", "culprit", "resolution.confirmed_by_poster"]
+  },
+  {
+    "id": "ext-013",
+    "source_url": "https://forums.tomshardware.com/threads/nvlddmkm-sys-video-tdr-failure-bsod-whenever-i-attempt-to-go-through-windows-login-on-windows-startup.3748255/",
+    "site": "Tom's Hardware Forum",
+    "posted_date": "February 3, 2022",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Windows 10",
+    "target_process": "",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "nvlddmkm.sys", "bugcheck": "video TDR failure"}
+    ],
+    "modules": [],
+    "drivers": [
+      {"name": "nvlddmkm.sys", "version": null}
+    ],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Post #6: removed CMOS battery, GPU and RAM, cleaned dust, reseated everything: 'Seems to be gone.' A separate continuous-restart problem was reported later the same day.",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "gpu_driver",
+    "verbatim_excerpt": "system32\\driverstore\\filerepository\\nv_dispig.inf_amd64_31a2adf8c49e7799\\nvlddmkm.sys",
+    "missing": ["target_process", "events", "modules", "change_history", "culprit"]
+  },
+  {
+    "id": "ext-014",
+    "source_url": "https://forums.tomshardware.com/threads/keep-getting-amdkmdag-sys-error-crash.3617757/",
+    "site": "Tom's Hardware Forum",
+    "posted_date": "Jun 14, 2020",
+    "grade": "D",
+    "symptom_type": "app_crash",
+    "scope": "unknown",
+    "os": null,
+    "target_process": "",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "amdkmdag.sys", "bugcheck": null}
+    ],
+    "modules": [],
+    "drivers": [
+      {"name": "Adrenalin", "version": "20.4.2"}
+    ],
+    "change_history": [
+      {"kind": "driver_rollback", "subject": "DDU, then previous Radeon software", "version": "20.4.2"}
+    ],
+    "resolution": {
+      "what_fixed_it": "'performed a DDU (thx again for the help there) and installed previous Radeon software'; 'still haven't had a crash in about 2-3 days now (touch wood)'. Short-term report; other posters in the thread had no success with DDU.",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "gpu_driver",
+    "verbatim_excerpt": "keep getting amdkmdag.sys error & crash",
+    "missing": ["os", "target_process", "symptom_type", "events", "modules", "culprit"]
+  },
+  {
+    "id": "ext-015",
+    "source_url": "https://github.com/microsoft/terminal/issues/6746",
+    "site": "GitHub",
+    "posted_date": "July 1, 2020",
+    "grade": "D",
+    "symptom_type": "app_crash",
+    "scope": "single_app",
+    "os": "Microsoft Windows [Version 10.0.19041.330]",
+    "target_process": "WindowsTerminal.exe",
+    "events": [
+      {"provider": null, "id": null, "subject": "WindowsTerminal.exe", "faulting_module": "RTSSHooks64.dll", "exception_code": "0xc0000005"}
+    ],
+    "minidumps": [],
+    "modules": [
+      {"name": "RTSSHooks64.dll", "company": null, "version": "0.0.0.0"}
+    ],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Original reporter, Jan 15, 2021: 'Try to update to the latest WT and RTSS.' and 'I don't have that problem since long pretty long time.' Also suggested setting RTSS application detection level to none for WindowsTerminal.exe.",
+      "confirmed_by_poster": true
+    },
+    "culprit": "RTSSHooks64.dll (maintainer: outside of our code)",
+    "category": "overlay",
+    "verbatim_excerpt": "Faulting application name: WindowsTerminal.exe, version: 1.0.2005.17002, time stamp: 0x5ec1a30d Faulting module name: RTSSHooks64.dll, version: 0.0.0.0, time stamp: 0x5d76621d Exception code: 0xc0000005 Fault offset: 0x0000000000004959",
+    "missing": ["events.provider", "events.id", "minidumps", "drivers", "change_history"]
+  },
+  {
+    "id": "ext-016",
+    "source_url": "https://forums.guru3d.com/threads/rtss-7-3-1-issues-with-valorant-2-05-and-or-461-91.437172/",
+    "site": "Guru3D Forums",
+    "posted_date": "Mar 17, 2021",
+    "grade": "D",
+    "symptom_type": "app_crash",
+    "scope": "single_app",
+    "os": null,
+    "target_process": "Valorant",
+    "events": [
+      {"provider": null, "id": null, "subject": "bad_module_info", "faulting_module": "RTSSHooks64.dll_unloaded", "exception_code": "0xc0000005"}
+    ],
+    "minidumps": [],
+    "modules": [
+      {"name": "RTSSHooks64.dll", "company": null, "version": "0.0.0.0"}
+    ],
+    "drivers": [
+      {"name": "NVIDIA driver", "version": "461.91"}
+    ],
+    "change_history": [
+      {"kind": "driver_rollback", "subject": "NVIDIA driver rolled back from 461.91", "version": "461.40"}
+    ],
+    "resolution": {
+      "what_fixed_it": "Post #1: 'i turned of MSI Afterburner along with RTSS et voila.' Post #5: 'After rolling back to 461.40 all is back to normal.'",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "overlay",
+    "verbatim_excerpt": "Name of faulty application: bad_module_info, Version: 0.0.0.0, Zeitstempel: 0x00000000 Name of faulty module: RTSSHooks64.dll_unloaded, Version: 0.0.0.0, Zeitstempel: 0x6047e336 Exception Code: 0xc0000005 Error offset: 0x000000000007d940",
+    "missing": ["os", "events.provider", "events.id", "minidumps", "culprit"]
+  },
+  {
+    "id": "ext-017",
+    "source_url": "https://forums.guru3d.com/threads/rtsshooks64-dll.402806/",
+    "site": "Guru3D Forums",
+    "posted_date": "Sep 29, 2015",
+    "grade": "D",
+    "symptom_type": "app_crash",
+    "scope": "single_app",
+    "os": null,
+    "target_process": "bf4.exe",
+    "events": [
+      {"provider": null, "id": null, "subject": "bf4.exe", "faulting_module": "RTSSHooks64.dll", "exception_code": "c0000094"}
+    ],
+    "minidumps": [],
+    "modules": [
+      {"name": "RTSSHooks64.dll", "company": null, "version": "0.0.0.0"}
+    ],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Post #7: Application detection level LOW, Custom Direct3D Support ON, OSD rendering mode VECTOR 2D: 'update : problem resolved'. Post #8 (Oct 3, 2015): problem recurred in bf4 only; workaround 'go to origin and disable origin in game'.",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "overlay",
+    "verbatim_excerpt": "bf4.exe 1.5.2.34169 55d7db58 RTSSHooks64.dll 0.0.0.0 545f520f c0000094 0000000000012c1e",
+    "missing": ["os", "events.provider", "events.id", "minidumps", "drivers", "change_history", "culprit"]
+  },
+  {
+    "id": "ext-018",
+    "source_url": "https://steamcommunity.com/app/275850/discussions/1/3815166629925861443/",
+    "site": "Steam Community",
+    "posted_date": "3 Sep, 2023 @ 3:35pm",
+    "grade": "D",
+    "symptom_type": "launch_fail",
+    "scope": "single_app",
+    "os": "Windows 10 (OSNAME in dump; OS_VERSION: 10.0.19041.1)",
+    "target_process": "NMS.exe",
+    "events": [],
+    "minidumps": [
+      {"kind": "app", "process": "NMS.exe", "faulting_module": "gameoverlayrenderer64", "bugcheck": null}
+    ],
+    "modules": [
+      {"name": "gameoverlayrenderer64", "company": null, "version": "8.30.80.46"}
+    ],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Two changes suggested in replies: uninstall OBS and delete leftover C:\\ProgramData\\obs-studio-hook\\graphics-hook64.dll; disable RivaTuner Statistics Server from autostart or uninstall it. OP: 'you absolute genius, dont know which of the two fixed it but it ran.'",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "overlay",
+    "verbatim_excerpt": "ExceptionCode: c0000005 (Access violation) | Failure.Bucket Value: INVALID_POINTER_READ_c0000005_gameoverlayrenderer64.dll!Unknown | MODULE_NAME: gameoverlayrenderer64 | IMAGE_VERSION: 8.30.80.46",
+    "missing": ["events", "drivers", "change_history", "culprit"]
+  },
+  {
+    "id": "ext-019",
+    "source_url": "https://www.displaylink.org/forum/archive/index.php/t-63352.html",
+    "site": "DisplayLink Forum",
+    "posted_date": "10-06-2014",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "windows 8.1",
+    "target_process": "",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "dlkmd.sys", "bugcheck": "PAGE_FAULT_IN_NONPAGED_AREA"}
+    ],
+    "modules": [],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "OP: 'OK BSOD fixed!' after unplugging the dock, booting safe mode, using SafeMSI and uninstalling all DisplayLink components. Later: 'OK so reinstalling the same version from the very same installation file, worked!'",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "display_util",
+    "verbatim_excerpt": "PAGE_FAULT_IN_NONPAGED_AREA dlkmd.sys",
+    "missing": ["target_process", "events", "modules", "drivers", "change_history", "culprit"]
+  },
+  {
+    "id": "ext-020",
+    "source_url": "https://www.displaylink.org/forum/showthread.php?p=6861",
+    "site": "DisplayLink Forum",
+    "posted_date": "06-01-2012, 07:03 PM",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Windows 7 amd64",
+    "target_process": "",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "dlkmd.sys", "bugcheck": "BugCheck 7E"}
+    ],
+    "modules": [],
+    "drivers": [
+      {"name": "DisplayLink Core Software", "version": "6.3.38355.0.0"}
+    ],
+    "change_history": [
+      {"kind": "driver_rollback", "subject": "DisplayLink software downgraded", "version": "6.1"}
+    ],
+    "resolution": {
+      "what_fixed_it": "Thread starter, 06-16-2012: 'I've had 2 crash-free weeks after downgrading to 6.1.' and '6.2 still crashed on power save.' Staff said a fix would come in the next maintenance release; no version named.",
+      "confirmed_by_poster": true
+    },
+    "culprit": "dlkmd.sys",
+    "category": "display_util",
+    "verbatim_excerpt": "BugCheck 7E, {ffffffffc0000005, fffff88005354d12, fffff88003552d28, fffff88003552580} | Probably caused by : dlkmd.sys ( dlkmd+19d12 ) | IMAGE_NAME: dlkmd.sys | DEBUG_FLR_IMAGE_TIMESTAMP: 4fb31c0e",
+    "missing": ["target_process", "events", "modules"]
+  },
+  {
+    "id": "ext-021",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/4005395/unknown-random-crashing",
+    "site": "Microsoft Q&A",
+    "posted_date": "2024-07-01T19:50:19+00:00",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Windows 10 (page tag only)",
+    "target_process": "",
+    "events": [
+      {"provider": null, "id": null, "subject": "a lot of events about the NVIDIA LocalSystem Container service terminating unexpectedly", "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "RzDev_0270.sys", "bugcheck": null}
+    ],
+    "modules": [],
+    "drivers": [
+      {"name": "RzDev_0270.sys", "version": null},
+      {"name": "rzcommon", "version": null}
+    ],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Uninstalled all Razer drivers with the Razer Driver Cleanup tool. Separate reply: 'Now verifier is running for 6 hours, and it haven't crashed yet, so I guess the problem is fixed.' Reply carries the generic 'Anonymous' label also used on the question, so same authorship is not verifiable.",
+      "confirmed_by_poster": false
+    },
+    "culprit": "RzDev_0270.sys; rzcommon (named by poster from Driver Verifier runs)",
+    "category": "input_util",
+    "verbatim_excerpt": "RzDev_0270.sys | some other Razer driver called rzcommon is indeed broken",
+    "missing": ["target_process", "events.provider", "events.id", "modules", "change_history", "resolution.confirmed_by_poster"]
+  },
+  {
+    "id": "ext-022",
+    "source_url": "https://forums.tomshardware.com/threads/random-bsods.3850326",
+    "site": "Tom's Hardware Forum",
+    "posted_date": "Jul 25, 2024",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Windows 10 (OSNAME in dump; kernel line reads Windows 10 Kernel Version 22621)",
+    "target_process": "",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "RzDev_0203.sys", "bugcheck": "c4"}
+    ],
+    "modules": [],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": null,
+      "confirmed_by_poster": false
+    },
+    "culprit": "RzDev_0203.sys (poster: minidump indicates it caused the bluescreen)",
+    "category": "input_util",
+    "verbatim_excerpt": "BUGCHECK_CODE: c4 | Code Integrity Issue: The caller specified an executable pool type. (Expected: NonPagedPoolNx) | IMAGE_NAME: RzDev_0203.sys | MODULE_NAME: RzDev_0203 | SYMBOL_NAME: RzDev_0203+24cf | Failure.Bucket: 0xc4_2000_RzDev_0203!unknown_function",
+    "missing": ["target_process", "events", "modules", "drivers", "change_history", "resolution"]
+  },
+  {
+    "id": "ext-023",
+    "source_url": "https://community.intel.com/t5/Wireless/Intel-Dual-Band-Wireless-AC-3165-BSOD-Netwtw04-sys/m-p/1371738",
+    "site": "Intel Community",
+    "posted_date": "March 24, 2022",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Windows 11 Pro, 21H2, 22000.556",
+    "target_process": "",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "Netwtw04.sys", "bugcheck": "SYSTEM_THREAD_EXCEPTION_NOT_HANDLED"}
+    ],
+    "modules": [],
+    "drivers": [
+      {"name": "Intel Dual Band Wireless-AC 3165 driver", "version": "19.51.39.1"},
+      {"name": "Intel Dual Band Wireless-AC 3165 driver", "version": "19.51.38.2"}
+    ],
+    "change_history": [
+      {"kind": "driver_rollback", "subject": "Intel Dual Band Wireless-AC 3165 driver", "version": "19.51.15.3"}
+    ],
+    "resolution": {
+      "what_fixed_it": "'After installation of driver version 19.51.15.3 (date 03.09.2018) problem disappeared.'",
+      "confirmed_by_poster": true
+    },
+    "culprit": "Netwtw04.sys",
+    "category": "network_driver",
+    "verbatim_excerpt": "Stopcode: SYSTEM_THREAD_EXCEPTION_NOT_HANDLED | Reason of problem: Netwtw04.sys",
+    "missing": ["target_process", "events", "modules"]
+  },
+  {
+    "id": "ext-024",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/4045823/solution-for-windows-11-bsod-error-on-netwtw10-sys",
+    "site": "Microsoft Q&A",
+    "posted_date": "2024-03-17T22:02:24+00:00",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Windows 11 Pro x64; laptop reloaded with Windows 11 22H2/23H2",
+    "target_process": "",
+    "events": [],
+    "minidumps": [
+      {"kind": "kernel", "process": null, "faulting_module": "NETWTW10.SYS", "bugcheck": null}
+    ],
+    "modules": [],
+    "drivers": [
+      {"name": "WiFi-23.30.0-Driver64-Win10-Win11.zip", "version": null}
+    ],
+    "change_history": [
+      {"kind": "hardware_replacement", "subject": "Intel AX201NGW replaced by Intel AX210 Wi-Fi 6e", "version": null}
+    ],
+    "resolution": {
+      "what_fixed_it": "Original post: reinstalled Windows 11 from USB and loaded the Intel AX210 driver during setup. 'No more BSOD error on NETWTW10.SYS file any longer.'",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "network_driver",
+    "verbatim_excerpt": "NETWTW10.SYS",
+    "missing": ["target_process", "events", "modules", "culprit"]
+  },
+  {
+    "id": "ext-025",
+    "source_url": "https://forums.tomshardware.com/threads/case-study-investigating-persistent-freezes-hangs-intermittent-stornvme-event-id-129-reset-to-device-device-raidport1-was-issued-on-windows-11.3898526/",
+    "site": "Tom's Hardware Forum",
+    "posted_date": "Jul 29, 2026",
+    "grade": "D",
+    "symptom_type": "freeze",
+    "scope": "system_wide",
+    "os": "Windows 11 Home",
+    "target_process": "",
+    "events": [
+      {"provider": "stornvme", "id": 129, "subject": "\\Device\\RaidPort1", "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [],
+    "modules": [],
+    "drivers": [],
+    "change_history": [
+      {"kind": "bios_update", "subject": "Gigabyte H610M H DDR4 (Rev. 1.3) BIOS updated from FL (2022)", "version": "FY (12 June 2026)"},
+      {"kind": "hardware_replacement", "subject": "Kingston NV2 500 GB SNV2S500G replaced by WD_BLACK SN7100 500 GB", "version": null}
+    ],
+    "resolution": {
+      "what_fixed_it": "'replacing the Kingston NV2 with a WD_BLACK SN7100 eliminated both the Event ID 129 warnings and the freezes.' Poster notes the root cause 'cannot be stated with certainty'.",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "storage",
+    "verbatim_excerpt": "Reset to device \\Device\\RaidPort1 was issued",
+    "missing": ["target_process", "minidumps", "modules", "drivers", "culprit"]
+  },
+  {
+    "id": "ext-026",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/2561446/repeated-storahci-and-disk-warnings",
+    "site": "Microsoft Q&A",
+    "posted_date": "2012-12-28",
+    "grade": "D",
+    "symptom_type": "freeze",
+    "scope": "unknown",
+    "os": "W8 Pro (recently upgraded)",
+    "target_process": "",
+    "events": [
+      {"provider": "storahci", "id": 129, "subject": "\\Device\\RaidPort0", "faulting_module": null, "exception_code": null},
+      {"provider": "disk", "id": 153, "subject": "Disk 0; \\Device\\Harddisk0\\DR0", "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [],
+    "modules": [],
+    "drivers": [],
+    "change_history": [
+      {"kind": "os_upgrade", "subject": "recently upgraded to W8 Pro", "version": null}
+    ],
+    "resolution": {
+      "what_fixed_it": "Reply: 'So I disabled Aggressive Link Power Management (ALPE) and Aggressive Slumber / Partial Management (ASP) in the BIOS and that seems to have eliminated the errors.' Reply carries the generic 'Anonymous' label also used on the question, so same authorship is not verifiable.",
+      "confirmed_by_poster": false
+    },
+    "culprit": null,
+    "category": "storage",
+    "verbatim_excerpt": "Reset to device, \\Device\\RaidPort0, was issued. | The IO operation at logical block address 3a908d68 for Disk 0 was retried.",
+    "missing": ["target_process", "symptom_type", "minidumps", "modules", "drivers", "culprit", "resolution.confirmed_by_poster"]
+  },
+  {
+    "id": "ext-027",
+    "source_url": "https://forums.tomshardware.com/threads/kernel-power-41-63.3892740/",
+    "site": "Tom's Hardware Forum",
+    "posted_date": "Feb 7, 2026",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Windows 11",
+    "target_process": "",
+    "events": [
+      {"provider": "Kernel-Power", "id": 41, "subject": "(63)", "faulting_module": null, "exception_code": null},
+      {"provider": "disk", "id": 7, "subject": "\\Device\\Harddisk1\\DR1", "faulting_module": null, "exception_code": null},
+      {"provider": "Microsoft-Windows-WHEA-Logger", "id": 18, "subject": "Processor Core", "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [],
+    "modules": [],
+    "drivers": [],
+    "change_history": [
+      {"kind": "hardware_replacement", "subject": "PSU replaced with new unit (Green GP800A-GED Bronze)", "version": null}
+    ],
+    "resolution": {
+      "what_fixed_it": "Feb 24, 2026: 'I fixed the issue by increasing the CPU voltage by 0.05V in the BIOS settings' and 'disabling Memory Fast Boot in the RAM settings.'",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "power",
+    "verbatim_excerpt": "A fatal hardware error has occurred. | Reported by component: Processor Core | Error Source: Machine Check Exception | Error Type: Cache Hierarchy Error | Processor APIC ID: 2 | The device, \\Device\\Harddisk1\\DR1, has a bad block.",
+    "missing": ["target_process", "minidumps", "modules", "drivers", "culprit"]
+  },
+  {
+    "id": "ext-028",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/2726429/event-ids-whea-logger-18-19-hal-12-kernel-processo",
+    "site": "Microsoft Q&A",
+    "posted_date": "2016-10-03",
+    "grade": "D",
+    "symptom_type": "freeze",
+    "scope": "system_wide",
+    "os": "Windows 7",
+    "target_process": "",
+    "events": [
+      {"provider": "kernel processor power", "id": 37, "subject": "the speed of the CPU is limited by the system firmware", "faulting_module": null, "exception_code": null},
+      {"provider": "WHEA logger", "id": 19, "subject": "processor core, exception when checking the computer, unkonwn error", "faulting_module": null, "exception_code": null},
+      {"provider": "WHEA logger", "id": 18, "subject": "processor core, critical hardware failure, unknown error", "faulting_module": null, "exception_code": null},
+      {"provider": "HAL", "id": 12, "subject": "memory was damaged by the system firmware", "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [],
+    "modules": [],
+    "drivers": [],
+    "change_history": [
+      {"kind": "hardware_replacement", "subject": "Samsung 128GB SSD; replaced HDD; DVD drive removed; replaced USB/power connector board", "version": null}
+    ],
+    "resolution": {
+      "what_fixed_it": "Question body: 'Then I removed the battery from the notebook and inserted it again and shutting down, ... do not freeze anymore.' Poster adds: 'because of the event logs I fear there is a bigger problem which will come back soon.'",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "power",
+    "verbatim_excerpt": "the speed of the CPU is limited by the system firmware | processor core, exception when checking the computer, unkonwn error | processor core, critical hardware failure, unknown error | memory was damaged by the system firmware",
+    "missing": ["target_process", "minidumps", "modules", "drivers", "culprit"]
+  },
+  {
+    "id": "ext-029",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/3897901/been-having-critical-kernel-power-id-41-error-for",
+    "site": "Microsoft Q&A",
+    "posted_date": "2025-02-25T12:26:53+00:00",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "win 11 (replier reinstalled clean, without insider build)",
+    "target_process": "",
+    "events": [
+      {"provider": null, "id": 41, "subject": "41 63 with bug check code as 307", "faulting_module": null, "exception_code": null},
+      {"provider": "volmgr", "id": null, "subject": "critical error with volmgr", "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [],
+    "modules": [],
+    "drivers": [],
+    "change_history": [
+      {"kind": "os_reinstall", "subject": "uninstalled win 11 installed clean withoout insider build", "version": null},
+      {"kind": "bios_update", "subject": "changed bios versions", "version": null}
+    ],
+    "resolution": {
+      "what_fixed_it": "Replier reporting their own Yoga 520 laptop (not the machine in the question): 'cleaned them and reinstalled new heatsink ... OMG no more kernel 41 63. no bsod.'",
+      "confirmed_by_poster": true
+    },
+    "culprit": "heat sink (replier's conclusion)",
+    "category": "thermal",
+    "verbatim_excerpt": "i had 41 63 with bug check code as 307 and no dump file was created that was also the critical error with volmgr",
+    "missing": ["target_process", "events.provider", "minidumps", "modules", "drivers"]
+  },
+  {
+    "id": "ext-030",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/2310385/event-86-kernel-power-randomly-shuts-down-surface",
+    "site": "Microsoft Q&A",
+    "posted_date": "2019-08-25T20:46:08+00:00",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Windows 1809 17134.984",
+    "target_process": "",
+    "events": [
+      {"provider": "Kernel-Power", "id": 86, "subject": "The system was shut down due to a critical thermal event.", "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [],
+    "modules": [],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": null,
+      "confirmed_by_poster": false
+    },
+    "culprit": null,
+    "category": "thermal",
+    "verbatim_excerpt": "Kernel-Power 86 (83) The system was shut down due to a critical thermal event. | ACPI Thermal Zone = Intel(R) Dynamic Platform Thermal Framework | Dtx failed to enumerate DGpu",
+    "missing": ["target_process", "minidumps", "modules", "drivers", "change_history", "resolution", "culprit"]
+  },
+  {
+    "id": "ext-031",
+    "source_url": "https://blog.sqlauthority.com/2018/10/08/sql-server-event-id-2004-resource-exhaustion-diagnosis-events/",
+    "site": "SQL Authority blog",
+    "posted_date": "October 8, 2018",
+    "grade": "C",
+    "symptom_type": "slow",
+    "scope": "unknown",
+    "os": null,
+    "target_process": "sqlservr.exe",
+    "events": [
+      {"provider": "Microsoft-Windows-Resource-Exhaustion-Detector", "id": 2004, "subject": "sqlservr.exe (2303) consumed 129733837434 bytes, ReportingServicesService.exe (17805) consumed 6491374460 bytes, and msmdsrv.exe (1643) consumed 2905451451 bytes", "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [],
+    "modules": [],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "Author, describing a client case: 'Once they applied the latest version of Host IPS, the issue was resolved, and we did not see those messages again.'",
+      "confirmed_by_poster": true
+    },
+    "culprit": "McAfee Host Intrusion Prevention (Host IPS), per author",
+    "category": "app_memory",
+    "verbatim_excerpt": "Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: sqlservr.exe (2303) consumed 129733837434 bytes, ReportingServicesService.exe (17805) consumed 6491374460 bytes, and msmdsrv.exe (1643) consumed 2905451451 bytes.",
+    "missing": ["os", "symptom_type", "minidumps", "modules", "drivers", "change_history"]
+  },
+  {
+    "id": "ext-032",
+    "source_url": "https://learn.microsoft.com/en-us/answers/questions/3165931/windows-10-blows-up-random-process-virtual-memory",
+    "site": "Microsoft Q&A",
+    "posted_date": "2018-11-28T22:48:38+00:00",
+    "grade": "D",
+    "symptom_type": "freeze",
+    "scope": "system_wide",
+    "os": "Windows 10",
+    "target_process": "LogonUI.exe",
+    "events": [
+      {"provider": "Microsoft-Windows-Resource-Exhaustion-Detector", "id": 2004, "subject": "LogonUI.exe (14740) consumed 31767203840 bytes, NortonSecurity.exe (5004) consumed 737849344 bytes, and chrome.exe (988) consumed 551976960 bytes", "faulting_module": null, "exception_code": null},
+      {"provider": "Microsoft-Windows-Resource-Exhaustion-Detector", "id": 2004, "subject": "Wacom_TouchUser.exe (11564) consumed 29938606080 bytes, OUTLOOK.EXE (17264) consumed 419147776 bytes, and chrome.exe (8224) consumed 393830400 bytes", "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [],
+    "modules": [],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": null,
+      "confirmed_by_poster": false
+    },
+    "culprit": null,
+    "category": "app_memory",
+    "verbatim_excerpt": "Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: LogonUI.exe (14740) consumed 31767203840 bytes, NortonSecurity.exe (5004) consumed 737849344 bytes, and chrome.exe (988) consumed 551976960 bytes.",
+    "missing": ["minidumps", "modules", "drivers", "change_history", "resolution", "culprit"]
+  },
+  {
+    "id": "ext-033",
+    "source_url": "https://forums.tomshardware.com/threads/pc-restarts-with-error-id-41-bugcheckcode-0-no-bsod.3685133/",
+    "site": "Tom's Hardware Forum",
+    "posted_date": "Feb 3, 2021",
+    "grade": "D",
+    "symptom_type": "unexpected_reboot",
+    "scope": "system_wide",
+    "os": "Windows 10 (forum section only)",
+    "target_process": "",
+    "events": [
+      {"provider": null, "id": 41, "subject": "category 63; BugCheckCode 0; no BSOD", "faulting_module": null, "exception_code": null},
+      {"provider": null, "id": 6008, "subject": "The previous system shutdown at XX on XX was unexpected.", "faulting_module": null, "exception_code": null},
+      {"provider": null, "id": 65, "subject": "Failed with 0x57 retrieving AppModel Runtime status for package Windows.", "faulting_module": null, "exception_code": null}
+    ],
+    "minidumps": [],
+    "modules": [],
+    "drivers": [],
+    "change_history": [
+      {"kind": "bios_update", "subject": "BIOS updated", "version": null},
+      {"kind": "hardware_replacement", "subject": "new CPU", "version": null}
+    ],
+    "resolution": {
+      "what_fixed_it": "Feb 25, 2021: 'looks like a new CPU fixed the problem as my PC ran Mersenne for 4 hours without an issue.'",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "other",
+    "verbatim_excerpt": "Critical event 41, followed by error event 6008 (The previous system shutdown at XX on XX was unexpected.) | Failed with 0x57 retrieving AppModel Runtime status for package Windows.",
+    "missing": ["target_process", "events.provider", "minidumps", "modules", "drivers", "culprit"]
+  },
+  {
+    "id": "ext-034",
+    "source_url": "https://steamcommunity.com/app/553850/discussions/1/600769761663611637/",
+    "site": "Steam Community",
+    "posted_date": "7 Feb 2025, 9:58pm",
+    "grade": "D",
+    "symptom_type": "app_crash",
+    "scope": "single_app",
+    "os": "fresh windows10 install",
+    "target_process": "helldivers2.exe",
+    "events": [
+      {"provider": null, "id": null, "subject": "helldivers2.exe", "faulting_module": "ntdll.dll", "exception_code": "0xc0000026"}
+    ],
+    "minidumps": [],
+    "modules": [
+      {"name": "ntdll.dll", "company": null, "version": "10.0.19041.3636"}
+    ],
+    "drivers": [],
+    "change_history": [],
+    "resolution": {
+      "what_fixed_it": "OP's edit: combination of NVIDIA, Windows, Steam and in-game settings, including 'Run this program in compatibility mode for - Windows 8'. 'able to play without a crash for 6+ hours between two sessions'; 'i don't know which specific setting is contributing to my solution'.",
+      "confirmed_by_poster": true
+    },
+    "culprit": null,
+    "category": "other",
+    "verbatim_excerpt": "Faulting application name: helldivers2.exe, version: 1.8.27207.0, time stamp: 0x6798f47f Faulting module name: ntdll.dll, version: 10.0.19041.3636, time stamp: 0x9b64aa6f Exception code: 0xc0000026 Fault offset: 0x00000000001024f6",
+    "missing": ["events.provider", "events.id", "minidumps", "drivers", "change_history", "culprit"]
+  }
+]

@@ -1,0 +1,70 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-012",
+    "marked_at":  "2024-08-18T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 10 (page tag only)"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "unknown",
+                    "faulting_modules":  [
+                                             "nvlddmkm.sys"
+                                         ],
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "NVIDIA driver",
+                        "version":  "560.81"
+                    },
+                    {
+                        "name":  "NVIDIA driver",
+                        "version":  "560.94"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "driver_reinstall",
+                               "subject":  "NVIDIA driver reinstalled using DDU",
+                               "version":  "560.94"
+                           }
+                       ],
+    "events":  [
+                   {
+                       "provider":  "nvlddmkm",
+                       "subject":  "21 errors with the source being nvlddmkm"
+                   }
+               ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "nvlddmkm.sys",
+                          "bugcheck":  "VIDEO_TDR_FAILURE"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/3990816/once-again-bsod-video-tdr-failure-with-nvlddmkm-sy",
+                       "site":  "Microsoft Q\u0026A",
+                       "posted_date":  "2024-08-17T15:11:14+00:00",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Reply 2024-08-22: \u0027I\u0027ve now reinstalled the new Nvidia drivers using DDU. It _seems_ to have fixed the BSOD issue for now.\u0027 Reply carries the generic \u0027Anonymous\u0027 label also used on the question, so same authorship is not verifiable.",
+                       "category_reported":  "gpu_driver",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "VIDEO_TDR_FAILURE | nvlddmkm.sys | 21 errors with the source being nvlddmkm",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events.id",
+                                                  "modules",
+                                                  "culprit",
+                                                  "resolution.confirmed_by_poster"
+                                              ]
+                   }
+}

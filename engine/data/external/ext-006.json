@@ -1,0 +1,68 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-006",
+    "marked_at":  "2022-01-18T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "aswNetHub.sys"
+                                         ],
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "aswnethub.sys"
+                    },
+                    {
+                        "name":  "bddci.sys"
+                    },
+                    {
+                        "name":  "rt640x64.sys"
+                    }
+                ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "aswNetHub.sys"
+                      },
+                      {
+                          "kind":  "kernel",
+                          "bugcheck":  "KMODE_EXCEPTION_NOT_HANDLED"
+                      },
+                      {
+                          "kind":  "kernel",
+                          "bugcheck":  "ATTEMPTED_SWITCH_FROM_DPC"
+                      }
+                  ],
+    "ground_truth":  {
+                         "layer":  "SW",
+                         "category":  "antivirus",
+                         "subject":  "aswNetHub.sys"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/698256/my-pc-keeps-getting-bsod",
+                       "site":  "Microsoft Q\u0026A",
+                       "posted_date":  "2022-01-17T15:12:51.433+00:00",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "aswNetHub.sys (AVast), per accepted answer",
+                       "what_fixed_it":  "\u0027I think this fixed it, I uninstalled Avast and since then nothing has happened. Thank you!\u0027",
+                       "category_reported":  "antivirus",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "011722-9640-01.dmp was due to aswNetHub.sys (AVast).",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "target_process",
+                                                  "events",
+                                                  "modules",
+                                                  "change_history"
+                                              ]
+                   }
+}

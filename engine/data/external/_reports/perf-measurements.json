@@ -1,0 +1,914 @@
+[
+  {
+    "id": "perf-001",
+    "topic": "anticheat",
+    "program": "BattlEye, Easy Anti-Cheat, FACEIT Anti-Cheat, Riot Vanguard",
+    "source_url": "https://arxiv.org/html/2408.00500v1",
+    "site": "arXiv (Dorner, Klausner; St. Polten UAS)",
+    "posted_date": "2024-08",
+    "grade": "B",
+    "method": "Structured comparison of four anti-cheats plus the Flame rootkit against seven rootkit-like metrics, using prior rootkit research, reverse-engineering write-ups and vendor documentation. No test rig. A system scoring 4 or more points is classed as rootkit-like. Table 1 sums: BattlEye 3, EAC 2, FACEIT 5, Vanguard 4, Flame 5.",
+    "perf_evidence": [],
+    "conflict_reported": "EAC blocks its game from starting if BattlEye's kernel driver (BEDaisy.sys) is running. FACEIT blocks execution when Hyper-V is enabled. Load timing: Vanguard and FACEIT at boot; BattlEye and EAC only when the protected game starts.",
+    "limitations": "Reports no CPU, memory, FPS, boot or disk measurement. arXiv preprint. Vanguard boot behaviour predates the 2026 On-Demand option (see perf-004).",
+    "verbatim_excerpt": "FACEIT Anti-Cheat and Vanguard, however, were identified as rootkit-like applications",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-002",
+    "topic": "anticheat",
+    "program": "Kernel-level anti-cheat (category)",
+    "source_url": "https://arxiv.org/html/2512.21377v1",
+    "site": "arXiv (Alangari, Alharbi; King Saud University)",
+    "posted_date": "2025-12-24",
+    "grade": "B",
+    "method": "PRISMA 2020 systematic literature review. 402 records identified, 88 full-text articles included, screened in Rayyan. Text says Web of Science was searched although Table 1 lists five databases.",
+    "perf_evidence": [
+      {
+        "metric": "Ordinal 'lack of overhead' rating, kernel-based anti-cheat driver (Lehtonen scale)",
+        "baseline": null,
+        "with_program": "4 on a 1-4 scale (Table 2)",
+        "delta": null,
+        "condition": "Relative score, not a measurement"
+      },
+      {
+        "metric": "Qualitative performance overhead, kernel-level category",
+        "baseline": null,
+        "with_program": "Moderate to High (Table 4)",
+        "delta": null,
+        "condition": "Review does not reconcile this with the Table 2 rating"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Reports no measured FPS, CPU, memory, overhead percentage or boot figure for kernel anti-cheat. Useful as formal evidence that the literature it covers lacks such benchmarks. Its one numeric overhead (Kenali 1.5-3.5%) is a Linux kernel system that the review itself says is not an anti-cheat.",
+    "verbatim_excerpt": "Detailed benchmarks are not provided, studies rely on relative scoring.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-003",
+    "topic": "anticheat",
+    "program": "OdinSight (research prototype, eBPF/LSM anti-cheat on Linux)",
+    "source_url": "https://projekter.aau.dk/odinsight-an-ebpf-based-client-side-architecture-for-kernel-level-anti-cheat-on-linux-e66173e6.html",
+    "site": "Aalborg University student projects (Larsen, Anulis; master's thesis)",
+    "posted_date": "2026-06-12",
+    "grade": "B",
+    "method": "Three evaluations described in the abstract: compatibility (Linux games under OdinSight), coverage (policy enforcement across kernel, daemon, game process), performance (a synthetic benchmark plus a real game workload).",
+    "perf_evidence": [
+      {
+        "metric": "Performance impact in tested scenarios",
+        "baseline": null,
+        "with_program": "no clearly observable degradation (abstract wording; no number)",
+        "delta": null,
+        "condition": "Linux, research prototype; numbers are not on the abstract page"
+      }
+    ],
+    "conflict_reported": "Abstract says several Linux games run under OdinSight while some fail or need exceptions.",
+    "limitations": "Linux and a prototype, so not comparable to any commercial Windows anti-cheat. Only the abstract page was read; the thesis PDF was not opened.",
+    "verbatim_excerpt": "reveals no clearly observable performance degradation in the tested scenarios",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-004",
+    "topic": "anticheat",
+    "program": "Riot Vanguard (Pre-Check / on-demand)",
+    "source_url": "https://support.riotgames.com/riot/support-tools/vanguard-pre-check",
+    "site": "Riot Games Support",
+    "posted_date": "2026-06-24",
+    "grade": "A",
+    "method": "Vendor support documentation. No test.",
+    "perf_evidence": [],
+    "conflict_reported": "On-demand Vanguard requires Windows 11 25H2 or newer, Secure Boot, TPM 2.0, IOMMU, VBS and HVCI (page says 'including'). The standard version starts with Windows; Pre-Check launches when a Riot game starts and shuts down after gameplay.",
+    "limitations": "Page makes no performance or resource claim. Analyst note, not from the page: comparing on-demand with always-on may also change HVCI state, so HVCI must be recorded as a separate variable.",
+    "verbatim_excerpt": "Instead of starting automatically when Windows starts",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-005",
+    "topic": "anticheat",
+    "program": "BattlEye (Rainbow Six Siege)",
+    "source_url": "https://www.ubisoft.com/de-de/game/rainbow-six/siege/news-updates/2999gdyIXLbeiZP78R7545/battleye-faq",
+    "site": "Ubisoft",
+    "posted_date": "2016-07-27",
+    "grade": "A",
+    "method": "Game publisher FAQ. No test described.",
+    "perf_evidence": [
+      {
+        "metric": "Publisher claim on resource use",
+        "baseline": null,
+        "with_program": "Minimal performance impact; very little CPU, RAM and network use; players should not see performance losses",
+        "delta": null,
+        "condition": "Claim only, no numbers. Protection and scan active only while the game runs"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Unmeasured publisher claim from 2016, written while the game was in a test phase. Attributes persistent stutter to malware or adware rather than BattlEye without showing evidence.",
+    "verbatim_excerpt": "BattlEye wurde so entworfen, dass es mit minimalem Leistungsverbrauch auf eurem Computer läuft.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-006",
+    "topic": "anticheat",
+    "program": "XIGNCODE",
+    "source_url": "https://shinyoungjin.pages.dev/2013/04/the-race-towards-zero",
+    "site": "Personal blog of YoungJin Shin (@codewiz)",
+    "posted_date": "2013-04-11",
+    "grade": "D",
+    "method": "Author writes about XIGNCODE in the first person plural. Shows one graph captioned as XIGNCODE CPU usage on an AMD 2.7GHz single-core processor, with no values given in text.",
+    "perf_evidence": [
+      {
+        "metric": "Stated user-perception thresholds, share of one core",
+        "baseline": null,
+        "with_program": "Above 2%: sensitive users notice lag. Above 3%: less sensitive users notice stutter. At 5%: all users complain",
+        "delta": null,
+        "condition": "Author's rule of thumb, tied to minimum system requirements. Not a measurement"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Blog states it is personal and unrelated to the author's organization. The page never mentions Wellbia. Values are thresholds and aspirations (0.0001% is named as a goal), not results. Dated 2013.",
+    "verbatim_excerpt": "So, we must avoid any sudden excessive CPU usage at all costs.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-007",
+    "topic": "anticheat",
+    "program": "Easy Anti-Cheat (Empyrion v1.13.1 build 4796)",
+    "source_url": "https://empyriononline.com/threads/massive-framedrop-in-sp-with-easy-anti-cheat-enabled-unplayable-v1-13-1-4796.102890",
+    "site": "Empyrion official forum (user post)",
+    "posted_date": "2025-09-03",
+    "grade": "D",
+    "method": "Single user compared the same scene (new game on Akua, single player, creative and survival) on Windows 10 with a GTX 1080, with the anti-cheat active and not active. Windowed and full-screen and lower graphics settings made no difference.",
+    "perf_evidence": [
+      {
+        "metric": "FPS, same scene",
+        "baseline": "about 90 (anti-cheat not active)",
+        "with_program": "about 55 while walking or strafing; mouse turns gave bursts of about 55 with roughly one-second freezes",
+        "delta": "almost 2x (user's wording)",
+        "condition": "Windows 10, GTX 1080, informal estimate"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "One user, no logs, no frame-time capture, no developer confirmation, single game. Weakest usable evidence. Kept because the same scene was compared and no A, B or C source gives any figure.",
+    "verbatim_excerpt": "In fact, the same scene now runs almost 2x as fast at 90fps.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-008",
+    "topic": "hvci",
+    "program": "Windows 11 VBS with HVCI (Memory Integrity)",
+    "source_url": "https://www.computerbase.de/2023-03/windows-11-vbs-hvci-spiele-benchmarks/",
+    "site": "ComputerBase",
+    "posted_date": "2023-03-16",
+    "grade": "C",
+    "method": "Ryzen 7 5800X with Radeon RX 7900 XTX, HVCI off and on, 14 games at 1280x720 for a maximal CPU limit. Average and 1% percentile FPS; overall rating uses the geometric mean. RAM and Windows build not stated.",
+    "perf_evidence": [
+      {
+        "metric": "Average FPS, overall rating",
+        "baseline": "151.0 (HVCI off)",
+        "with_program": "142.0 (HVCI on)",
+        "delta": "6% (stated)",
+        "condition": "5800X + RX 7900 XTX, 720p, 14 games"
+      },
+      {
+        "metric": "1% percentile FPS, overall rating",
+        "baseline": "100.7",
+        "with_program": "92.9",
+        "delta": "8% for frametimes (stated)",
+        "condition": "5800X + RX 7900 XTX, 720p, 14 games"
+      },
+      {
+        "metric": "Diablo 2 Resurrected average FPS",
+        "baseline": "373.2",
+        "with_program": "327.4",
+        "delta": null,
+        "condition": "720p"
+      },
+      {
+        "metric": "Diablo 2 Resurrected 1% FPS",
+        "baseline": "227.2",
+        "with_program": "168.8",
+        "delta": "frametimes rise by over 30% (stated)",
+        "condition": "720p"
+      },
+      {
+        "metric": "Cyberpunk 2077 + RT average FPS",
+        "baseline": "94.8",
+        "with_program": "88.8",
+        "delta": null,
+        "condition": "720p"
+      },
+      {
+        "metric": "Forspoken average FPS",
+        "baseline": "57.8",
+        "with_program": "58.6",
+        "delta": "barely reacts to HVCI (stated)",
+        "condition": "720p"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "One CPU/GPU pair tested with HVCI off. 720p is designed to expose CPU limits, so it is a worst case rather than typical play.",
+    "verbatim_excerpt": "Konkret verliert der Ryzen 7 5800X in Zusammenspiel mit einer Radeon RX 7900 XTX 6 Prozent bei den FPS",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-009",
+    "topic": "hvci",
+    "program": "Windows 11 HVCI, 23H2 and 24H2",
+    "source_url": "https://www.computerbase.de/2024-09/benchmarks-windows-11-23h2-kb5041587-24h2-hvci/",
+    "site": "ComputerBase",
+    "posted_date": "2024-09-02",
+    "grade": "C",
+    "method": "AMD 9700X (65/88 W), RTX 4090 FE, DDR5-5600 CL32, seven games at 720p. Mean of three runs, one extra run when CapFrameX flagged an outlier. Clean installs of 23H2, 23H2 + KB5041587, and 24H2 build 26100.1115. HVCI toggled manually. Rating is the geometric mean over the seven games.",
+    "perf_evidence": [
+      {
+        "metric": "Average FPS / 1% FPS, rating, Windows 11 24H2",
+        "baseline": "133 / 96 (HVCI off)",
+        "with_program": "128 / 93 (HVCI on)",
+        "delta": null,
+        "condition": "9700X + RTX 4090, 720p, 7 games"
+      },
+      {
+        "metric": "Average FPS / 1% FPS, rating, Windows 11 23H2",
+        "baseline": "127 / 93 (HVCI off)",
+        "with_program": "121 / 87 (HVCI on)",
+        "delta": null,
+        "condition": "9700X + RTX 4090, 720p, 7 games"
+      },
+      {
+        "metric": "Average FPS / 1% FPS, rating, 23H2 + KB5041587",
+        "baseline": "133 / 97 (HVCI off)",
+        "with_program": "127 / 92 (HVCI on)",
+        "delta": null,
+        "condition": "9700X + RTX 4090, 720p, 7 games"
+      },
+      {
+        "metric": "Cyberpunk 2077 Phantom Liberty average FPS, 24H2",
+        "baseline": "151.1",
+        "with_program": "139.7",
+        "delta": null,
+        "condition": "720p"
+      },
+      {
+        "metric": "Starfield average FPS, 24H2",
+        "baseline": "88.9",
+        "with_program": "89.0",
+        "delta": null,
+        "condition": "720p; no cost visible in this game"
+      },
+      {
+        "metric": "Baldur's Gate 3 average FPS, 24H2",
+        "baseline": "151.3",
+        "with_program": "152.3",
+        "delta": null,
+        "condition": "720p; no cost visible in this game"
+      }
+    ],
+    "conflict_reported": "HVCI is off by default on a clean 24H2 Insider ISO install, and the article calls a 23H2-HVCI-on versus 24H2-HVCI-off comparison misleading. It attributes Hardware Unboxed's reported 10-11% gains to VBS being off in those runs.",
+    "limitations": "One CPU/GPU pair. Stated percentages describe the Windows update effect rather than the HVCI effect. Insider build for 24H2.",
+    "verbatim_excerpt": "dieser Schritt muss anders als bei Windows 11 23H2 also manuell erfolgen",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-010",
+    "topic": "hvci",
+    "program": "Windows 11 VBS / HVCI",
+    "source_url": "https://www.pcworld.com/article/541137/tested-does-windows-11-nuke-gaming-performance.html",
+    "site": "PCWorld",
+    "posted_date": "2021-10-05",
+    "grade": "C",
+    "method": "Acer Predator Triton 500 laptop: Core i7-8750H, 16GB DDR4, RTX 2060 Max-Q. Windows 11 Home build 22000.194. Ten games with built-in benchmarks at 1080p, typically Medium or Normal settings. Three runs per setting, averaged. Memory Integrity off versus on.",
+    "perf_evidence": [
+      {
+        "metric": "Largest FPS drop across ten games",
+        "baseline": null,
+        "with_program": null,
+        "delta": "about 6% (stated)",
+        "condition": "Counter-Strike title as printed by the article"
+      },
+      {
+        "metric": "Remaining game results",
+        "baseline": null,
+        "with_program": null,
+        "delta": "most within margin of error (stated)",
+        "condition": "Per-game values only in a chart image, not in text"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "One older laptop, per-game values not readable from text. Article cites an outside report of up to 28% that it did not reproduce.",
+    "verbatim_excerpt": "Unlike other reports, we didn't see a drastic drop in gaming performance with Windows 11's VBS security switched on.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-011",
+    "topic": "hvci",
+    "program": "Windows 11 Memory Integrity and Virtual Machine Platform",
+    "source_url": "https://www.digitaltrends.com/?p=3209345",
+    "site": "Digital Trends (Jacob Roach)",
+    "posted_date": "2022-10-23",
+    "grade": "C",
+    "method": "Core i5-13600K with RTX 3060 Ti. Six titles at 1080p, default configuration compared with the two features off, including 1% lows.",
+    "perf_evidence": [
+      {
+        "metric": "Overall FPS gain with both features off",
+        "baseline": null,
+        "with_program": null,
+        "delta": "about three frames, just under 3% gain (stated, one configuration)",
+        "condition": "Gain from turning the features off"
+      },
+      {
+        "metric": "Assassin's Creed Valhalla",
+        "baseline": null,
+        "with_program": null,
+        "delta": "4.5% gain, about five frames (stated)",
+        "condition": "Gain from turning the features off"
+      },
+      {
+        "metric": "Uncharted: Legacy of Thieves",
+        "baseline": null,
+        "with_program": null,
+        "delta": "2.8% gain (stated)",
+        "condition": "Gain from turning the features off"
+      },
+      {
+        "metric": "Far Cry 6",
+        "baseline": null,
+        "with_program": null,
+        "delta": "1.8% gain (stated)",
+        "condition": "Gain from turning the features off"
+      },
+      {
+        "metric": "Gears Tactics",
+        "baseline": null,
+        "with_program": null,
+        "delta": "4.6% gain (stated); highest result came with only HVCI off",
+        "condition": "Gain from turning the features off"
+      },
+      {
+        "metric": "1% lows",
+        "baseline": null,
+        "with_program": null,
+        "delta": "most results showed essentially no change (stated)",
+        "condition": "Six titles"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Single system and a mid-range GPU at 1080p. Run count not stated in the extract.",
+    "verbatim_excerpt": "It's important to discern between a measurable difference and an appreciable difference with any benchmark.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-012",
+    "topic": "hvci",
+    "program": "Windows 11 VBS / HVCI versus Windows 10",
+    "source_url": "https://www.igorslab.de/en/windows-10-vs-windows-11-on-a-medium-class-pc-how-much-performance-loss-really-occurs/5/",
+    "site": "Igor's Lab",
+    "posted_date": "2021-10-12",
+    "grade": "C",
+    "method": "Ryzen 9 3900X, RX 6700 XT, 2x8 GB DDR4-3600 CL16. 13 CPU/application benchmarks and 11 games on Windows 10 (VBS and HVCI off) and on Windows 11 in three configurations: both off, VBS on with HVCI off, both on. Windows builds not stated.",
+    "perf_evidence": [
+      {
+        "metric": "Game average, Windows 11 relative to Windows 10",
+        "baseline": "Windows 10",
+        "with_program": "Windows 11, VBS and HVCI on",
+        "delta": "-2.02% (printed)",
+        "condition": "11 games"
+      },
+      {
+        "metric": "Game average, Windows 11 relative to Windows 10",
+        "baseline": "Windows 10",
+        "with_program": "Windows 11, VBS on, HVCI off",
+        "delta": "-2.46% (printed)",
+        "condition": "11 games"
+      },
+      {
+        "metric": "Game average, Windows 11 relative to Windows 10",
+        "baseline": "Windows 10",
+        "with_program": "Windows 11, VBS and HVCI off",
+        "delta": "-0.71% (printed)",
+        "condition": "11 games"
+      },
+      {
+        "metric": "7-Zip compression, Windows 11 difference",
+        "baseline": null,
+        "with_program": null,
+        "delta": "25.62% (printed on page 1)",
+        "condition": "Which Windows 11 configuration is unconfirmed; the application detail page returned 403"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Deltas compare Windows versions, so they are not a pure VBS or HVCI effect. Pages 1 and 5 were opened; page 3 returned 403 and page 2 was not attempted. 2021-era Windows 11.",
+    "verbatim_excerpt": "The results are much closer between the two versions of the operating system",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-013",
+    "topic": "hvci",
+    "program": "Windows 11 Memory Integrity",
+    "source_url": "https://www.xda-developers.com/windows-11-is-flipping-a-hidden-setting-next-month-that-costs-gamers-real-performance-heres-how-much/",
+    "site": "XDA Developers (Abhinav Raj)",
+    "posted_date": "2026-09-14",
+    "grade": "C",
+    "method": "Ryzen 5 7600X, RTX 4070 Ti Super. Counter-Strike 2: three 60-second CapFrameX captures per condition at 1080p low. Cyberpunk 2077: built-in benchmark, three runs per condition at 1080p low. Figures are arithmetic means. 3DMark CPU Profile one score per thread count. A second article by the same author, https://www.xda-developers.com/my-games-were-losing-frames-to-a-hidden-windows-security-feature-and-i-only-found-it-by-accident/ (2026-09-23), adds GPU-bound results at 1440p High with ray tracing. Windows build not stated.",
+    "perf_evidence": [
+      {
+        "metric": "Counter-Strike 2 average FPS",
+        "baseline": "404.8 (MI off)",
+        "with_program": "398.2 (MI on)",
+        "delta": "+1.7% (printed variance)",
+        "condition": "1080p low"
+      },
+      {
+        "metric": "Counter-Strike 2 1% low FPS",
+        "baseline": "158.6",
+        "with_program": "167.3",
+        "delta": "-5.2% (printed variance)",
+        "condition": "1080p low; higher with MI on"
+      },
+      {
+        "metric": "Counter-Strike 2 0.1% low FPS",
+        "baseline": "113.8",
+        "with_program": "108.5",
+        "delta": "+4.9% (printed variance)",
+        "condition": "1080p low"
+      },
+      {
+        "metric": "Cyberpunk 2077 average FPS",
+        "baseline": "186.5",
+        "with_program": "183.1",
+        "delta": "+1.9% (printed variance)",
+        "condition": "1080p low"
+      },
+      {
+        "metric": "Cyberpunk 2077 1% low FPS",
+        "baseline": "124.5",
+        "with_program": "116.8",
+        "delta": "+6.6% (printed variance; text says fell by 6.6%)",
+        "condition": "1080p low"
+      },
+      {
+        "metric": "3DMark CPU Profile, 4 threads",
+        "baseline": "3,761 (MI off)",
+        "with_program": "3,850 (MI on)",
+        "delta": "2.3%, MI off lower (stated); other five thread counts under 0.5% (stated)",
+        "condition": "Inversion shows a noise floor"
+      },
+      {
+        "metric": "Marvel's Spider-Man 2 average / 1% low FPS",
+        "baseline": "77.2 / 69.0",
+        "with_program": "75.3 / 66.9",
+        "delta": null,
+        "condition": "1440p High with ray tracing (second article)"
+      },
+      {
+        "metric": "Resident Evil Requiem average / 1% low FPS",
+        "baseline": "83.8 / 70.9",
+        "with_program": "81.9 / 68.2",
+        "delta": null,
+        "condition": "1440p High with ray tracing (second article)"
+      },
+      {
+        "metric": "Average frame rate cost over the four games",
+        "baseline": null,
+        "with_program": null,
+        "delta": "between 1.7% and 2.5% (stated)",
+        "condition": "Second article"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Single system, three runs. The printed variance sign appears to be MI off relative to MI on, and is easy to misread. Build unknown. A third XDA article reports 15-25% for 1% lows; it was not opened or checked.",
+    "verbatim_excerpt": "The risk it mitigates, by far, seems to outweigh the very little performance you get by disabling the feature.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-014",
+    "topic": "hvci",
+    "program": "Windows 11 VBS",
+    "source_url": "https://en.kocpc.com.tw/?p=25116",
+    "site": "KOCPC, relaying Tom's Hardware",
+    "posted_date": "2026-09-03",
+    "grade": "C",
+    "method": "As relayed: Core i9-13900K, RTX 4090, 32GB DDR5-6600, 15 games (four named), at 1080p Medium, 1080p Ultra, 1440p Ultra and 4K Ultra, VBS off versus on. Windows version not specified.",
+    "perf_evidence": [
+      {
+        "metric": "Average across games, gain with VBS off",
+        "baseline": null,
+        "with_program": null,
+        "delta": "about 5% (stated)",
+        "condition": "1080p Medium, 1080p Ultra and 1440p Ultra"
+      },
+      {
+        "metric": "Average across games, gain with VBS off",
+        "baseline": null,
+        "with_program": null,
+        "delta": "about 2% (stated)",
+        "condition": "4K Ultra"
+      },
+      {
+        "metric": "Horizon Zero Dawn, Spider-Man: Miles Morales, Cyberpunk 2077",
+        "baseline": null,
+        "with_program": null,
+        "delta": "roughly 5% to 8% gain (stated)",
+        "condition": "Most 1080p and 1440p settings"
+      },
+      {
+        "metric": "Microsoft Flight Simulator",
+        "baseline": null,
+        "with_program": null,
+        "delta": "over 11.2% gain (stated)",
+        "condition": "1080p Medium"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Secondary relay. The original Tom's Hardware pages (windows-vbs-harms-performance-rtx-4090 and windows-11-gaming-benchmarks-performance-vbs-hvci-security) returned only a title on every fetch. No FPS values given, percentages only. The headline of the original states up to 10%; this relay reports 11.2% for one game.",
+    "verbatim_excerpt": "The most noticeable case is Microsoft Flight Simulator, which gains over 11.2% even at 1080p medium quality.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-015",
+    "topic": "hvci",
+    "program": "Windows 11 Memory Integrity, default rollout",
+    "source_url": "https://mc.merill.net/message/MC1465669",
+    "site": "Microsoft 365 Message Center MC1465669 (via mc.merill.net mirror)",
+    "posted_date": "2026-09-01",
+    "grade": "A",
+    "method": "Vendor announcement. No test.",
+    "perf_evidence": [],
+    "conflict_reported": "From October 2026 quality updates start enabling memory integrity on more eligible devices, and on some devices VBS as well. Windows evaluates hardware capabilities, compatibility and performance considerations first. Devices where memory integrity was explicitly disabled are left alone.",
+    "limitations": "Gives no performance figure. Read through a third-party mirror of the Message Center text. Analyst note: HVCI state of any test PC can change with a quality update, so it must be recorded per run.",
+    "verbatim_excerpt": "Beginning in October 2026, Windows quality updates will start enabling memory integrity on more eligible Windows devices.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-016",
+    "topic": "hvci",
+    "program": "Riot Vanguard and Memory Integrity",
+    "source_url": "https://support.riotgames.com/en-us/riot/support-tools/enable-memory-integrity",
+    "site": "Riot Games Support",
+    "posted_date": "2026-06-24",
+    "grade": "A",
+    "method": "Vendor support documentation. No test.",
+    "perf_evidence": [],
+    "conflict_reported": "An incompatible kernel-mode driver can block Memory Integrity, and the page names anti-cheat, RGB software and hardware drivers as common causes. An HVCI-incompatible driver can cause a blue screen at boot. CPUs without VT-x or SVM are incompatible with Vanguard's requirements.",
+    "limitations": "No performance note. Does not name specific drivers.",
+    "verbatim_excerpt": "Memory Integrity is part of Windows Core Isolation and helps protect your system from blocking malicious attacks.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-017",
+    "topic": "banking",
+    "program": "Korea Security Applications (KSA 2.0, seven tools analysed)",
+    "source_url": "https://www.usenix.org/conference/usenixsecurity25/presentation/yun",
+    "site": "USENIX Security 2025 (Yun et al.; KAIST, Korea University, SKKU)",
+    "posted_date": "2025-08",
+    "grade": "B",
+    "method": "Security analysis of seven tools plus two user studies: a survey of 400 participants and an analysis of 48 users' desktop systems. Figures taken from the abstract page and the KAIST release.",
+    "perf_evidence": [
+      {
+        "metric": "Average KSA programs installed per PC (prevalence, not performance)",
+        "baseline": null,
+        "with_program": "9",
+        "delta": null,
+        "condition": "48 desktop systems"
+      },
+      {
+        "metric": "Banking users who installed KSA (prevalence)",
+        "baseline": null,
+        "with_program": "97% (97.4% in the KAIST release)",
+        "delta": null,
+        "condition": "Survey, n=400"
+      },
+      {
+        "metric": "Users who did not understand its function",
+        "baseline": null,
+        "with_program": "59% (nearly 60% in the KAIST release)",
+        "delta": null,
+        "condition": "Survey, n=400"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "The abstract and KAIST release (https://ee.kaist.ac.kr/en/research-achieve/in-south-korea-mandatory-financial-security-software-becomes-a-backdoor-and-a-target) say nothing about CPU, memory, boot or conflicts. The full PDF was fetched but its text could not be extracted, so the body remains unread.",
+    "verbatim_excerpt": "These vulnerabilities were reported to government officials and vendors and have since been patched.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-018",
+    "topic": "banking",
+    "program": "Korean internet-banking security plugins",
+    "source_url": "https://www.etnews.com/20231013000164",
+    "site": "Electronic Times (etnews)",
+    "posted_date": "2023-10-15",
+    "grade": "C",
+    "method": "Press article on the TableCloth sandbox tool. No test performed. Plugin count attributed to a KISA survey.",
+    "perf_evidence": [
+      {
+        "metric": "Plugin count (KISA survey, as reported)",
+        "baseline": null,
+        "with_program": "240-250 plugins across 42 internet banking sites",
+        "delta": null,
+        "condition": "Count only, not a performance figure"
+      },
+      {
+        "metric": "CPU and memory use",
+        "baseline": null,
+        "with_program": "Stated qualitatively: plugins consume CPU and memory even when banking is not in use",
+        "delta": null,
+        "condition": "No measurement and no named source"
+      }
+    ],
+    "conflict_reported": "Article says the plugins conflict with programs users already run, without naming programs or incidents.",
+    "limitations": "Does not meet the stated-test-method part of grade C for the slowdown claim; graded C only because the existing survey grades a comparable press claim (sec-023, ddaily.co.kr) as C. KISA survey was not opened directly.",
+    "verbatim_excerpt": "이 플러그인들은 기존 이용자가 사용하는 프로그램과 충돌을 일으키거나, 인터넷뱅킹을 이용하지 않는 상황에도 PC의 중앙처리장치(CPU)나 메모리 자원을 잡아먹는다.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-019",
+    "topic": "banking",
+    "program": "Bank security programs (National Assembly audit material)",
+    "source_url": "https://dealsite.co.kr/articles/171164",
+    "site": "Dealsite, reporting data submitted by Rep. Son Myung-soo",
+    "posted_date": "2026-10-22",
+    "grade": "C",
+    "method": "Press report of National Assembly audit data, no test.",
+    "perf_evidence": [
+      {
+        "metric": "Banks recommending security program installation (prevalence)",
+        "baseline": null,
+        "with_program": "17 of 19 domestic banks",
+        "delta": null,
+        "condition": "Audit data"
+      },
+      {
+        "metric": "Banks with no installation-free internet banking (prevalence)",
+        "baseline": null,
+        "with_program": "9 banks, 47.4% (stated)",
+        "delta": null,
+        "condition": "Audit data"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "The article makes no statement on PC slowdown, resource use or conflicts. Kept as evidence that recent National Assembly material concerns vulnerabilities and installation counts rather than performance.",
+    "verbatim_excerpt": "보안 프로그램을 많이 설치하기만 한다고 해서 안전이 보장되는 것은 아니다",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-020",
+    "topic": "banking",
+    "program": "TouchEn nxKey",
+    "source_url": "https://palant.info/2023/01/09/touchen-nxkey-the-keylogging-anti-keylogger-solution/",
+    "site": "Almost Secure (Wladimir Palant)",
+    "posted_date": "2023-01-09",
+    "grade": "C",
+    "method": "Researcher's first-hand reverse engineering of the application and kernel driver, with vendor disclosure. No performance test.",
+    "perf_evidence": [],
+    "conflict_reported": "The kernel driver redirects keyboard input to the nxKey application instead of normal system processing. AhnLab security software flagged activity involving the helper application as malware. The application refuses to run in Safe Mode. The author notes that a kernel driver crash takes down the entire system.",
+    "limitations": "No performance measurement. A reader comment that it makes the system slow is unverified. Security-focused analysis of one version (1.0.0.78).",
+    "verbatim_excerpt": "There is something you should know when developing kernel drivers: crashing the driver will crash the entire system.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-021",
+    "topic": "banking",
+    "program": "Keyboard-hook BadUSB blocker (research prototype, not a banking module)",
+    "source_url": "https://koreascience.kr/article/JAKO201606557486776.page",
+    "site": "Journal of the Korea Institute of Information Security and Cryptology 26(6) (Choi, Suh; Korea University)",
+    "posted_date": "2016",
+    "grade": "B",
+    "method": "Windows C++ program using a global keyboard hook. Ran GeekBench4, ATTODisk and CrystalDiskMark with and without the program.",
+    "perf_evidence": [
+      {
+        "metric": "GeekBench4 score",
+        "baseline": null,
+        "with_program": null,
+        "delta": "almost no difference (stated)",
+        "condition": "With and without the program"
+      },
+      {
+        "metric": "USB speed, ATTODisk and CrystalDiskMark",
+        "baseline": null,
+        "with_program": null,
+        "delta": "almost no difference (stated)",
+        "condition": "With and without the program"
+      },
+      {
+        "metric": "Footprint",
+        "baseline": null,
+        "with_program": "78 KB storage and 708 KB memory",
+        "delta": null,
+        "condition": "Stated footprint, not a measured overhead"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Closest academic before/after method found for a keyboard-hook security program, but it is a small prototype. Not comparable to commercial kernel keyboard drivers. Coexistence with other keyboard security software was not tested. No boot measurement.",
+    "verbatim_excerpt": "78KB의 저장 공간과 708KB의 메모리만을 필요로 하며",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-022",
+    "topic": "banking",
+    "program": "Keyboard security application on Windows 11 24H2 (Samsung service notice)",
+    "source_url": "https://www.samsungsvc.co.kr/solution/3230177",
+    "site": "Samsung Electronics Service",
+    "posted_date": "2024-12-20 (from search result only)",
+    "grade": "A",
+    "method": "Vendor service notice, not read directly.",
+    "perf_evidence": [],
+    "conflict_reported": "Search result text only: blue screen or freeze during shopping-mall card payment on Windows 11 24H2 products. Two search results disagree on whether the page ties the cause to a keyboard security application patch.",
+    "limitations": "Page returned HTTP 502 on three attempts. Treat as an unverified lead and open it manually before citing.",
+    "verbatim_excerpt": "",
+    "verified_page_opened": false
+  },
+  {
+    "id": "perf-023",
+    "topic": "antivirus_method",
+    "program": "AV-Comparatives Performance Test (method)",
+    "source_url": "https://av-comparatives.org/performance-test-methodology/",
+    "site": "AV-Comparatives",
+    "posted_date": "2015-11-24 (page date; content later updated, names UL Procyon)",
+    "grade": "B",
+    "method": "Single test PC, OS installed and updated, Windows Update disabled during testing, Microsoft Office and Adobe Reader installed. Six automated tasks: file copying between two physical disks, archiving and unarchiving, silent application install, application launching, file download from a web server, browsing in Chrome. Each repeated at least 10 times (five with fingerprinting, five without), with a reboot after each run and an active Internet connection. File copying combines the first run on a fresh image with the mean of later runs. Times are clustered into Very Fast, Fast, Mediocre, Slow; up to 90 points, plus Procyon score, maximum 100.",
+    "perf_evidence": [],
+    "conflict_reported": null,
+    "limitations": "Graded B as an independent lab, not an academic source. Hardware not specified on this page. The page's point labels contain an apparent typo (Fast listed at 15 and at 10). Gaming and boot are not covered.",
+    "verbatim_excerpt": "For the Launching Applications test, only the scores of the subsequent runs are used to create the average.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-024",
+    "topic": "antivirus_method",
+    "program": "Consumer security products in 19 ranks (Avast and AVG share one), including Microsoft Defender",
+    "source_url": "https://av-comparatives.org/tests/performance-test-april-2026/",
+    "site": "AV-Comparatives",
+    "posted_date": "2026-04-22",
+    "grade": "B",
+    "method": "Windows 11 64-bit, Intel Core i3, 8GB RAM, SSD. UL Procyon Office Productivity benchmark, with no-security-software baseline on the same machine scored at 100. Each test run multiple times, median reported.",
+    "perf_evidence": [
+      {
+        "metric": "Procyon score / Impact Score, McAfee (rank 1)",
+        "baseline": "100 (no security software)",
+        "with_program": "96.7 / 3.3",
+        "delta": null,
+        "condition": "Lower Impact Score is better"
+      },
+      {
+        "metric": "Procyon score / Impact Score, Microsoft Defender",
+        "baseline": "100",
+        "with_program": "97.1 / 12.9",
+        "delta": null,
+        "condition": "Rank 11"
+      },
+      {
+        "metric": "Procyon score / Impact Score, Sophos (rank 19)",
+        "baseline": "100",
+        "with_program": "86.6 / 33.4",
+        "delta": null,
+        "condition": "Lowest ranked"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Impact Score is unitless and also includes the lab's own automated tests, so it is not the Procyon loss. Low-end machine only. Office workload, not gaming.",
+    "verbatim_excerpt": "We perform each test multiple times and provide the median as result.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-025",
+    "topic": "antivirus_method",
+    "program": "AV-TEST performance module (method)",
+    "source_url": "https://av-test.org/en/about-the-institute/test-procedures/test-modules-under-windows-performance",
+    "site": "AV-TEST",
+    "posted_date": "undated (page copyright 2026)",
+    "grade": "B",
+    "method": "Times website load, program download, standard software launch, program install, and file copy locally and over a network, each several times, against reference systems without security programs. The difference is the slow-down. Automatic updates, scans and backups switched off beforehand. Tests run simultaneously on identical systems. Standard PC: Ryzen 5 4600G, 256 GB SSD, 8 GB RAM. High-end PC: Core i7-10700K, 1 TB NVMe, 16 GB RAM.",
+    "perf_evidence": [],
+    "conflict_reported": null,
+    "limitations": "Graded B as an independent lab, not an academic source. Exact repetition count not stated. Boot and gaming not listed.",
+    "verbatim_excerpt": "These are compared to the values of the AV-TEST reference systems without security programs",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-026",
+    "topic": "antivirus_method",
+    "program": "23 security products plus Microsoft Security Essentials / Defender",
+    "source_url": "https://av-test.org/en/news/endurance-test-does-antivirus-software-slow-down-pcs/",
+    "site": "AV-TEST",
+    "posted_date": "2015-04-28",
+    "grade": "B",
+    "method": "14 months (January 2014 to end of February 2015), seven rounds. Identical lab PCs (Xeon X3360, 4 GB RAM, 500 GB drive) on Windows XP, 7 and 8.1, compared with an unprotected reference. Five tasks: downloads, website launches, application installs, opening applications with a file, copying a 3.3 GB file set. Each task scored 1 to 5 load points, with 0-20% slowdown earning 1 point and 21-40% earning 2.",
+    "perf_evidence": [
+      {
+        "metric": "Copying 3.3 GB, Kaspersky",
+        "baseline": "about 141 s (reference)",
+        "with_program": "165 s",
+        "delta": "roughly 17% longer (stated)",
+        "condition": "Worked example in the article"
+      },
+      {
+        "metric": "Copying 3.3 GB, Threat Track",
+        "baseline": "about 141 s (reference)",
+        "with_program": "over 300 s",
+        "delta": "more than double (stated)",
+        "condition": "Worked example in the article"
+      },
+      {
+        "metric": "Overall load points (5 best, 25 worst)",
+        "baseline": null,
+        "with_program": "Kaspersky 5.1, Bitdefender 5.3, Qihoo 360 5.7, Microsoft 8.7, Threat Track 13.9",
+        "delta": null,
+        "condition": "Average across seven rounds"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Dated hardware and OS. Graded B as an independent lab, not an academic source.",
+    "verbatim_excerpt": "The products from Kaspersky, Bitdefender and Qihoo 360 cause the lowest load on a Windows PC.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-027",
+    "topic": "antivirus_method",
+    "program": "Antivirus, OS event tracing study",
+    "source_url": "https://asu.elsevierpure.com/en/publications/antivirus-performance-characterisation-system-wide-view",
+    "site": "IET Information Security 7(2):126-133 (Al-Saleh, Espinoza, Crandall)",
+    "posted_date": "2013",
+    "grade": "B",
+    "method": "OS event tracing of tasks with and without AV, described by the authors as the first OS-aware approach to analysing AV performance impact.",
+    "perf_evidence": [
+      {
+        "metric": "Source of AV overhead (abstract, no number)",
+        "baseline": null,
+        "with_program": "Hard page faults are the main contributor; tasks also produce more file I/O operations, page faults, system calls and threads",
+        "delta": null,
+        "condition": "Abstract only"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Abstract only, no numbers on the page. Full paper not opened.",
+    "verbatim_excerpt": "they mainly spend the extra time waiting on events",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-028",
+    "topic": "antivirus_method",
+    "program": "Antivirus, per-operation filesystem overhead",
+    "source_url": "https://www.jucs.org/jucs_25_9/precise_performance_characterization_of.html",
+    "site": "Journal of Universal Computer Science 25(9) (Al-Saleh, Hamdan)",
+    "posted_date": "2019",
+    "grade": "B",
+    "method": "Microsoft minifilter driver used to measure AV impact on individual file system operations.",
+    "perf_evidence": [
+      {
+        "metric": "Overhead by file operation (abstract, no number)",
+        "baseline": null,
+        "with_program": "Most overhead falls on OPEN; READ appears improved; WRITE and CLEANUP show almost no difference",
+        "delta": null,
+        "condition": "Abstract only; AV products and workload not stated on the page"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Abstract only, no numbers on the page. Full paper not opened.",
+    "verbatim_excerpt": "By deploying a minifilter driver, we show that most overhead of the tested AVs are greatly imposed on the OPEN operation.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-029",
+    "topic": "antivirus_method",
+    "program": "Microsoft Defender performance mode with Dev Drive",
+    "source_url": "https://blogs.windows.com/windowsdeveloper/2023/06/01/dev-drive-performance-security-and-control-for-developers/",
+    "site": "Windows Developer Blog; also Visual Studio Blog https://devblogs.microsoft.com/visualstudio/devdrive/",
+    "posted_date": "2023-06-01",
+    "grade": "A",
+    "method": "Surface Laptop 4. Default Windows 11 22H2 with Defender enabled compared with later builds using Dev Drive. Scenarios: Orchard Core .NET build, Django tests, Spring Framework Gradle build, Node repo git clone. The Visual Studio Blog gives an average for disk-bound operations without describing its method.",
+    "perf_evidence": [
+      {
+        "metric": "Overall build time",
+        "baseline": "Default Windows 11 22H2 with Defender",
+        "with_program": "Dev Drive with Defender performance mode",
+        "delta": "up to 30% better (stated)",
+        "condition": "Best case; per-scenario values only in a chart image"
+      },
+      {
+        "metric": "Clone, build, file copy, package restore",
+        "baseline": null,
+        "with_program": null,
+        "delta": "average improvements around 25% (stated, Visual Studio Blog, 2023-05-24)",
+        "condition": "Disk-bound operations; method not described"
+      }
+    ],
+    "conflict_reported": null,
+    "limitations": "Vendor claim about its own feature. Combines a ReFS filesystem change with the Defender mode change, so it does not isolate AV cost.",
+    "verbatim_excerpt": "Scenarios that are more file io heavy benefit the most from Dev Drive.",
+    "verified_page_opened": true
+  },
+  {
+    "id": "perf-030",
+    "topic": "antivirus_method",
+    "program": "WinRing0 driver in monitoring tools (CapFrameX, HWiNFO, Libre Hardware Monitor, MSI Afterburner and others)",
+    "source_url": "https://support.microsoft.com/en-us/windows/security/threat-malware-protection/microsoft-defender-antivirus-alert-vulnerabledriver-winnt-winring0",
+    "site": "Microsoft Support",
+    "posted_date": "undated (page copyright 2026)",
+    "grade": "A",
+    "method": "Vendor security alert documentation. No test.",
+    "perf_evidence": [],
+    "conflict_reported": "Microsoft Defender raises VulnerableDriver:WinNT/Winring0 and names as possibly affected CapFrameX, EVGA Precision X1 (older versions), FanCtrl, HWiNFO, Libre Hardware Monitor, MSI Afterburner, Open Hardware Monitor, OpenRGB, OmenMon, Panorama9, SteelSeries Engine and ZenTimings.",
+    "limitations": "Says nothing about performance. A HWiNFO forum moderator disputes that HWiNFO uses WinRing0 (seen in a search result only, not opened). Analyst note: these are the tools a before/after test and the collector's LibreHardwareMonitorLib would rely on, so the alert itself can alter the test environment.",
+    "verbatim_excerpt": "The WinRing0 driver has been classified as a known vulnerability as documented in CVE-2020-14979.",
+    "verified_page_opened": true
+  }
+]

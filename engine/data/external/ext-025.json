@@ -1,0 +1,56 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-025",
+    "marked_at":  "2026-07-29T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey",
+                    "event_id":  129
+                },
+    "host":  {
+                 "os":  "Windows 11 Home"
+             },
+    "symptom":  {
+                    "type":  "freeze",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "change_history":  [
+                           {
+                               "kind":  "bios_update",
+                               "subject":  "Gigabyte H610M H DDR4 (Rev. 1.3) BIOS updated from FL (2022)",
+                               "version":  "FY (12 June 2026)"
+                           },
+                           {
+                               "kind":  "hardware_replacement",
+                               "subject":  "Kingston NV2 500 GB SNV2S500G replaced by WD_BLACK SN7100 500 GB"
+                           }
+                       ],
+    "events":  [
+                   {
+                       "provider":  "stornvme",
+                       "id":  129,
+                       "subject":  "\\Device\\RaidPort1"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.tomshardware.com/threads/case-study-investigating-persistent-freezes-hangs-intermittent-stornvme-event-id-129-reset-to-device-device-raidport1-was-issued-on-windows-11.3898526/",
+                       "site":  "Tom\u0027s Hardware Forum",
+                       "posted_date":  "Jul 29, 2026",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "\u0027replacing the Kingston NV2 with a WD_BLACK SN7100 eliminated both the Event ID 129 warnings and the freezes.\u0027 Poster notes the root cause \u0027cannot be stated with certainty\u0027.",
+                       "category_reported":  "storage",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Reset to device \\Device\\RaidPort1 was issued",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "minidumps",
+                                                  "modules",
+                                                  "drivers",
+                                                  "culprit"
+                                              ]
+                   }
+}

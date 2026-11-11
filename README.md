@@ -7,6 +7,14 @@
 
 중앙대학교 소프트웨어학부 2026학년도 2학기 캡스톤디자인 (5분반 · 7조) 프로젝트입니다.
 
+> **지금 상태 (2026-11-12)**
+> - 수집기·엔진·UI(WPF)가 한 흐름으로 이어져 있다: 크래시 → 자동 덤프 → 진단 → 안내.
+> - 연구 참여자용 트레이 앱 **PC 블랙박스 0.9.0**에 자동 업데이트를 넣었다. 업데이트 파일은 [Releases](../../releases)로 내보낸다(초대받은 참여자용 — 아래 「참여자판」 참고).
+> - 11/10에 목표를 넓혔다: 보안·상주 프로그램의 충돌·느려짐을 증거로 판단하고, 사용자가 정한 수준 안에서 조치까지 한다. 위험도 점수·지식 팩·AI 보조·조치 실행기는 **설계 단계**다 — [`docs/capstone-plan-v2.md`](docs/capstone-plan-v2.md), [`docs/product-architecture-v2.md`](docs/product-architecture-v2.md).
+> - 보안 프로그램이 일상 작업에 주는 영향을 재는 무인 측정 실험을 준비했다. 결과는 아직 없다 — [`lab/README.md`](lab/README.md).
+>
+> 자세한 내용은 아래 [진행 상황](#진행-상황).
+
 ---
 
 ## 문제
@@ -86,7 +94,9 @@ Python·CUDA 생태계에는 Env-Doctor, pipdeptree처럼 버전 충돌을 진�
 
 하드웨어는 직접 측정할 수 없으므로 OS·센서에 남는 흔적으로 '하드웨어 의심' 등급까지 판정하고 물리 점검 순서를 안내한다.
 
-**하지 않는 것**: 프로그램 자동 종료·삭제·설정 변경 · 보안모듈 내부 분석 · 패킷 내용 검사 · macOS/Linux
+**하지 않는 것**: 사용자가 고르지 않은 자동 조치(프로그램 종료·삭제·설정 변경) · 보안모듈 내부 분석 · 패킷 내용 검사 · 키 입력 내용 수집 · macOS/Linux
+
+수집기는 읽기 전용이고 조치를 하지 않는다. 조치는 사용자가 고른 수준 안에서만 별도 실행기가 맡는 것으로 설계했다(관찰 → 일시 조치 → 설정 변경 → 시스템 변경, 단계가 올라갈수록 동의·승인이 필요하고 실행 전 원복 지점을 남김). 실행기는 아직 실제 Windows에서 돌려 보지 않았다.
 
 ## 빌드 · 실행
 
@@ -107,18 +117,49 @@ build\Release\crash_engine.exe diagnose data\samples\s1_anticheat_crash.json
 
 진단 세션(원인 확인 → 해결 안내 → 검증) 실행 방법은 [`engine/docs/scenario_walkthrough.md`](engine/docs/scenario_walkthrough.md) 참고.
 
-### 수집기 · UI
+### 수집기 (`collector/`)
 
-> 구조가 잡히는 대로 채워집니다. (수집기 실행 시 관리자 권한 필요)
+요구 사항: .NET 8 SDK(8.0 런타임 포함). 팀 PC 준비는 [`docs/setup.md`](docs/setup.md).
 
-**안내 UI (`ui/`) — 2026-10-12 추가**: 최종 UI 는 수집기와 같은 C# WPF 로 만드는 중이고, 지금은 Python 시안으로 실행해 볼 수 있다.
-엔진을 위 방법으로 빌드한 뒤 `ui\prototype-python\run_ui.bat` 을 더블클릭한다(Python 3.10 이상, 콘솔 창 없이 실행).
-수집기 덤프는 [최근 덤프 열기]로 바로 연다. 자세한 내용은 [`ui/README.md`](ui/README.md).
+```powershell
+dotnet build collector/BlackBox -c Release
+dotnet test  collector/BlackBox.Tests -c Release
+
+cd collector/BlackBox
+dotnet run -c Release          # m+Enter = 수동 마킹, Ctrl+Shift+F12 = 전역 단축키, q = 종료
+```
+
+- 프로그램 비정상 종료(이벤트 1000/1001)·응답 없음(1002)·전원 이상(41)·디스플레이 드라이버 재시작(4101)·WHEA는 자동으로 마킹된다.
+- 마킹되면 `dumps/<시각>-<종류>/`에 전후 구간만 JSON으로 쓴다. 그 안의 `engine-snapshot.json`이 엔진 입력이다.
+
+```
+engine\build\Release\crash_engine.exe diagnose dumps\<폴더>\engine-snapshot.json
+```
+
+- 관리자 터미널을 권장한다(커널 ETW, 필터 드라이버 목록, 접근이 막힌 프로세스의 모듈). 관리자가 아니어도 동작하고, 못 모은 항목은 `unavailable`과 이유로 기록한다.
+- 전체 흐름: [`docs/run-pipeline.md`](docs/run-pipeline.md) · 신호별 상태: [`docs/collector-status.md`](docs/collector-status.md), [`collector/NOTES.md`](collector/NOTES.md)
+
+### 안내 UI (`ui/wpf/`)
+
+엔진을 빌드한 뒤 `ui\wpf\run_ui.bat`을 더블클릭한다(처음이면 자동으로 빌드, .NET 8 SDK 필요). 자세한 내용은 [`ui/wpf/CrashAnalyzer.UI/README.md`](ui/wpf/CrashAnalyzer.UI/README.md).
+
+### 참여자판 — PC 블랙박스 (`participant/`)
+
+연구 참여자 PC에서 수집기를 트레이 앱으로 돌리고, 기록을 암호화해 팀에 자동으로 보내는 판이다. 수집 코드는 `collector/`의 것을 그대로 쓴다.
+
+- **참여는 팀이 초대한 분만 받는다.** 참여자는 팀이 직접 건넨 zip으로 설치한다. 사용법은 [`docs/participant-guide.md`](docs/participant-guide.md).
+- **[Releases](../../releases)의 파일은 이미 설치한 참여자의 자동 업데이트용**이다(0.9.0부터). 연구 참여 설정이 들어 있지 않아서 그 파일만 받아서는 실행되지 않는다.
+- 업데이트는 알림을 보고 사용자가 눌러야 적용된다. 앱은 팀 서명(ECDSA P-256)과 SHA-256을 확인한 뒤에만 바꾸고, 새 버전이 켜지지 않으면 이전 버전으로 되돌린다.
+- 연구 설정 없이 누구나 로컬에서만 쓰는 공개판은 아직 없다(UI를 합칠 때 만들 예정).
+- 팀용 운영 절차(키, 수신기, 배포·업데이트 내보내기, 보안 모델): [`docs/study-operations.md`](docs/study-operations.md)
 
 ## 프라이버시
 
 - 설치 및 첫 실행 시 **수집 항목과 보관 위치를 고지하고 명시적 동의**를 받은 뒤에만 수집을 시작한다.
-- 이번 학기 범위에서는 **모든 데이터를 로컬에만 저장**하며 서버로 전송하지 않는다. 언제든 수집 중지와 데이터 삭제가 가능하다.
+- **콘솔 수집기·엔진·UI는 모든 데이터를 로컬에만 저장**하며 어디로도 전송하지 않는다. 언제든 수집 중지와 데이터 삭제가 가능하다.
+- **참여자판(PC 블랙박스)은 예외다.** 연구 참여에 동의한 사람의 기록만, 참여자 PC에서 암호화한 뒤(AES-256-GCM + RSA-OAEP) 팀 수신기로 보낸다. 수신기와 저장소는 내용을 열 수 없고, 개인키를 가진 팀 PC에서만 풀린다. 참여자는 언제든 철회할 수 있다. 0.9.0부터는 새 버전이 있는지 보려고 github.com의 이 저장소 Releases에 접속한다(확인용 파일을 받기만 하고 기록을 보내지 않음).
+- 마킹 전에는 디스크에 아무것도 쓰지 않는다(메모리 링버퍼). 덤프를 쓸 때 사용자 폴더 경로는 `%USERPROFILE%`로 바꾼다.
+- 기록을 AI 서비스로 보내는 기능은 아직 없다. 넣을 때는 동의문에 항목을 추가한 뒤에만 참여자에게 적용한다.
 - 크래시 미니덤프에는 프로그램 메모리 일부가 포함될 수 있음을 고지하고, 분석에 필요한 모듈·스택 정보만 추출한 뒤 원본은 사용자 선택에 따라 삭제한다.
 - 네트워크 관련 신호는 방화벽 로그·필터 목록 등 설정과 로그로 한정한다. 패킷 내용은 열람하지 않는다.
 
@@ -136,17 +177,20 @@ build\Release\crash_engine.exe diagnose data\samples\s1_anticheat_crash.json
 | 수집 오버헤드 | 상시 수집기의 CPU·메모리 점유 |
 | 사용성 | 비전공자 대상 SUS |
 
-실험 절차와 사례 DB 스키마는 [`experiments/`](experiments/)와 [`knowledge/`](knowledge/)에 문서화한다.
+**보안 프로그램 영향 측정 (11/10 추가)** — 금융 보안 프로그램을 설치하기 전과 후에 같은 작업(Blender·Godot·Notepad++의 시작·작업·반응)을 재부팅을 끼워 가며 무인으로 반복 측정한다. 설계는 [`docs/security-impact-design.md`](docs/security-impact-design.md), 실행 스크립트는 [`lab/`](lab/). 평가 전체 설계(위험도 점수 타당성, 알고리즘·AI 비교, 조치 검증)는 [`docs/capstone-plan-v2.md`](docs/capstone-plan-v2.md) 4절.
+
+fault injection 프로그램(CrashDummy, FaultLab)과 측정 스크립트는 [`collector/experiments/`](collector/experiments/)에, 엔진 규칙과 시나리오는 [`engine/data/`](engine/data/)에 있다.
 
 ## 저장소 구조
 
 ```
-collector/     블랙박스 수집기 (ETW·이벤트 로그·센서·마킹·덤프)
-engine/        추론 엔진 (층 판정·점수화·시도 순서·피드백)
-knowledge/     사례 DB 스키마, 시드 규칙, 점검 비용 표
-experiments/   fault injection 더미 앱·DLL, 측정 스크립트, 결과
-ui/            안내형 인터페이스
-docs/          제안서, 발표 자료, 멘토링 보고서, 회의록
+collector/     블랙박스 수집기 (ETW·이벤트 로그·센서·마킹·덤프), 테스트, 실험용 프로그램(experiments/)
+participant/   참여자판 PC 블랙박스(트레이 앱)·암호화 자동 전송·자동 업데이트·팀 도구 — docs/study-operations.md
+engine/        추론 엔진 (층 판정·점수화·시도 순서·피드백), 규칙·시나리오(data/)
+ui/            안내 UI (C# WPF)
+lab/           보안 프로그램 영향 측정 — 무인 세션·블록 실행·분석 (lab/README.md)
+tools/         배포·릴리스·시험 스크립트 (참여자판 빌드, 업데이트 시험, 오버헤드 측정 등)
+docs/          설계·조사·운영 문서, 참여자 안내, 발표 준비 자료
 ```
 
 ## 일정
@@ -159,9 +203,35 @@ docs/          제안서, 발표 자료, 멘토링 보고서, 회의록
 | ~11/27 | 검증 실험, 사용성 테스트, 재현 모드, UI 완성 |
 | 12/11 | **최종 데모** |
 
+위 표는 학기 초 계획이다. 11/10에 목표를 다시 정하면서 남은 기간(11/10 → 12/11)의 주별 계획을 새로 짰다 — [`docs/capstone-plan-v2.md`](docs/capstone-plan-v2.md) 6절.
+
 진행 상황은 [Milestones](../../milestones)와 [Projects](../../projects)에서 확인할 수 있다.
 
 ## 진행 상황
+
+### 수집기 · 참여자판 · 측정 실험 (2026-11-12 기준)
+
+모든 수치는 **테스트 PC 1대에서 잰 값**이다. 다른 PC에서는 다를 수 있다.
+
+| 부분 | 상태 | 확인된 것 |
+|---|---|---|
+| 수집기 | 동작 | 합성 크래시 자동 감지 9/9, 30분 가동 CPU 평균 0.13%(머신 전체) — [`docs/collector-status.md`](docs/collector-status.md). 단위 테스트 84건 통과 |
+| 수집기 → 엔진 → UI | 연결됨 | 덤프의 `engine-snapshot.json`을 엔진이 바로 진단, UI가 엔진 결과를 표시 |
+| 참여자판 0.9.0 | 배포 준비 | 동의 → 상시 수집 → 암호화 자동 전송, 관리자 권한 자동 실행, 자동 업데이트. 단위 테스트 90건 통과 |
+| 자동 업데이트 | 시험 환경에서 확인 | 표준 사용자·관리자 경로 각각 28개 확인 통과: 받기·서명 확인·교체·재시작, 낮은 버전 무시, 실패 시 되돌리기, 고친 안내문·바뀐 묶음 거부 |
+| 원인 엔진 | 팀 시나리오에서는 강함, 실제 사례에서는 약함 | 팀 시나리오 13건: 층 100%·원인 1순위 92% / 외부 라벨 18건: 50%·17%(탐색용) |
+| 재현 사례 | 9건 | AutoHotkey 2.0.29, Godot 4.3, Notepad++ 8.6.7의 알려진 버그를 이 PC에서 재현해 덤프 확보 |
+| 영향 측정 실험 | 자동화 완성, 본 측정 전 | 재부팅·자동 재개가 실제 세션에서 동작. 보안 프로그램은 아직 설치하지 않았고 결과 숫자는 없음 |
+| 위험도 점수 · 지식 팩 · AI 보조 · 조치 실행기 | 설계 단계 | 구현·검증 전 |
+
+**아직 확인하지 못한 것**
+
+- 자동 업데이트: 실제 설치 위치(`C:\Program Files\PcBlackBox`)에서의 교체, 설치된 앱이 GitHub Releases에서 받아 교체하는 것. 릴리스 `v0.9.0`에 올린 파일이 빌드한 것과 같고 앱의 검사를 통과하는 것까지는 확인했다(11/12). 0.9.0이 첫 버전이라 실제 교체는 다음 버전에서 처음 일어난다.
+- 참여자 데이터: 11월 초 팀 PC 포맷으로 이전 암호 키를 잃어 그전에 받은 기록은 열 수 없다. 발표의 핵심 숫자에는 참여자 데이터를 쓰지 않는다.
+- 엔진의 "공식 근거가 있는 충돌 사례" 정확도: 해당 사례가 아직 0건이다. 재현한 9건은 모두 프로그램 자체 버그다.
+- 영향 측정: 11/11에 가상화(Hyper-V)를 켜서 설치 전 측정을 시범부터 다시 잰다. 그전 자료는 따로 보관하고 섞지 않는다.
+
+신호별 검증 상태(검증됨 / 미지원 / 권한 필요 / 미확인)는 [`collector/NOTES.md`](collector/NOTES.md)에 계속 적는다.
 
 ### 추론 엔진 (`engine/`) — 1차 구현 완료 (2026-10-02 기준)
 
@@ -270,9 +340,16 @@ UI·에이전트는 판단하지 않고 엔진이 돌려준 값만 보여 주고
 | 이름 | 용도 | 라이선스 |
 |---|---|---|
 | [LibreHardwareMonitor](https://github.com/LibreHardwareMonitor/LibreHardwareMonitor) | 온도·클럭·전력 센서 | MPL 2.0 |
+| [Microsoft.Diagnostics.Tracing.TraceEvent](https://github.com/microsoft/perfview) | 커널 ETW (프로그램 시작·종료, DLL 로드) | MIT |
 | [Intel PresentMon](https://github.com/GameTechDev/PresentMon) | 프레임타임 수집 | MIT |
 
 참고한 기존 도구: [NVCheckup](https://github.com/thatcooperguy/NVCheckup), [Env-Doctor](https://pypi.org/project/env-doctor), [pipdeptree](https://github.com/tox-dev/pipdeptree), WhoCrashed, 구라제거기, Windows 문제 해결사
+
+### 안내 UI — 최종 UI(WPF)로 정리 (2026-11-02 추가)
+
+* UI 를 팀에서 확정한 시안 **2-4**(검진 결과 / 블랙박스 기록 페이지, 버튼으로 여는 상담 도우미 챗봇 창)로 바꿨다. 최종 UI 는 `ui/wpf/` (C# WPF) 하나다.
+* 파이썬 시안(`ui/prototype-python/`)은 WPF 가 기능을 다 따라잡아서 폴더째(코드·README) 지웠다. 위 2026-10-12 단락은 그때 기준으로 그대로 둔다(`run_ui.bat`·`ui/prototype-python/README.md` 링크는 이제 없음). 지운 파일은 저장소 기록(2026-11-02 커밋 이전)에서 볼 수 있다.
+* 실행: 엔진을 빌드한 뒤 `ui\wpf\run_ui.bat` 을 더블클릭한다(처음이면 자동으로 빌드, .NET 8 SDK 필요). 자세한 내용은 [`ui/wpf/CrashAnalyzer.UI/README.md`](ui/wpf/CrashAnalyzer.UI/README.md).
 
 ## 라이선스
 

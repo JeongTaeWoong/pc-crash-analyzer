@@ -1,0 +1,46 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-030",
+    "marked_at":  "2019-08-26T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system",
+                    "event_id":  86
+                },
+    "host":  {
+                 "os":  "Windows 1809 17134.984"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "events":  [
+                   {
+                       "provider":  "Kernel-Power",
+                       "id":  86,
+                       "subject":  "The system was shut down due to a critical thermal event."
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/2310385/event-86-kernel-power-randomly-shuts-down-surface",
+                       "site":  "Microsoft Q\u0026A",
+                       "posted_date":  "2019-08-25T20:46:08+00:00",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "category_reported":  "thermal",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Kernel-Power 86 (83) The system was shut down due to a critical thermal event. | ACPI Thermal Zone = Intel(R) Dynamic Platform Thermal Framework | Dtx failed to enumerate DGpu",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "minidumps",
+                                                  "modules",
+                                                  "drivers",
+                                                  "change_history",
+                                                  "resolution",
+                                                  "culprit"
+                                              ]
+                   }
+}

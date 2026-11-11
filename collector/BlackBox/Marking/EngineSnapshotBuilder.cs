@@ -8,6 +8,7 @@ namespace BlackBox.Marking;
 /// 스키마 약속: 수집 실패 항목은 빈 값 대신 필드 자체를 생략, 시각은 ISO-8601+오프셋,
 /// 센서가 없으면 sensors를 아예 뺀다 (0을 넣지 않는다).
 /// 변환은 포맷팅일 뿐 분석이 아니다 — 추론은 엔진의 몫.
+/// 추가 필드(엔진 미지 필드는 무시됨을 2026-10-28 확인): significance — 제안서 docs/schema-extension-proposal.md.
 /// </summary>
 public static class EngineSnapshotBuilder
 {
@@ -17,25 +18,17 @@ public static class EngineSnapshotBuilder
         EventLogTrigger? trigger,
         IReadOnlyList<SignalEvent> events,
         EngineFacts facts,
-        List<string>? crashModulePaths)
+        List<string>? crashModulePaths,
+        SignificanceResult? significance,
+        object? resourceTrends = null,
+        ManualMark? manual = null)
     {
-        // kind → trigger.kind / symptom 매핑.
-        // manual은 실제 제품 흐름에서 UI가 symptom을 사용자에게 받아 채운다(스키마 명세) — 여기선 unknown.
-        string triggerKind, symType, symScope;
-        switch (kind)
-        {
-            case "crash-1000":
-            case "crash-1001":
-                triggerKind = "auto_app_crash"; symType = "app_crash"; symScope = "single_app"; break;
-            case "power-41":
-                triggerKind = "auto_system"; symType = "unexpected_reboot"; symScope = "system_wide"; break;
-            case "display-4101":
-                triggerKind = "auto_system"; symType = "flicker"; symScope = "system_wide"; break;
-            case "whea":
-                triggerKind = "auto_system"; symType = "freeze"; symScope = "system_wide"; break; // WHEA 전용 타입이 스키마에 없어 임시 매핑
-            default:
-                triggerKind = "hotkey"; symType = "unknown"; symScope = "unknown"; break;
-        }
+        // 증상·범위는 TriggerClassifier 결과를 그대로 쓴다. manual은 콘솔 `m slow blender` 또는 UI 증상 대화상자가 채운다.
+        string symType = trigger?.Class.SymptomType ?? manual?.Symptom ?? "unknown";
+        string symScope = trigger?.Class.Scope ?? (manual?.Target is { Length: > 0 } ? "single_app" : "unknown");
+        string triggerKind = trigger is null
+            ? "hotkey"
+            : kind is "crash-1000" or "crash-1001" or "hang-1002" or "hang-1001" ? "auto_app_crash" : "auto_system";
 
         // 버퍼 이벤트에서 엔진용 events / sensors.samples / processes 추출
         var engineEvents = new List<object>();
@@ -61,9 +54,11 @@ public static class EngineSnapshotBuilder
                     case "sensors" when root.TryGetProperty("sensors", out var arr):
                     {
                         double? gpuTemp = null, gpuClock = null;
+                        // 주 GPU(메모리 총량 최대, SensorSource 가 primaryGpu 로 기록). 없던 시절 덤프는 NVIDIA 로 폴백 — AMD 외장 GPU PC 에서도 동작하도록(10/29)
+                        string gpuHw = root.TryGetProperty("primaryGpu", out var pg) && pg.GetString() is { Length: > 0 } pgName ? pgName : "NVIDIA";
                         foreach (var s in arr.EnumerateArray())
                         {
-                            if (!(s.GetProperty("hw").GetString() ?? "").Contains("NVIDIA")) continue;
+                            if (!(s.GetProperty("hw").GetString() ?? "").Contains(gpuHw, StringComparison.OrdinalIgnoreCase)) continue;
                             if (s.GetProperty("name").GetString() != "GPU Core") continue;
                             var t = s.GetProperty("type").GetString();
                             if (t == "Temperature") gpuTemp = s.GetProperty("value").GetDouble();
@@ -91,7 +86,10 @@ public static class EngineSnapshotBuilder
             catch { /* 형식이 다른 이벤트는 건너뛴다 */ }
         }
 
-        string targetProcess = trigger?.ProcessName ?? "";
+        // 시스템 전체 사건(41·4101·라이브 덤프·WHEA·BSOD)의 ProcessName 은 "BugcheckCode 0" 같은 부가 정보라 대상 프로그램이 아니다(10/29 재생 덤프에서 발견)
+        string targetProcess = trigger != null
+            ? (trigger.Class.Scope == "single_app" ? trigger.ProcessName ?? "" : "")
+            : manual?.Target ?? "";
         var snapshot = new Dictionary<string, object?>
         {
             ["schema_version"] = "1.1",
@@ -111,12 +109,32 @@ public static class EngineSnapshotBuilder
             },
         };
 
+        if (significance != null)
+            snapshot["significance"] = new { score = significance.Score, tier = significance.Tier, tags = significance.Tags };
+
+        // 확장 필드(docs/schema-extension-proposal.md D): 60분 자원 추세 — 엔진의 slow 증상 판정 입력. 엔진은 미지 필드를 무시한다.
+        if (resourceTrends != null)
+            snapshot["resource_trends"] = resourceTrends;
+
         if (processes.Count > 0)
             snapshot["processes"] = processes.Take(300).ToList();
 
         if (crashModulePaths is { Count: > 0 } && targetProcess.Length > 0)
-            snapshot["modules"] = crashModulePaths
-                .Select(p => new { process = targetProcess, name = Path.GetFileName(p), path = p }).ToList();
+            snapshot["modules"] = crashModulePaths.Select(p =>
+            {
+                string? company = null, version = null;
+                try
+                {
+                    var vi = System.Diagnostics.FileVersionInfo.GetVersionInfo(p);
+                    company = string.IsNullOrWhiteSpace(vi.CompanyName) ? null : vi.CompanyName;
+                    version = string.IsNullOrWhiteSpace(vi.FileVersion) ? null : vi.FileVersion;
+                }
+                catch { /* 파일 없음·접근 불가 — 필드 생략 */ }
+                var m = new Dictionary<string, object> { ["process"] = targetProcess, ["name"] = Path.GetFileName(p), ["path"] = p };
+                if (company != null) { m["company"] = company; m["microsoft_signed"] = company.Contains("Microsoft", StringComparison.OrdinalIgnoreCase); }
+                if (version != null) m["version"] = version;
+                return m;
+            }).ToList();
 
         var drivers = new List<object>();
         foreach (var (name, _) in facts.NonStandardDrivers)

@@ -1,0 +1,57 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-008",
+    "marked_at":  "2024-06-14T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 10 Prof x64, Build 10.0.19045.4412"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "portmaster_kext_v1_1_2+0x8ec4"
+                                         ],
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "portmaster-kext_v1-1-2.sys"
+                    }
+                ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "portmaster_kext_v1_1_2+0x8ec4",
+                          "bugcheck":  "KERNEL_MODE_HEAP_CORRUPTION; 00000000`0000013a"
+                      }
+                  ],
+    "ground_truth":  {
+                         "layer":  "SW",
+                         "category":  "security_firewall",
+                         "subject":  "portmaster-kext_v1-1-2.sys"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://github.com/safing/portmaster/issues/1587",
+                       "site":  "GitHub",
+                       "posted_date":  "Jun 14, 2024",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "portmaster-kext_v1-1-2.sys",
+                       "what_fixed_it":  "Reporter moved to the beta channel kext suggested by the maintainer: \u0027While that fixed that particular problem, it introduced another, which killed my entire IPv4 network system\u0027.",
+                       "category_reported":  "security_firewall",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "BSOD \"KERNEL_MODE_HEAP_CORRUPTION\" with portmaster-kext_v1-1-2.sys | 00000000`0000013a | portmaster_kext_v1_1_2+0x8ec4",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events",
+                                                  "modules",
+                                                  "change_history"
+                                              ]
+                   }
+}

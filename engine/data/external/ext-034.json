@@ -1,0 +1,55 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-034",
+    "marked_at":  "2025-02-07T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "fresh windows10 install"
+             },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "target_process":  "helldivers2.exe",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "ntdll.dll"
+                                         ]
+                },
+    "modules":  [
+                    {
+                        "process":  "helldivers2.exe",
+                        "name":  "ntdll.dll",
+                        "version":  "10.0.19041.3636"
+                    }
+                ],
+    "events":  [
+                   {
+                       "subject":  "helldivers2.exe",
+                       "faulting_module":  "ntdll.dll",
+                       "exception_code":  "0xc0000026"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://steamcommunity.com/app/553850/discussions/1/600769761663611637/",
+                       "site":  "Steam Community",
+                       "posted_date":  "7 Feb 2025, 9:58pm",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "OP\u0027s edit: combination of NVIDIA, Windows, Steam and in-game settings, including \u0027Run this program in compatibility mode for - Windows 8\u0027. \u0027able to play without a crash for 6+ hours between two sessions\u0027; \u0027i don\u0027t know which specific setting is contributing to my solution\u0027.",
+                       "category_reported":  "other",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Faulting application name: helldivers2.exe, version: 1.8.27207.0, time stamp: 0x6798f47f Faulting module name: ntdll.dll, version: 10.0.19041.3636, time stamp: 0x9b64aa6f Exception code: 0xc0000026 Fault offset: 0x00000000001024f6",
+                       "absent_from_source":  [
+                                                  "events.provider",
+                                                  "events.id",
+                                                  "minidumps",
+                                                  "drivers",
+                                                  "change_history",
+                                                  "culprit"
+                                              ]
+                   }
+}

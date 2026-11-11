@@ -1,0 +1,71 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-ae-03",
+    "marked_at":  "2023-11-03T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows 11 Pro"
+             },
+    "symptom":  {
+                    "type":  "slow",
+                    "scope":  "single_app",
+                    "target_process":  ""
+                },
+    "modules":  [
+                    {
+                        "name":  "Trapcode Particular",
+                        "version":  "16"
+                    }
+                ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://community.adobe.com/questions-529/after-effects-unbelievably-slow-ui-and-esp-trapcode-hardware-win-issue-56079",
+                       "site":  "community.adobe.com",
+                       "posted_date":  "2023-11-03",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "None confirmed. Maxon\u0027s suggestion to set Air Resistance to 0 did not help; driver, BIOS and Windows updates, reinstall and PC reset did not help.",
+                       "category_reported":  "other_sw",
+                       "program":  "After Effects",
+                       "conflict_with":  "Trapcode Particular plug-in",
+                       "mechanism":  "other",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "After Effects",
+                                                 "metric":  "layer selection delay",
+                                                 "value":  "1-2 seconds",
+                                                 "condition":  "UI"
+                                             },
+                                             {
+                                                 "process":  "After Effects",
+                                                 "metric":  "Preferences window open time",
+                                                 "value":  "up to 10 seconds",
+                                                 "condition":  "UI"
+                                             },
+                                             {
+                                                 "process":  "After Effects",
+                                                 "metric":  "project open time",
+                                                 "value":  "over 30 seconds",
+                                                 "condition":  "a particular project"
+                                             },
+                                             {
+                                                 "process":  "After Effects",
+                                                 "metric":  "CPU and GPU usage during preview",
+                                                 "value":  "10-20%",
+                                                 "condition":  "preview"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "UI is slow (like often \"power point presentation slow\" and especially Trapcode plugins are almost unusable.",
+                       "absent_from_source":  [
+                                                  "After Effects version of the affected install",
+                                                  "driver version",
+                                                  "Adobe-labeled staff reply"
+                                              ]
+                   }
+}

@@ -9,8 +9,15 @@ namespace BlackBox.Marking;
 public sealed class DumpWriter
 {
     private readonly string _dumpRoot;
+    private readonly string _edition;
+    private readonly string _version;
 
-    public DumpWriter(string dumpRoot) => _dumpRoot = dumpRoot;
+    public DumpWriter(string dumpRoot, string edition = "console", string version = "0.7")
+    {
+        _dumpRoot = dumpRoot;
+        _edition = edition;
+        _version = version;
+    }
 
     public string Write(
         DateTimeOffset markTime,
@@ -21,6 +28,7 @@ public sealed class DumpWriter
         IReadOnlyList<SignalEvent> events,
         object snapshot,
         object engineSnapshot,
+        object? significance,
         (int Count, long ApproxBytes) bufferStats,
         IReadOnlyList<SourceStatus> sourceStatuses)
     {
@@ -37,12 +45,14 @@ public sealed class DumpWriter
         var meta = new
         {
             collector = "BlackBox",
-            version = "0.1",
+            version = _version,
+            edition = _edition,
             os = Environment.OSVersion.VersionString,
             isElevated,
             markTime,
             kind,
             trigger,
+            significance,
             window = new { from, to },
             sources = sourceStatuses,
             bufferAtDump = new { eventCount = bufferStats.Count, approxBytes = bufferStats.ApproxBytes },

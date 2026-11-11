@@ -1,0 +1,77 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-pr-02",
+    "marked_at":  "2025-05-24T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "freeze",
+                    "scope":  "multiple_apps",
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "NVIDIA Studio Driver (problem persisted)",
+                        "version":  "581.29"
+                    },
+                    {
+                        "name":  "NVIDIA driver (suggested workaround)",
+                        "version":  "573.22"
+                    },
+                    {
+                        "name":  "NVIDIA driver (suggested workaround)",
+                        "version":  "572.83"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "app_version",
+                               "subject":  "Premiere Pro",
+                               "version":  "25.2 (original report); 25.5.0 Build 13 (later)"
+                           },
+                           {
+                               "kind":  "app_version",
+                               "subject":  "Media Encoder",
+                               "version":  "25.5 Build 13"
+                           }
+                       ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://community.adobe.com/t5/premiere-pro-bugs/p-premiere-pro-freeze-during-export-using-hardware-encoding-nvidia-rtx-5070/idc-p/15504093",
+                       "site":  "community.adobe.com",
+                       "posted_date":  "2025-05-24",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Software encoding lets exports complete and disabling HAGS avoided it for one user (both user-reported). A post promised driver fixes in the Sept 30, 2025 Studio and Game Ready drivers.",
+                       "category_reported":  "gpu_driver",
+                       "program":  "Premiere Pro",
+                       "conflict_with":  "NVIDIA Studio and Game Ready drivers with hardware encoding on RTX 5070/5080",
+                       "mechanism":  "M4",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "Premiere Pro / Media Encoder",
+                                                 "metric":  "encode progress at stall",
+                                                 "value":  "8-30%",
+                                                 "condition":  "short clips, hardware encoding"
+                                             },
+                                             {
+                                                 "process":  "Premiere Pro / Media Encoder",
+                                                 "metric":  "time to failure",
+                                                 "value":  "30 minutes to 1.5 hours",
+                                                 "condition":  "longer projects"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "We will have all the required NVIDIA Driver changes to address this issue in our Sept 30th Studio \u0026 Game Ready Drivers.",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "events",
+                                                  "culprit: the post promising driver changes is not labeled Adobe or NVIDIA staff",
+                                                  "driver version containing the fix"
+                                              ]
+                   }
+}

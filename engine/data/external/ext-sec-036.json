@@ -1,0 +1,48 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-036",
+    "marked_at":  "2019-04-01T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "slow",
+                    "target_process":  "Lost Ark",
+                    "scope":  "single_app"
+                },
+    "processes":  [
+                      "anySign for PC"
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://gall.dcinside.com/board/view/?id=lostark\u0026no=1547517",
+                       "site":  "gall.dcinside.com",
+                       "posted_date":  "2019-04-01",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "anySign for PC (poster\u0027s attribution)",
+                       "category_reported":  "fin_security",
+                       "program":  "anySign for PC",
+                       "conflict_with":  "Lost Ark (game slowed while the process used CPU)",
+                       "mechanism":  "background_service",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "anySign for PC",
+                                                 "metric":  "CPU",
+                                                 "value":  "100%",
+                                                 "condition":  "Poster\u0027s account during a game; no tool stated"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "겜하다가 너무 느려지면 anysign for PC 이거 의심해봐야됨",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "version",
+                                                  "no_confirmed_fix",
+                                                  "fps_numbers"
+                                              ]
+                   }
+}

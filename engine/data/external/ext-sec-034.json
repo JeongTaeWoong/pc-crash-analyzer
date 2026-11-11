@@ -1,0 +1,53 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-034",
+    "marked_at":  "2018-07-09T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "fps_drop",
+                    "scope":  "multiple_apps",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "AnySign4pc"
+                  ],
+    "ground_truth":  {
+                         "layer":  "SW",
+                         "category":  "fin_security"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.clien.net/service/board/park/12336902",
+                       "site":  "clien.net",
+                       "posted_date":  "2018-07-09",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "AnySign4PC (poster\u0027s attribution)",
+                       "what_fixed_it":  "Poster reports frame rate returned to normal after removing AnySign4PC",
+                       "category_reported":  "fin_security",
+                       "program":  "AnySign4PC",
+                       "conflict_with":  "Game (not named)",
+                       "mechanism":  "background_service",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "AnySign4pc",
+                                                 "metric":  "CPU",
+                                                 "value":  "about 90%",
+                                                 "condition":  "Task Manager reading during gaming; poster reports frame rate falling from about 150 to 20-30 for roughly 5 seconds"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "AnySign 이거 완전 쓰레기네요 ㅠㅠ",
+                       "absent_from_source":  [
+                                                  "game_title",
+                                                  "os",
+                                                  "anysign_version",
+                                                  "independent_verification"
+                                              ]
+                   }
+}

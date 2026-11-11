@@ -1,0 +1,59 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-vs-01",
+    "marked_at":  "2021-11-19T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "slow",
+                    "scope":  "single_app",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "cl.exe",
+                      "link.exe"
+                  ],
+    "security":  {
+                     "realtime_av":  [
+                                         "Windows Defender Antivirus"
+                                     ]
+                 },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://devblogs.microsoft.com/cppblog/cpp-build-throughput-investigation-and-tune-up/",
+                       "site":  "devblogs.microsoft.com",
+                       "posted_date":  "2021-11-19",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Excluding build tools and TMP from Defender appears as chart series; the text gives no before/after build times. The post recommends New-MpPerformanceRecording and Get-MpPerformanceReport.",
+                       "category_reported":  "antivirus",
+                       "program":  "Visual Studio",
+                       "conflict_with":  "Windows Defender scanning build outputs",
+                       "mechanism":  "realtime_scan",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "cl.exe",
+                                                 "metric":  "Defender scan total duration",
+                                                 "value":  "62272.1020 ms, count 8193",
+                                                 "condition":  "example Performance Analyzer report, VS 2022 MSVC 14.30 path"
+                                             },
+                                             {
+                                                 "process":  "link.exe",
+                                                 "metric":  "Defender scan total duration",
+                                                 "value":  "14587.9547 ms, count 1068",
+                                                 "condition":  "same report"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Windows Defender Antivirus automatically excludes most of the common build tools",
+                       "absent_from_source":  [
+                                                  "before/after numbers (chart only)",
+                                                  "CPU percentages",
+                                                  "OS version beyond Windows Server notes"
+                                              ]
+                   }
+}

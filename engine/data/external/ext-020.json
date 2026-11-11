@@ -1,0 +1,64 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-020",
+    "marked_at":  "2012-06-01T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 7 amd64"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "dlkmd.sys"
+                                         ],
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "DisplayLink Core Software",
+                        "version":  "6.3.38355.0.0"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "driver_rollback",
+                               "subject":  "DisplayLink software downgraded",
+                               "version":  "6.1"
+                           }
+                       ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "dlkmd.sys",
+                          "bugcheck":  "BugCheck 7E"
+                      }
+                  ],
+    "ground_truth":  {
+                         "layer":  "DRIVER",
+                         "category":  "display_util",
+                         "subject":  "dlkmd.sys"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.displaylink.org/forum/showthread.php?p=6861",
+                       "site":  "DisplayLink Forum",
+                       "posted_date":  "06-01-2012, 07:03 PM",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "dlkmd.sys",
+                       "what_fixed_it":  "Thread starter, 06-16-2012: \u0027I\u0027ve had 2 crash-free weeks after downgrading to 6.1.\u0027 and \u00276.2 still crashed on power save.\u0027 Staff said a fix would come in the next maintenance release; no version named.",
+                       "category_reported":  "display_util",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "BugCheck 7E, {ffffffffc0000005, fffff88005354d12, fffff88003552d28, fffff88003552580} | Probably caused by : dlkmd.sys ( dlkmd+19d12 ) | IMAGE_NAME: dlkmd.sys | DEBUG_FLR_IMAGE_TIMESTAMP: 4fb31c0e",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events",
+                                                  "modules"
+                                              ]
+                   }
+}

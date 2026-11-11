@@ -1,0 +1,51 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-ae-02",
+    "marked_at":  "2024-12-18T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows v10.0.22631"
+             },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "scope":  "single_app",
+                    "target_process":  ""
+                },
+    "modules":  [
+                    {
+                        "name":  "Geolayers"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "app_version",
+                               "subject":  "After Effects",
+                               "version":  "25.1.0.68"
+                           }
+                       ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://community.adobe.com/bug-reports-528/after-effects-randomly-crashing-during-renders-1215798",
+                       "site":  "community.adobe.com",
+                       "posted_date":  "2024-12-18",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "No confirmed fix. Community Manager suggested disabling Multi-Frame Rendering, stress testing with Prime95 or OCCT, and checking BIOS overclocking/XMP and lowering RAM clock if unstable.",
+                       "category_reported":  "other_sw",
+                       "program":  "After Effects",
+                       "mechanism":  "other",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "AE crashes randomly during renders, never during editing or launch just renders.",
+                       "absent_from_source":  [
+                                                  "evidence_kind: error codes appear only in attached images",
+                                                  "faulting module",
+                                                  "exception code",
+                                                  "GPU and driver",
+                                                  "modules: Geolayers is a plug-in name; its file name is not stated"
+                                              ]
+                   }
+}

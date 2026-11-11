@@ -1,0 +1,61 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-hw-01",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "KERNELBASE.dll",
+                                             "HwpPlugin.dll"
+                                         ],
+                    "target_process":  ""
+                },
+    "modules":  [
+                    {
+                        "name":  "HwpPlugin.dll"
+                    }
+                ],
+    "events":  [
+                   {
+                       "subject":  "로딩 중 강제 종료",
+                       "faulting_module":  "KERNELBASE.dll"
+                   },
+                   {
+                       "subject":  "인쇄 또는 복사·붙여넣기 시 강제 종료",
+                       "exception_code":  "c0000005"
+                   },
+                   {
+                       "subject":  "복사·붙여넣기 시 강제 종료 (이벤트 뷰어)",
+                       "faulting_module":  "HwpPlugin.dll"
+                   },
+                   {
+                       "subject":  "DLL 로드 실패",
+                       "exception_code":  "0x8007007e"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://m.hancom.com/support/faqCenter/faq/detail/3285",
+                       "site":  "m.hancom.com",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "백신·보안 프로그램에서 한컴오피스 설치 폴더 예외 등록 후 재부팅; 격리함 확인·복원; DRM·DLP 솔루션 확인 및 최신 버전 업데이트.",
+                       "category_reported":  "antivirus",
+                       "program":  "Hancom HWP",
+                       "conflict_with":  "백신·보안 프로그램, DRM·DLP·문서 보안 솔루션 (SoftCamp, MarkAny, OpenText, Fasoo가 예시로 언급됨)",
+                       "mechanism":  "other",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "임시 폴더의 파일을 실행할 수 없습니다. 설치를 중단합니다.",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "event provider and id",
+                                                  "named antivirus products beyond the DRM/DLP examples"
+                                              ]
+                   }
+}

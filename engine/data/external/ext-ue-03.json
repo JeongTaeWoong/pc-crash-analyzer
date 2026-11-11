@@ -1,0 +1,46 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-ue-03",
+    "marked_at":  "2021-12-19T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "target_process":  "UnrealEditor.exe",
+                    "scope":  "single_app"
+                },
+    "processes":  [
+                      "MSI Afterburner",
+                      "RivaTuner Statistics Server"
+                  ],
+    "ground_truth":  {
+                         "layer":  "SW",
+                         "category":  "overlay"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.unrealengine.com/t/unreal-engine-5-startup-d3d-error-crash-solved/267184",
+                       "site":  "forums.unrealengine.com",
+                       "posted_date":  "2021-12-19",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "MSI Afterburner / RivaTuner Statistics Server, per original poster",
+                       "what_fixed_it":  "Exit Afterburner and RTSS from the tray, or add UnrealEditor.exe to RTSS with Application Detection Level None. Replies mixed; later posts say not fixed on 5.0.3 and 5.5.4.",
+                       "category_reported":  "overlay",
+                       "program":  "Unreal Engine",
+                       "conflict_with":  "MSI Afterburner and RivaTuner Statistics Server",
+                       "mechanism":  "M1",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Not fixed in 5.0.3 yet",
+                       "absent_from_source":  [
+                                                  "evidence_kind: no log text or numbers",
+                                                  "exact log line",
+                                                  "OS",
+                                                  "GPU and driver",
+                                                  "Epic staff reply: none"
+                                              ]
+                   }
+}

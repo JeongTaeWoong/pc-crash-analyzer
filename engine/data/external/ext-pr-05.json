@@ -1,0 +1,63 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-pr-05",
+    "marked_at":  "2026-06-10T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows 11 Pro 24H2"
+             },
+    "symptom":  {
+                    "type":  "slow",
+                    "scope":  "single_app",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "Power Automate (one participant\u0027s fix)"
+                  ],
+    "change_history":  [
+                           {
+                               "kind":  "app_version",
+                               "subject":  "Premiere Pro",
+                               "version":  "26.2.0 and 26.2.2 affected; 26.0.2 after rollback resolved it"
+                           }
+                       ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://community.adobe.com/bug-reports-728/premiere-pro-26-2-26-2-2-severe-ui-lag-and-freezing-on-every-click-resolved-only-by-rolling-back-to-26-0-2-1627273",
+                       "site":  "community.adobe.com",
+                       "posted_date":  "2026-06-10",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Rollback to 26.0.2 (original poster); one participant reported uninstalling Power Automate fixed it. Adobe confirmed no fix.",
+                       "category_reported":  "other_sw",
+                       "program":  "Premiere Pro",
+                       "mechanism":  "other",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "Premiere Pro",
+                                                 "metric":  "freeze duration",
+                                                 "value":  "a few seconds up to several minutes",
+                                                 "condition":  "26.2.x"
+                                             },
+                                             {
+                                                 "process":  "Premiere Pro",
+                                                 "metric":  "hang frequency",
+                                                 "value":  "several times per hour",
+                                                 "condition":  "26.2.x"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "from a few seconds up to several minutes",
+                       "absent_from_source":  [
+                                                  "GPU and driver: left as template placeholders in the original post",
+                                                  "faulting module",
+                                                  "events",
+                                                  "culprit"
+                                              ]
+                   }
+}

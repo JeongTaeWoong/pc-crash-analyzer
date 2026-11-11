@@ -1,0 +1,45 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-013",
+    "marked_at":  "2020-05-06T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "target_process":  "VALORANT (beta)",
+                    "scope":  "multiple_apps"
+                },
+    "processes":  [
+                      "HWMonitor",
+                      "NZXT CAM",
+                      "MSI Afterburner",
+                      "MSI Command Center"
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.profesionalreview.com/2020/05/06/valorant-bloquea-el-software-de-monitorizacion/amp/",
+                       "site":  "profesionalreview.com",
+                       "posted_date":  "2020-05-06",
+                       "grade":  "C",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "true",
+                       "label_withheld":  "true",
+                       "culprit_reported":  "Riot Vanguard (author\u0027s attribution; no Riot statement in the article)",
+                       "what_fixed_it":  "Author reports everything returned to normal after uninstalling the Valorant beta; other options named are a BIOS update or setting fan curves in BIOS",
+                       "category_reported":  "anticheat",
+                       "program":  "Riot Vanguard",
+                       "conflict_with":  "HWMonitor, NZXT CAM, MSI Afterburner, MSI Command Center and motherboard sensor reads",
+                       "mechanism":  "M2",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "si no giran los ventiladores a los RPM necesarios, hay riesgo de sobrecalentamiento.",
+                       "absent_from_source":  [
+                                                  "symptom_is_monitoring_tools_losing_sensors_nearest_enum_chosen",
+                                                  "no_Riot_statement",
+                                                  "driver_names",
+                                                  "measured_temperature"
+                                              ]
+                   }
+}

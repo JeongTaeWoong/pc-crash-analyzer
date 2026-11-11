@@ -1,0 +1,61 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-dk-03",
+    "marked_at":  "2019-06-17T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows build 18917 (original); later reports cite builds up to 26200.8037"
+             },
+    "symptom":  {
+                    "type":  "slow",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "Vmmem"
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://github.com/microsoft/WSL/issues/4166",
+                       "site":  "github.com/microsoft/WSL",
+                       "posted_date":  "2019-06-17",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Community workarounds: memory= under [wsl2] and autoMemoryReclaim=gradual under [experimental] in .wslconfig, then wsl --shutdown. A maintainer said in 2019 that a fix was in the works; the issue remains open.",
+                       "category_reported":  "app_memory",
+                       "program":  "Docker Desktop/WSL2",
+                       "mechanism":  "memory_leak",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "Vmmem",
+                                                 "metric":  "RAM used",
+                                                 "value":  "about 7 GB of 16 GB; approached 100% of system memory",
+                                                 "condition":  "original report, build 18917"
+                                             },
+                                             {
+                                                 "process":  "Vmmem",
+                                                 "metric":  "RAM used",
+                                                 "value":  "about 29 GB+ of 32 GB",
+                                                 "condition":  "Aug 2019 report, after under 15 minutes"
+                                             },
+                                             {
+                                                 "process":  "Vmmem",
+                                                 "metric":  "RAM used",
+                                                 "value":  "about 22 GB with 1.2 GB used inside Linux",
+                                                 "condition":  "2026 comment"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "We have a fix for this in the works.",
+                       "absent_from_source":  [
+                                                  "root cause: no maintainer statement",
+                                                  "linked fix",
+                                                  "mechanism label is approximate because no maintainer stated a leak"
+                                              ]
+                   }
+}

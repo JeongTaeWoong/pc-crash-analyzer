@@ -11,5 +11,6 @@
     <PackageReference Include="LibreHardwareMonitorLib" Version="0.9.7-pre749" />
     <PackageReference Include="System.Management" Version="10.0.12" />
     <PackageReference Include="Microsoft.Diagnostics.Tracing.TraceEvent" Version="3.1.8" />
+    <PackageReference Include="System.Diagnostics.PerformanceCounter" Version="8.0.0" />
   </ItemGroup>
 </Project>

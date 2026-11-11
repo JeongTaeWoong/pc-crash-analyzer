@@ -16,7 +16,8 @@ long long referenceTime(const Snapshot& s);
 // 변경이 증상보다 '뒤'에 일어난 경우는 원인일 수 없으므로 크게 깎는다.
 double timeCorrelation(long long changeTime, long long symptomTime, const Rules& r);
 
-bool isAppCrashEvent(const EventItem& e);    // 1000/1001
+bool isLiveKernelEvent(const EventItem& e);  // WER 1001 LiveKernelEvent (수집기가 subject 를 "LiveKernelEvent 0x141" 로 넣는다)
+bool isAppCrashEvent(const EventItem& e);    // 1000/1001 (라이브 커널 이벤트 제외)
 bool isDisplayEvent(const EventItem& e);     // 4101 등 디스플레이 드라이버 복구
 bool isKernelPower41(const EventItem& e);    // 예고 없는 종료
 bool isWheaEvent(const EventItem& e);        // 하드웨어 오류

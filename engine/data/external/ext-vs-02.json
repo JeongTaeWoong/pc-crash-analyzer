@@ -1,0 +1,44 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-vs-02",
+    "marked_at":  "2018-01-26T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "slow",
+                    "target_process":  "devenv",
+                    "scope":  "single_app"
+                },
+    "processes":  [
+                      "devenv"
+                  ],
+    "events":  [
+                   {
+                       "provider":  "Microsoft-VisualStudio/ExtensionUIUnresponsiveness",
+                       "subject":  "devenv"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/visualstudio/extensibility/how-to-diagnose-ui-delays-caused-by-extensions?view=vs-2022",
+                       "site":  "learn.microsoft.com",
+                       "posted_date":  "2018-01-26",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "The notification offers disabling the extension; ActivityLog.xml nodes with source UIDelayNotifications name the blamed extension.",
+                       "category_reported":  "other_sw",
+                       "program":  "Visual Studio",
+                       "conflict_with":  "Installed and enabled Visual Studio extensions",
+                       "mechanism":  "other",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "If Visual Studio determines that a call-stack frame belongs to a module that is part of an installed and enabled extension, it shows a notification.",
+                       "absent_from_source":  [
+                                                  "named third-party extension examples",
+                                                  "numbers"
+                                              ]
+                   }
+}

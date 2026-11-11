@@ -1,0 +1,58 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-026",
+    "marked_at":  "2012-12-28T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system",
+                    "event_id":  129
+                },
+    "host":  {
+                 "os":  "W8 Pro (recently upgraded)"
+             },
+    "symptom":  {
+                    "type":  "freeze",
+                    "scope":  "unknown",
+                    "target_process":  ""
+                },
+    "change_history":  [
+                           {
+                               "kind":  "os_upgrade",
+                               "subject":  "recently upgraded to W8 Pro"
+                           }
+                       ],
+    "events":  [
+                   {
+                       "provider":  "storahci",
+                       "id":  129,
+                       "subject":  "\\Device\\RaidPort0"
+                   },
+                   {
+                       "provider":  "disk",
+                       "id":  153,
+                       "subject":  "Disk 0; \\Device\\Harddisk0\\DR0"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/2561446/repeated-storahci-and-disk-warnings",
+                       "site":  "Microsoft Q\u0026A",
+                       "posted_date":  "2012-12-28",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Reply: \u0027So I disabled Aggressive Link Power Management (ALPE) and Aggressive Slumber / Partial Management (ASP) in the BIOS and that seems to have eliminated the errors.\u0027 Reply carries the generic \u0027Anonymous\u0027 label also used on the question, so same authorship is not verifiable.",
+                       "category_reported":  "storage",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Reset to device, \\Device\\RaidPort0, was issued. | The IO operation at logical block address 3a908d68 for Disk 0 was retried.",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "symptom_type",
+                                                  "minidumps",
+                                                  "modules",
+                                                  "drivers",
+                                                  "culprit",
+                                                  "resolution.confirmed_by_poster"
+                                              ]
+                   }
+}

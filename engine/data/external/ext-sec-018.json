@@ -1,0 +1,68 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-018",
+    "marked_at":  "2016-11-11T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 10 build 14393"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "target_process":  "Adrenaline",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "win32kbase.sys (+0x20023)",
+                                             "xhunter1.sys (+0x5488)"
+                                         ]
+                },
+    "drivers":  [
+                    {
+                        "name":  "win32kbase.sys"
+                    },
+                    {
+                        "name":  "xhunter1.sys"
+                    },
+                    {
+                        "name":  "nvlddmkm.sys",
+                        "version":  "353.62"
+                    }
+                ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "win32kbase.sys (+0x20023)",
+                          "bugcheck":  "0x1E KMODE_EXCEPTION_NOT_HANDLED"
+                      },
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "xhunter1.sys (+0x5488)",
+                          "bugcheck":  "0x1E KMODE_EXCEPTION_NOT_HANDLED"
+                      },
+                      {
+                          "kind":  "kernel",
+                          "bugcheck":  "0xFC ATTEMPTED_EXECUTE_OF_NOEXECUTE_MEMORY (one dump)"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.tomshardware.com/threads/xingcode3-problems-help.2857957",
+                       "site":  "forums.tomshardware.com",
+                       "posted_date":  "2016-11-11",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "category_reported":  "anticheat",
+                       "program":  "XIGNCODE3 (xhunter1.sys)",
+                       "mechanism":  "M2",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "xhunter1.sys (+0x5488)",
+                       "absent_from_source":  [
+                                                  "confirmed_fix",
+                                                  "report_conclusion_flagged_nvlddmkm_too"
+                                              ]
+                   }
+}

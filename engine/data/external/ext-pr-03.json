@@ -1,0 +1,54 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-pr-03",
+    "marked_at":  "2021-02-09T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows 10 (original post); Windows 11 (later replies)"
+             },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "scope":  "unknown",
+                    "faulting_modules":  [
+                                             "nvlddmkm"
+                                         ],
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "NVIDIA Studio driver (RTX 2080 Ti)"
+                    }
+                ],
+    "events":  [
+                   {
+                       "subject":  "Display driver nvlddmkm stopped responding and has successfully recovered.",
+                       "faulting_module":  "nvlddmkm"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://community.adobe.com/questions-729/display-driver-nvlddmkm-stopped-responding-crash-problem-in-premiere-1375092",
+                       "site":  "community.adobe.com",
+                       "posted_date":  "2021-02-09",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Accepted answer (2022-07-28) recommends turning off HAGS; Adobe staff suggested a clean reinstall of NVIDIA drivers.",
+                       "category_reported":  "gpu_driver",
+                       "program":  "Premiere Pro",
+                       "conflict_with":  "Hardware-Accelerated GPU Scheduling, per accepted answer",
+                       "mechanism":  "M4",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Display driver nvlddmkm stopped responding and has successfully recovered.",
+                       "absent_from_source":  [
+                                                  "event provider and id (Event ID numbers not listed)",
+                                                  "driver version",
+                                                  "Premiere version",
+                                                  "original poster\u0027s confirmation of the fix"
+                                              ]
+                   }
+}

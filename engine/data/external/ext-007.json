@@ -1,0 +1,48 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-007",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Win 10 21H1 (19044.2364)"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "klif.sys"
+                                         ],
+                    "target_process":  ""
+                },
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "klif.sys",
+                          "bugcheck":  "SYSTEM SCAN AT RAISED IRQL CAUGHT IMPROPER DRIVER UPLOAD"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/4296142/losing-my-mind-blue-screen-loop-no-options",
+                       "site":  "Microsoft Q\u0026A",
+                       "posted_date":  "2023-01-29, 13:30:41 UTC",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "true",
+                       "label_withheld":  "true",
+                       "culprit_reported":  "klif.sys",
+                       "what_fixed_it":  "Replier reporting their own machine (Samsung R780, Kaspersky Free): deleted klif.sys via recovery cmd, rebooted, uninstalled Kaspersky. \u0027The problem seems to be resolved.\u0027",
+                       "category_reported":  "antivirus",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "Stop Code: SYSTEM SCAN AT RAISED IRQL CAUGHT IMPROPER DRIVER UPLOAD | What failed: klif.sys",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events",
+                                                  "modules",
+                                                  "drivers",
+                                                  "change_history"
+                                              ]
+                   }
+}

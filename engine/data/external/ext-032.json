@@ -1,0 +1,50 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-032",
+    "marked_at":  "2018-11-29T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey",
+                    "event_id":  2004
+                },
+    "host":  {
+                 "os":  "Windows 10"
+             },
+    "symptom":  {
+                    "type":  "freeze",
+                    "target_process":  "LogonUI.exe",
+                    "scope":  "system_wide"
+                },
+    "events":  [
+                   {
+                       "provider":  "Microsoft-Windows-Resource-Exhaustion-Detector",
+                       "id":  2004,
+                       "subject":  "LogonUI.exe (14740) consumed 31767203840 bytes, NortonSecurity.exe (5004) consumed 737849344 bytes, and chrome.exe (988) consumed 551976960 bytes"
+                   },
+                   {
+                       "provider":  "Microsoft-Windows-Resource-Exhaustion-Detector",
+                       "id":  2004,
+                       "subject":  "Wacom_TouchUser.exe (11564) consumed 29938606080 bytes, OUTLOOK.EXE (17264) consumed 419147776 bytes, and chrome.exe (8224) consumed 393830400 bytes"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/3165931/windows-10-blows-up-random-process-virtual-memory",
+                       "site":  "Microsoft Q\u0026A",
+                       "posted_date":  "2018-11-28T22:48:38+00:00",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "category_reported":  "app_memory",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Windows successfully diagnosed a low virtual memory condition. The following programs consumed the most virtual memory: LogonUI.exe (14740) consumed 31767203840 bytes, NortonSecurity.exe (5004) consumed 737849344 bytes, and chrome.exe (988) consumed 551976960 bytes.",
+                       "absent_from_source":  [
+                                                  "minidumps",
+                                                  "modules",
+                                                  "drivers",
+                                                  "change_history",
+                                                  "resolution",
+                                                  "culprit"
+                                              ]
+                   }
+}

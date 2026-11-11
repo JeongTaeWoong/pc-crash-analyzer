@@ -1,0 +1,52 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-un-03",
+    "marked_at":  "2026-01-14T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "scope":  "single_app",
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "NVIDIA Studio driver (RTX 2060 Super)",
+                        "version":  "591.74"
+                    },
+                    {
+                        "name":  "NVIDIA driver",
+                        "version":  "581.57"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "app_version",
+                               "subject":  "Unity",
+                               "version":  "6000.3.1f1 updated to 6000.3.4f1"
+                           }
+                       ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://discussions.unity.com/t/dx12-graphics-crash-in-editor-force-dx11-fixes-it/1703990",
+                       "site":  "discussions.unity.com",
+                       "posted_date":  "2026-01-14",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Thread title reports -force-d3d11 avoids it. Unity staff said a related fix shipped in 6000.3.9f1; one user on 6000.3.9f1 said it still crashes. One user reported no timeouts after disabling HAGS.",
+                       "category_reported":  "gpu_driver",
+                       "program":  "Unity",
+                       "mechanism":  "M4",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "d3d12: swapchain present failed (887a0005).",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "faulting DLL",
+                                                  "original poster\u0027s confirmation of a fix"
+                                              ]
+                   }
+}

@@ -1,0 +1,49 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-038",
+    "marked_at":  "2020-04-27T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "fps_drop",
+                    "target_process":  "Mount \u0026 Blade",
+                    "scope":  "single_app"
+                },
+    "processes":  [
+                      "ASDF Service Application"
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://gall.dcinside.com/mgallery/board/view/?id=mandb\u0026no=85968",
+                       "site":  "gall.dcinside.com",
+                       "posted_date":  "2020-04-27",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "AhnLab Safe Transaction / ASDF Service Application (poster\u0027s attribution)",
+                       "what_fixed_it":  "Poster describes noticeable improvement after removing AhnLab components; the program restarted at every reboot, so the improvement was only partial",
+                       "category_reported":  "fin_security",
+                       "program":  "AhnLab Safe Transaction (ASDF Service Application named)",
+                       "conflict_with":  "Mount \u0026 Blade (in-game frame drops)",
+                       "mechanism":  "background_service",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "ASDF Service Application",
+                                                 "metric":  "CPU",
+                                                 "value":  "20퍼센트 대 during spikes",
+                                                 "condition":  "Poster\u0027s account during play"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "20퍼센트 대",
+                       "absent_from_source":  [
+                                                  "fps_numbers",
+                                                  "os",
+                                                  "asTx_version",
+                                                  "independent_confirmation"
+                                              ]
+                   }
+}

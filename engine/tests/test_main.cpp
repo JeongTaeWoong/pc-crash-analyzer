@@ -212,6 +212,124 @@ void testScenarios() {
     if (count != 1) merged = false;
     check(merged, "오류 모듈과 로드 모듈이 같은 후보로 합쳐짐", std::to_string(count) + "건");
   }
+  {
+    std::cout << "[s12] 장시간 작업 중 느려짐 — 앱 메모리 증가 (수집기 v0.6 resource_trends, 2026-10-29)\n";
+    const Diagnosis d = diagnoseFile("s12_slow_app_memory.json", guide);
+    check(d.symptom == "slow", "증상 slow 를 읽음", d.symptom);
+    check(d.top() && sameSubject(d.top()->subject, "Unity") && d.top()->category == "app_memory",
+          "1순위 = 대상 프로그램 자체의 메모리 누적(app_memory, 분당 12MB, R² 0.97)", topLabel(d));
+    // 플래너는 비용 가중이라 20초짜리 오버레이 점검이 먼저 올 수 있다 — 재시작 점검이 계획에 들어가는지만 본다
+    bool restartPlanned = false;
+    for (std::size_t i = 0; i < d.plan.steps.size(); i++) {
+      if (d.plan.steps[i].check.template_id == "app_memory_restart_test") restartPlanned = true;
+    }
+    check(restartPlanned, "계획에 '저장 후 프로그램 재시작' 점검 포함(의심 프로그램 종료가 아님)");
+    bool finsec = false;
+    bool powerEvt = false;
+    for (std::size_t i = 0; i < d.candidates.size(); i++) {
+      if (d.candidates[i].category == "fin_security") finsec = true;
+      if (d.candidates[i].category == "power") powerEvt = true;
+    }
+    check(finsec, "배경 CPU 13.9% 상주물(SignKoreaWD)이 금융보안 후보로 올라옴");
+    check(powerEvt, "프로세서 속도 제한 이벤트(37)가 전원 후보 근거로 붙음");
+  }
+  {
+    std::cout << "[live] LiveKernelEvent 0x141 은 앱 크래시가 아니라 디스플레이(TDR) 신호\n";
+    EventItem lk;
+    lk.id = 1001;
+    lk.provider = "Windows Error Reporting";
+    lk.subject = "LiveKernelEvent 0x141";
+    check(!signals::isAppCrashEvent(lk), "라이브 커널 이벤트를 앱 크래시로 세지 않음");
+    check(signals::isDisplayEvent(lk), "0x141 은 디스플레이 이벤트");
+    lk.subject = "LiveKernelEvent 0x144";
+    check(!signals::isDisplayEvent(lk), "0x144(USB3) 는 디스플레이 이벤트 아님");
+    EventItem app;
+    app.id = 1001;
+    app.provider = "Windows Error Reporting";
+    app.subject = "game.exe";
+    check(signals::isAppCrashEvent(app), "일반 WER 1001 은 그대로 앱 크래시");
+  }
+  {
+    std::cout << "[s12c] 같은 제품의 커널 드라이버 여러 개는 후보 하나 + 클린 부트는 대상 프로그램을 덮지 않음\n";
+    json::Value v = loadJson("s12_slow_app_memory.json");
+    json::Value drv = json::Value::makeArray();
+    const char* names[] = {"AntiStealth_SafeTransaction", "asc_kbc_SafeTransaction", "ATamptNt_SafeTransaction"};
+    for (int i = 0; i < 3; i++) {
+      json::Value d = json::Value::makeObject();
+      d.set("name", json::Value(names[i]));
+      d.set("type", json::Value("kernel"));
+      drv.push(d);
+    }
+    v.set("drivers", drv);
+    std::vector<std::string> warn;
+    const Snapshot s = parseSnapshot(v, &warn);
+    const Diagnosis d = diagnose(s, Rules::defaults(), EngineVersion::V1, guide, warn);
+    int ast = 0;
+    for (std::size_t i = 0; i < d.candidates.size(); i++) {
+      if (containsNoCase(d.candidates[i].label, "Safe Transaction")) ast++;
+    }
+    check(ast == 1, "AhnLab Safe Transaction 드라이버 3개 → 후보 1개", std::to_string(ast) + "건");
+    bool cleanBootCoversApp = false;
+    for (std::size_t i = 0; i < d.plan.steps.size(); i++) {
+      if (d.plan.steps[i].check.template_id != "clean_boot") continue;
+      for (std::size_t k = 0; k < d.plan.steps[i].check.covers.size(); k++) {
+        if (d.plan.steps[i].check.covers[k].find("app_memory:") == 0) cleanBootCoversApp = true;
+      }
+    }
+    check(!cleanBootCoversApp, "클린 부트 점검이 대상 프로그램 자체(app_memory)를 덮지 않음");
+  }
+  {
+    std::cout << "[s12d] 느려짐인데 추세 근거가 없으면 '근거 부족' 경고 (10/29 빌드 반복 실험)\n";
+    json::Value v = loadJson("s12_slow_app_memory.json");
+    json::Value rt = json::Value::makeObject();
+    rt.set("window_minutes", json::Value(60.0));
+    rt.set("samples", json::Value(14.0));
+    v.set("resource_trends", rt);
+    json::Value ev = json::Value::makeArray();
+    v.set("events", ev);
+    std::vector<std::string> warn;
+    const Snapshot s = parseSnapshot(v, &warn);
+    const Diagnosis d = diagnose(s, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool weak = false;
+    for (std::size_t i = 0; i < d.warnings.size(); i++) {
+      if (d.warnings[i].find("근거 부족") != std::string::npos) weak = true;
+    }
+    check(weak, "추세 근거 없는 느려짐 → '근거 부족' 경고");
+    check(Rules::defaults().isAutoUpdateNoise("Microsoft GameInput"), "Microsoft Store 자동 업데이트도 노이즈 목록");
+  }
+  {
+    std::cout << "[s12b] 같은 스냅샷 + GPU 메모리 95% (B 메커니즘)\n";
+    json::Value v = loadJson("s12_slow_app_memory.json");
+    json::Value rt = v["resource_trends"];
+    rt.set("gpu_mem_total_mb", json::Value(16376.0));
+    rt.set("gpu_mem_pct_max", json::Value(95.0));
+    rt.set("gpu_name", json::Value("NVIDIA GeForce RTX 4070 Ti SUPER"));
+    v.set("resource_trends", rt);
+    std::vector<std::string> warn;
+    const Snapshot s = parseSnapshot(v, &warn);
+    const Diagnosis d = diagnose(s, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool vram = false;
+    for (std::size_t i = 0; i < d.candidates.size(); i++) {
+      for (std::size_t k = 0; k < d.candidates[i].evidence.size(); k++) {
+        if (d.candidates[i].evidence[k].detail.find("GPU 메모리가") != std::string::npos) vram = true;
+      }
+    }
+    check(vram, "GPU 메모리 95% 가 초점 프로그램 근거로 붙음");
+  }
+  {
+    std::cout << "[s13] 브라우저 자동 업데이트가 '증상 직전 설치'로 보이는 노이즈 (2026-10-29 실덤프 재현)\n";
+    const Rules r = Rules::defaults();
+    check(r.isAutoUpdateNoise("Google Chrome") && r.isAutoUpdateNoise("Microsoft Edge WebView2 런타임") &&
+              !r.isAutoUpdateNoise("Riot Vanguard"),
+          "자동 업데이트 목록 판정 (Chrome·WebView2 O, Vanguard X)");
+    const Diagnosis d = diagnoseFile("s13_autoupdate_noise.json", guide);
+    check(d.top() && d.top()->category == "antivirus", "1순위 = 오류 모듈의 백신 훅(브라우저 업데이트가 아님)", topLabel(d));
+    double chromeProb = 0;
+    for (std::size_t i = 0; i < d.candidates.size(); i++) {
+      if (containsNoCase(d.candidates[i].subject, "chrome")) chromeProb = d.candidates[i].probability;
+    }
+    check(chromeProb < 0.15, "Chrome 자동 업데이트 후보 확률 < 15%", std::to_string(chromeProb));
+  }
 }
 
 // ---------------------------------------------------------------- 2차(드라이버)·3차(하드웨어) 시나리오

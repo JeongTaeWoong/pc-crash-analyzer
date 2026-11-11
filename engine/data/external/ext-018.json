@@ -1,0 +1,52 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-018",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows 10 (OSNAME in dump; OS_VERSION: 10.0.19041.1)"
+             },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "target_process":  "NMS.exe",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "gameoverlayrenderer64"
+                                         ]
+                },
+    "modules":  [
+                    {
+                        "process":  "NMS.exe",
+                        "name":  "gameoverlayrenderer64",
+                        "version":  "8.30.80.46"
+                    }
+                ],
+    "minidumps":  [
+                      {
+                          "kind":  "app",
+                          "process":  "NMS.exe",
+                          "faulting_module":  "gameoverlayrenderer64"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://steamcommunity.com/app/275850/discussions/1/3815166629925861443/",
+                       "site":  "Steam Community",
+                       "posted_date":  "3 Sep, 2023 @ 3:35pm",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Two changes suggested in replies: uninstall OBS and delete leftover C:\\ProgramData\\obs-studio-hook\\graphics-hook64.dll; disable RivaTuner Statistics Server from autostart or uninstall it. OP: \u0027you absolute genius, dont know which of the two fixed it but it ran.\u0027",
+                       "category_reported":  "overlay",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "ExceptionCode: c0000005 (Access violation) | Failure.Bucket Value: INVALID_POINTER_READ_c0000005_gameoverlayrenderer64.dll!Unknown | MODULE_NAME: gameoverlayrenderer64 | IMAGE_VERSION: 8.30.80.46",
+                       "absent_from_source":  [
+                                                  "events",
+                                                  "drivers",
+                                                  "change_history",
+                                                  "culprit"
+                                              ]
+                   }
+}

@@ -1,0 +1,48 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-019",
+    "marked_at":  "2014-10-06T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "windows 8.1"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "dlkmd.sys"
+                                         ],
+                    "target_process":  ""
+                },
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "dlkmd.sys",
+                          "bugcheck":  "PAGE_FAULT_IN_NONPAGED_AREA"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.displaylink.org/forum/archive/index.php/t-63352.html",
+                       "site":  "DisplayLink Forum",
+                       "posted_date":  "10-06-2014",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "OP: \u0027OK BSOD fixed!\u0027 after unplugging the dock, booting safe mode, using SafeMSI and uninstalling all DisplayLink components. Later: \u0027OK so reinstalling the same version from the very same installation file, worked!\u0027",
+                       "category_reported":  "display_util",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "PAGE_FAULT_IN_NONPAGED_AREA dlkmd.sys",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events",
+                                                  "modules",
+                                                  "drivers",
+                                                  "change_history",
+                                                  "culprit"
+                                              ]
+                   }
+}

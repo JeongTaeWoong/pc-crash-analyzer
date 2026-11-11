@@ -1,0 +1,53 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-009",
+    "marked_at":  "2010-03-09T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 7 64-bit (as stated)"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "target_process":  "vsmon.exe",
+                    "scope":  "system_wide",
+                    "faulting_modules":  [
+                                             "NETIO.SYS"
+                                         ]
+                },
+    "drivers":  [
+                    {
+                        "name":  "vsdatant.sys"
+                    }
+                ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "process":  "vsmon.exe",
+                          "faulting_module":  "NETIO.SYS",
+                          "bugcheck":  "SYSTEM_SERVICE_EXCEPTION (3b)"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/2441022/netio-sys-bsod-help-needed",
+                       "site":  "Microsoft Q\u0026A",
+                       "posted_date":  "2010-03-09T03:24:34+00:00",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Reply: uninstalled the ZoneAlarm Anti-Phishing/Site Status Toolbar, \u0027which seems to have stopped the BSODs so far (fingers crossed)\u0027. Reply carries the generic \u0027Anonymous\u0027 label also used on the question, so same authorship is not verifiable.",
+                       "category_reported":  "security_firewall",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "BugCheck 3B, {c0000005, fffff8800142558d, fffff88002984150, 0} | Unable to load image vsdatant.sys, Win32 error 0n2 | Probably caused by : NETIO.SYS ( NETIO!CalloutStreamDataInit+1d ) | IMAGE_NAME: NETIO.SYS | PROCESS_NAME: vsmon.exe",
+                       "absent_from_source":  [
+                                                  "events",
+                                                  "modules",
+                                                  "change_history",
+                                                  "culprit",
+                                                  "resolution.confirmed_by_poster"
+                                              ]
+                   }
+}

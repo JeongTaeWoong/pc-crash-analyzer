@@ -1,0 +1,60 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-015",
+    "marked_at":  "2020-07-01T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Microsoft Windows [Version 10.0.19041.330]"
+             },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "target_process":  "WindowsTerminal.exe",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "RTSSHooks64.dll"
+                                         ]
+                },
+    "modules":  [
+                    {
+                        "process":  "WindowsTerminal.exe",
+                        "name":  "RTSSHooks64.dll",
+                        "version":  "0.0.0.0"
+                    }
+                ],
+    "events":  [
+                   {
+                       "subject":  "WindowsTerminal.exe",
+                       "faulting_module":  "RTSSHooks64.dll",
+                       "exception_code":  "0xc0000005"
+                   }
+               ],
+    "ground_truth":  {
+                         "layer":  "SW",
+                         "category":  "overlay",
+                         "subject":  "RTSSHooks64.dll"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://github.com/microsoft/terminal/issues/6746",
+                       "site":  "GitHub",
+                       "posted_date":  "July 1, 2020",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "RTSSHooks64.dll (maintainer: outside of our code)",
+                       "what_fixed_it":  "Original reporter, Jan 15, 2021: \u0027Try to update to the latest WT and RTSS.\u0027 and \u0027I don\u0027t have that problem since long pretty long time.\u0027 Also suggested setting RTSS application detection level to none for WindowsTerminal.exe.",
+                       "category_reported":  "overlay",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Faulting application name: WindowsTerminal.exe, version: 1.0.2005.17002, time stamp: 0x5ec1a30d Faulting module name: RTSSHooks64.dll, version: 0.0.0.0, time stamp: 0x5d76621d Exception code: 0xc0000005 Fault offset: 0x0000000000004959",
+                       "absent_from_source":  [
+                                                  "events.provider",
+                                                  "events.id",
+                                                  "minidumps",
+                                                  "drivers",
+                                                  "change_history"
+                                              ]
+                   }
+}

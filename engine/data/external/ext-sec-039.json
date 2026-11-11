@@ -1,0 +1,45 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-039",
+    "marked_at":  "2022-11-01T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "target_process":  "Battlefield 2042",
+                    "scope":  "single_app"
+                },
+    "processes":  [
+                      "AhnLab Safe Transaction"
+                  ],
+    "ground_truth":  {
+                         "layer":  "SW",
+                         "category":  "fin_security"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://gall.dcinside.com/mgallery/board/view/?id=baf2042\u0026no=131620",
+                       "site":  "gall.dcinside.com",
+                       "posted_date":  "2022-11-01",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "AhnLab Safe Transaction (poster\u0027s attribution)",
+                       "what_fixed_it":  "Poster reports that turning the program off and deleting it solved the problem",
+                       "category_reported":  "fin_security",
+                       "program":  "AhnLab Safe Transaction",
+                       "conflict_with":  "Battlefield 2042 (game stuck at the connection loading screen)",
+                       "mechanism":  "other",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "접속 로딩창에서 멈추길래",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "asTx_version",
+                                                  "process_or_driver_detail",
+                                                  "independent_confirmation"
+                                              ]
+                   }
+}

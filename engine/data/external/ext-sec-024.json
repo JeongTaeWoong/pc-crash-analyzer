@@ -1,0 +1,43 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-024",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "input_loss",
+                    "scope":  "unknown",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "CKSetup (named in an install error)"
+                  ],
+    "security":  {
+                     "realtime_av":  [
+                                         "Kaspersky"
+                                     ]
+                 },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.raon.com/ko/support/inquiry/touchennxkey",
+                       "site":  "raon.com (RaonSecure support)",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Vendor FAQ: OfficeKeeper policy change by the security administrator or uninstall; Kaspersky renew or remove; vendor All Cleaner tool for reinstall or removal; macro gaming keyboards listed as unsupported",
+                       "category_reported":  "fin_security",
+                       "program":  "TouchEn nxKey",
+                       "conflict_with":  "Macro-capable gaming keyboards (unsupported); OfficeKeeper (error \u0027TOUCHENEX ... 변조\u0027); Kaspersky (install failure when license expired)",
+                       "mechanism":  "keyboard_hook",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "none: source gave no date",
+                       "verbatim_excerpt":  "TOUCHENEX 프로그램이 변조되었습니다.(EX)",
+                       "absent_from_source":  [
+                                                  "posted_date",
+                                                  "games_not_mentioned",
+                                                  "exact_sentence_on_gaming_keyboards_paraphrased_by_fetch_tool",
+                                                  "version"
+                                              ]
+                   }
+}

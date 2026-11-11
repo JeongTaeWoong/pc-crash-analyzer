@@ -1,0 +1,61 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-027",
+    "marked_at":  "2026-02-07T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system",
+                    "event_id":  41
+                },
+    "host":  {
+                 "os":  "Windows 11"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "change_history":  [
+                           {
+                               "kind":  "hardware_replacement",
+                               "subject":  "PSU replaced with new unit (Green GP800A-GED Bronze)"
+                           }
+                       ],
+    "events":  [
+                   {
+                       "provider":  "Kernel-Power",
+                       "id":  41,
+                       "subject":  "(63)"
+                   },
+                   {
+                       "provider":  "disk",
+                       "id":  7,
+                       "subject":  "\\Device\\Harddisk1\\DR1"
+                   },
+                   {
+                       "provider":  "Microsoft-Windows-WHEA-Logger",
+                       "id":  18,
+                       "subject":  "Processor Core"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.tomshardware.com/threads/kernel-power-41-63.3892740/",
+                       "site":  "Tom\u0027s Hardware Forum",
+                       "posted_date":  "Feb 7, 2026",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Feb 24, 2026: \u0027I fixed the issue by increasing the CPU voltage by 0.05V in the BIOS settings\u0027 and \u0027disabling Memory Fast Boot in the RAM settings.\u0027",
+                       "category_reported":  "power",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "A fatal hardware error has occurred. | Reported by component: Processor Core | Error Source: Machine Check Exception | Error Type: Cache Hierarchy Error | Processor APIC ID: 2 | The device, \\Device\\Harddisk1\\DR1, has a bad block.",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "minidumps",
+                                                  "modules",
+                                                  "drivers",
+                                                  "culprit"
+                                              ]
+                   }
+}

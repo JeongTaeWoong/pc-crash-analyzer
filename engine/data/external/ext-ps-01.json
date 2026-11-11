@@ -1,0 +1,93 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-ps-01",
+    "marked_at":  "2026-08-18T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_app_crash",
+                    "event_id":  1000
+                },
+    "host":  {
+                 "os":  "Windows 11 25H2 build 26200.9168 (one poster)"
+             },
+    "symptom":  {
+                    "type":  "launch_fail",
+                    "target_process":  "Photoshop.exe",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "OpenCLOn12.dll"
+                                         ]
+                },
+    "modules":  [
+                    {
+                        "process":  "Photoshop.exe",
+                        "name":  "OpenCLOn12.dll",
+                        "version":  "0.0.0.0"
+                    }
+                ],
+    "drivers":  [
+                    {
+                        "name":  "NVIDIA Studio driver (RTX 4060 Laptop GPU)",
+                        "version":  "610.88"
+                    },
+                    {
+                        "name":  "NVIDIA display driver installed by Windows Update",
+                        "version":  "31.0.15.2892"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "windows_update",
+                               "subject":  "KB5121003",
+                               "version":  "installed 8/12/2026"
+                           },
+                           {
+                               "kind":  "component",
+                               "subject":  "Microsoft.D3DMappingLayers",
+                               "version":  "1.2608.1.0"
+                           },
+                           {
+                               "kind":  "app_version",
+                               "subject":  "Photoshop",
+                               "version":  "27.9.1.1"
+                           }
+                       ],
+    "events":  [
+                   {
+                       "provider":  "Application Error",
+                       "id":  1000,
+                       "subject":  "Photoshop.exe",
+                       "faulting_module":  "OpenCLOn12.dll",
+                       "exception_code":  "0xc0000409"
+                   },
+                   {
+                       "provider":  "Application Error",
+                       "id":  1000,
+                       "subject":  "Photoshop (Beta).exe",
+                       "faulting_module":  "OpenCLOn12.dll",
+                       "exception_code":  "0xc0000409"
+                   }
+               ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://community.adobe.com/bug-reports-711/p-windows-photoshop-v27-9-1-crashes-at-launch-openclon12-dll-exception-0xc0000409-possible-windows-nvidia-driver-conflict-1637546/index6.html",
+                       "site":  "community.adobe.com",
+                       "posted_date":  "2026-08-18",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "what_fixed_it":  "Individual posters only: uninstalling the Compatibility Pack; newer NVIDIA driver (597.06 named by one poster); older Game Ready 528.92 for one poster; GPUDeny 1 in PSUserConfig.txt allowed launch but disables the GPU. None confirmed by Adobe.",
+                       "category_reported":  "os_update",
+                       "program":  "Photoshop",
+                       "conflict_with":  "Microsoft OpenCL, OpenGL and Vulkan Compatibility Pack (OpenCLOn12.dll) and KB5121003 per pinned reply; NVIDIA driver named by posters, not confirmed",
+                       "mechanism":  "other",
+                       "evidence_kind":  "log",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "we understand that the issue may be stemming from external sources (non-Adobe)",
+                       "absent_from_source":  [
+                                                  "minidumps",
+                                                  "culprit: no confirmed cause; pinned replier\u0027s role is not labeled",
+                                                  "follow-up promised in the pinned reply does not appear on the page"
+                                              ]
+                   }
+}

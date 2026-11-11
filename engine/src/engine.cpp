@@ -134,6 +134,26 @@ Diagnosis diagnose(const Snapshot& s, const Rules& r, EngineVersion version,
                       "생기기 쉽습니다.");
   }
 
+  if (s.symptom == Symptom::Slow) {
+    bool trendEvidence = false;
+    for (std::size_t i = 0; i < d.candidates.size() && !trendEvidence; i++) {
+      for (std::size_t k = 0; k < d.candidates[i].evidence.size(); k++) {
+        const Evidence& e = d.candidates[i].evidence[k];
+        if (e.kind == "sensor" || (e.kind == "coexist" && e.detail.find("CPU") != std::string::npos)) {
+          trendEvidence = true;
+          break;
+        }
+      }
+    }
+    if (!s.trends.available) {
+      d.warnings.push_back("느려짐 판정에 필요한 60분 자원 추세(resource_trends)가 없습니다. 수집기를 켜 둔 상태에서 "
+                           "느려질 때 다시 마킹해 주세요.");
+    } else if (!trendEvidence) {
+      d.warnings.push_back("느려짐 근거 부족: 최근 60분 추세에서 메모리 누적·GPU 메모리 압박·열 스로틀·배경 CPU 점유 중 "
+                           "뚜렷한 것이 없습니다. 아래 후보는 설치 이력·상주 여부만으로 본 약한 추정입니다.");
+    }
+  }
+
   if (!s.available.sensors) {
     d.warnings.push_back("센서 값 확인 불가: 하드웨어 판정 신뢰도를 낮춰 표시했습니다.");
   }

@@ -1,0 +1,64 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-ue-04",
+    "marked_at":  "2025-11-01T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "fps_drop",
+                    "target_process":  "UE5Editor.exe",
+                    "scope":  "single_app"
+                },
+    "processes":  [
+                      "MSI Afterburner",
+                      "RivaTuner Statistics Server"
+                  ],
+    "drivers":  [
+                    {
+                        "name":  "NVIDIA driver (RTX 3060)",
+                        "version":  "581.57"
+                    }
+                ],
+    "ground_truth":  {
+                         "layer":  "SW",
+                         "category":  "overlay"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://forums.developer.nvidia.com/t/ue5-editor-low-fps-on-dx12-rtx-3060-with-dual-monitors-while-vulkan-runs-smoothly/349794",
+                       "site":  "forums.developer.nvidia.com",
+                       "posted_date":  "2025-11-01",
+                       "grade":  "D",
+                       "confidence":  "user",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "RivaTuner Statistics Server, per poster",
+                       "what_fixed_it":  "Add UE5Editor.exe to RTSS and set Application detection level to None; the poster says this resolved the critical bug 100%.",
+                       "category_reported":  "overlay",
+                       "program":  "Unreal Engine",
+                       "conflict_with":  "RivaTuner Statistics Server (with MSI Afterburner)",
+                       "mechanism":  "M1",
+                       "evidence_kind":  "measurement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "UE5 Editor",
+                                                 "metric":  "FPS",
+                                                 "value":  "about 120 down to about 20",
+                                                 "condition":  "Blueprint window moved to second monitor, before RTSS fix"
+                                             },
+                                             {
+                                                 "process":  "UE5 Editor",
+                                                 "metric":  "FPS",
+                                                 "value":  "about 120 down to about 80",
+                                                 "condition":  "same move after RTSS fix; poster attributes the rest to 180Hz + 60Hz monitors"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "I have now confirmed this is caused by my monitors having extremely different refresh rates (180Hz + 60Hz).",
+                       "absent_from_source":  [
+                                                  "os",
+                                                  "NVIDIA representative reply: none visible"
+                                              ]
+                   }
+}

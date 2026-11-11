@@ -1,0 +1,66 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-sec-004",
+    "marked_at":  "2026-08-19T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "host":  {
+                 "os":  "Windows 11 24H2 (originating update listed: OS Build 26100.9168, KB5121003)"
+             },
+    "symptom":  {
+                    "type":  "app_crash",
+                    "target_process":  "ARC Raiders, MARVEL Tokon: Fighting Souls, THE FINALS",
+                    "scope":  "multiple_apps"
+                },
+    "drivers":  [
+                    {
+                        "name":  "file names similar to inpoutx64"
+                    }
+                ],
+    "change_history":  [
+                           {
+                               "kind":  "windows_update",
+                               "subject":  "KB5121003 (Microsoft states the issue is not caused by Windows updates)",
+                               "version":  "26100.9168"
+                           },
+                           {
+                               "kind":  "driver_block",
+                               "subject":  "Block preventing inpoutx64 from loading, targeted at ARC Raiders devices; included in September 2026 security updates"
+                           }
+                       ],
+    "events":  [
+                   {
+                       "subject":  "game application",
+                       "exception_code":  "EXCEPTION_ACCESS_VIOLATION"
+                   }
+               ],
+    "ground_truth":  {
+                         "layer":  "DRIVER",
+                         "category":  "peripheral_driver"
+                     },
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/windows/release-health/resolved-issues-windows-11-24h2",
+                       "site":  "learn.microsoft.com (Windows release health)",
+                       "posted_date":  "2026-08-19",
+                       "grade":  "A",
+                       "confidence":  "official",
+                       "confirmed_by_poster":  "true",
+                       "culprit_reported":  "inpoutx64 driver",
+                       "what_fixed_it":  "Microsoft block that prevents the inpoutx64 driver from loading on devices with ARC Raiders; expansion to MARVEL Tokon in progress; THE FINALS fixed by Embark Studios",
+                       "category_reported":  "peripheral_driver",
+                       "program":  "inpoutx64 driver (installed by peripherals or internal components with RGB lighting features)",
+                       "conflict_with":  "ARC Raiders; MARVEL Tokon: Fighting Souls; THE FINALS",
+                       "mechanism":  "M2",
+                       "evidence_kind":  "vendor_statement",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Our investigation confirms that this issue is not caused by Windows updates and is related to peripherals or internal device components which have RGB lighting features.",
+                       "absent_from_source":  [
+                                                  "anti_cheat_involvement_not_stated",
+                                                  "bugcheck",
+                                                  "driver_version"
+                                              ]
+                   }
+}

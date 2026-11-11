@@ -1,0 +1,51 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-010",
+    "marked_at":  "2011-03-07T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 7 (윈도7)"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "scope":  "unknown",
+                    "faulting_modules":  [
+                                             "JRSUKD25.SYS ( JRSUKD25+1870 )"
+                                         ],
+                    "target_process":  ""
+                },
+    "drivers":  [
+                    {
+                        "name":  "JRSUKD25.sys"
+                    }
+                ],
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "JRSUKD25.SYS ( JRSUKD25+1870 )"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.clien.net/service/board/park/1517186",
+                       "site":  "클리앙",
+                       "posted_date":  "2011-03-07 16:24:13",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "culprit_reported":  "은행권 보안 소프트 (post title); dump points to JRSUKD25.SYS",
+                       "category_reported":  "fin_security",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Probably caused by : JRSUKD25.SYS ( JRSUKD25+1870 ) | JRSUKD25.sys ClientKeeper Keypro Keyboard Driver",
+                       "absent_from_source":  [
+                                                  "target_process",
+                                                  "events",
+                                                  "modules",
+                                                  "change_history",
+                                                  "resolution"
+                                              ]
+                   }
+}

@@ -1,0 +1,56 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-dc-01",
+    "marked_at":  "2023-02-01T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "hotkey"
+                },
+    "symptom":  {
+                    "type":  "slow",
+                    "scope":  "system_wide",
+                    "target_process":  ""
+                },
+    "processes":  [
+                      "Discord"
+                  ],
+    "change_history":  [
+                           {
+                               "kind":  "app_update",
+                               "subject":  "Discord"
+                           }
+                       ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://www.pcworld.com/article/1499845/",
+                       "site":  "pcworld.com",
+                       "posted_date":  "2023-02-01",
+                       "grade":  "C",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "true",
+                       "label_withheld":  "true",
+                       "culprit_reported":  "A recent Discord update, per the article",
+                       "what_fixed_it":  "NVIDIA\u0027s workaround: export profiles with GeForce 3D Profile Manager, add ID_0x50166c5e = 0x00000000 under the Discord section, then import; NVIDIA said a proper fix would follow.",
+                       "category_reported":  "gpu_driver",
+                       "program":  "Discord",
+                       "conflict_with":  "NVIDIA GeForce drivers (memory clocks while Discord is open)",
+                       "mechanism":  "other",
+                       "evidence_kind":  "vendor_statement",
+                       "perf_evidence":  [
+                                             {
+                                                 "process":  "Discord",
+                                                 "metric":  "GPU memory clock",
+                                                 "value":  "200 MHz reduction",
+                                                 "condition":  "Discord open, reported by Reddit users"
+                                             }
+                                         ],
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "users may notice that the graphics card memory clocks will not reach full speeds when launching a game.",
+                       "absent_from_source":  [
+                                                  "Discord version",
+                                                  "GPU models",
+                                                  "driver version",
+                                                  "current fix status"
+                                              ]
+                   }
+}

@@ -1,0 +1,48 @@
+{
+    "schema_version":  "1.2",
+    "snapshot_id":  "ext-005",
+    "marked_at":  "2024-08-14T00:00:00+00:00",
+    "trigger":  {
+                    "kind":  "auto_system"
+                },
+    "host":  {
+                 "os":  "Windows 11 (page tag only)"
+             },
+    "symptom":  {
+                    "type":  "unexpected_reboot",
+                    "target_process":  "valorant",
+                    "scope":  "single_app",
+                    "faulting_modules":  [
+                                             "vgk.sys"
+                                         ]
+                },
+    "minidumps":  [
+                      {
+                          "kind":  "kernel",
+                          "faulting_module":  "vgk.sys",
+                          "bugcheck":  "DRIVER_IRQL_NOT_LESS_OR_EQUAL"
+                      }
+                  ],
+    "provenance":  {
+                       "type":  "external-reconstructed",
+                       "measured_by_team":  "false",
+                       "source_url":  "https://learn.microsoft.com/en-us/answers/questions/3980333/valorant-vanguard-anti-cheat-related-bsod-vgk-sys",
+                       "site":  "Microsoft Q\u0026A",
+                       "posted_date":  "2024-08-14T08:19:43+00:00",
+                       "grade":  "D",
+                       "confidence":  "guess",
+                       "confirmed_by_poster":  "false",
+                       "what_fixed_it":  "Reply: \u0027Already uninstalled the anti cheat, no crashes for now.\u0027 Reply carries the generic \u0027Anonymous\u0027 label also used on the question, so same authorship is not verifiable.",
+                       "category_reported":  "anticheat",
+                       "marked_at_basis":  "posted_date, not the time of the incident",
+                       "verbatim_excerpt":  "Stop code:DRIVER_IRQL_NOT_LESS_OR_EQUAL | What Failed; vgk.sys",
+                       "absent_from_source":  [
+                                                  "events",
+                                                  "modules",
+                                                  "drivers",
+                                                  "change_history",
+                                                  "culprit",
+                                                  "resolution.confirmed_by_poster"
+                                              ]
+                   }
+}

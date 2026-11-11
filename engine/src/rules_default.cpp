@@ -71,13 +71,14 @@ const char* const kDefaultRulesParts[] = {
 
   "priors": {
     "app_crash":         {"anticheat": 0.22, "overlay": 0.22, "antivirus": 0.15, "fin_security": 0.08, "security_firewall": 0.03, "other_sw": 0.05, "gpu_driver": 0.12, "os_update": 0.05, "thermal": 0.06, "power": 0.05, "memory": 0.05},
-    "freeze":            {"antivirus": 0.18, "anticheat": 0.12, "fin_security": 0.10, "overlay": 0.08, "other_sw": 0.08, "gpu_driver": 0.15, "thermal": 0.12, "power": 0.10, "storage": 0.13, "memory": 0.08},
+    "freeze":            {"antivirus": 0.18, "anticheat": 0.12, "fin_security": 0.10, "overlay": 0.08, "other_sw": 0.08, "app_memory": 0.05, "gpu_driver": 0.15, "thermal": 0.12, "power": 0.10, "storage": 0.13, "memory": 0.08},
     "fps_drop":          {"thermal": 0.30, "power": 0.15, "overlay": 0.15, "antivirus": 0.12, "gpu_driver": 0.13, "storage": 0.08, "other_sw": 0.05},
     "flicker":           {"gpu_driver": 0.30, "display_util": 0.30, "connection": 0.20, "peripheral_driver": 0.08, "power": 0.10, "overlay": 0.05},
     "input_loss":        {"input_util": 0.30, "antivirus": 0.18, "fin_security": 0.15, "connection": 0.15, "overlay": 0.08, "peripheral_driver": 0.10},
     "launch_fail":       {"antivirus": 0.30, "anticheat": 0.20, "fin_security": 0.18, "security_firewall": 0.12, "other_sw": 0.12, "os_update": 0.05},
     "network_fail":      {"security_firewall": 0.33, "antivirus": 0.24, "fin_security": 0.20, "network_driver": 0.12, "connection": 0.08, "other_sw": 0.03},
-    "unexpected_reboot": {"power": 0.35, "thermal": 0.25, "memory": 0.15, "storage": 0.10, "gpu_driver": 0.08, "other_driver": 0.04, "antivirus": 0.03}
+    "unexpected_reboot": {"power": 0.35, "thermal": 0.25, "memory": 0.15, "storage": 0.10, "gpu_driver": 0.08, "other_driver": 0.04, "antivirus": 0.03},
+    "slow":              {"app_memory": 0.20, "other_sw": 0.10, "antivirus": 0.15, "fin_security": 0.13, "thermal": 0.14, "storage": 0.09, "memory": 0.06, "overlay": 0.04, "anticheat": 0.03, "gpu_driver": 0.04, "power": 0.02}
   },
 
   "hints": [
@@ -104,6 +105,7 @@ const char* const kDefaultRulesParts[] = {
     {"match": "mcafee",             "category": "antivirus",         "label": "McAfee"},
     {"match": "astx",               "category": "fin_security",      "label": "AhnLab Safe Transaction"},
     {"match": "safe transaction",   "category": "fin_security",      "label": "AhnLab Safe Transaction"},
+    {"match": "safetransaction",    "category": "fin_security",      "label": "AhnLab Safe Transaction"},
     {"match": "veraport",           "category": "fin_security",      "label": "VeraPort"},
     {"match": "wizvera",            "category": "fin_security",      "label": "WIZVERA"},
     {"match": "delfino",            "category": "fin_security",      "label": "Delfino"},
@@ -113,6 +115,10 @@ const char* const kDefaultRulesParts[] = {
     {"match": "interezen",          "category": "fin_security",      "label": "Interezen IPInside"},
     {"match": "ipinside",           "category": "fin_security",      "label": "Interezen IPInside"},
     {"match": "nprotect",           "category": "fin_security",      "label": "nProtect Online Security"},
+    {"match": "signkorea",          "category": "fin_security",      "label": "SignKorea 인증 툴킷"},
+    {"match": "anysign",            "category": "fin_security",      "label": "AnySign4PC"},
+    {"match": "wizvera",            "category": "fin_security",      "label": "WIZVERA Process Manager"},
+    {"match": "crosscert",          "category": "fin_security",      "label": "CrossCert UniCRS"},
     {"match": "firewall",           "category": "security_firewall", "label": "보안 방화벽 모듈"},
     {"match": "smartdefense",       "category": "security_firewall", "label": "보안 방화벽 모듈"},
     {"match": "netfilter",          "category": "security_firewall", "label": "네트워크 필터 드라이버"},
@@ -156,6 +162,17 @@ const char* const kDefaultRulesParts[] = {
      "rollback": "프로그램을 다시 실행합니다.", "reversible": true, "requires_reboot": false, "risk": "low",
      "automation": "stop_process:{subject}", "auto_default": true},
 
+    {"id": "a_app_restart", "label": "저장 후 프로그램 재시작", "kind": "stop_process",
+     "steps": ["작업을 저장합니다.", "프로그램을 완전히 종료합니다 (트레이·백그라운드 프로세스 포함).", "다시 열어 같은 작업을 이어서 하며 체감 속도가 회복되는지 확인합니다."],
+     "rollback": "되돌릴 것이 없습니다 (저장 후 재시작).", "reversible": true, "requires_reboot": false, "risk": "low",
+     "automation": "", "auto_default": false},
+
+    {"id": "a_app_memory_hygiene", "label": "프로그램 메모리 위생 (캐시·실행 취소 이력·플러그인)", "kind": "toggle_setting",
+)JSON",
+    R"JSON(     "steps": ["작업을 저장합니다.", "프로그램의 캐시·미리보기 메모리를 비웁니다 (예: After Effects Edit > Purge > All Memory & Disk Cache, Premiere 미디어 캐시 정리, Blender 환경설정 > System > Undo Steps 축소).", "최근 추가한 플러그인·애드온을 하나씩 꺼 보며 메모리 증가가 멈추는지 확인합니다.", "GPU 메모리가 가득 찼다면 뷰포트·미리보기 해상도와 텍스처 크기를 낮추고, GPU 를 함께 쓰는 다른 프로그램(브라우저 하드웨어 가속·오버레이)을 닫습니다.", "장시간 작업은 1~2시간마다 저장 후 재시작하는 습관을 둡니다."],
+     "rollback": "바꾼 설정을 원래 값으로 되돌립니다.", "reversible": true, "requires_reboot": false, "risk": "low",
+     "automation": "", "auto_default": false},
+
     {"id": "a_av_pause", "label": "백신 실시간 감시 10분 일시 중지", "kind": "toggle_setting",
      "steps": ["백신 설정에서 실시간 감시를 10분만 일시 중지합니다. 삭제하지 마세요.", "그 사이 대상 프로그램을 실행해 증상이 다시 나는지 확인합니다."],
      "rollback": "10분 뒤 자동으로 다시 켜지며, 직접 다시 켜도 됩니다.", "reversible": true, "requires_reboot": false, "risk": "medium",
@@ -168,8 +185,7 @@ const char* const kDefaultRulesParts[] = {
 
     {"id": "a_finsec_stop", "label": "금융 보안모듈 상주 중지", "kind": "stop_service",
      "steps": ["서비스 관리자에서 해당 보안모듈 서비스를 중지합니다.", "대상 프로그램에서 증상이 다시 나는지 확인합니다."],
-)JSON",
-    R"JSON(     "rollback": "인터넷뱅킹을 쓰기 전에 서비스를 다시 시작합니다(은행 사이트 접속 시 자동 시작되기도 합니다).", "reversible": true, "requires_reboot": false, "risk": "medium",
+     "rollback": "인터넷뱅킹을 쓰기 전에 서비스를 다시 시작합니다(은행 사이트 접속 시 자동 시작되기도 합니다).", "reversible": true, "requires_reboot": false, "risk": "medium",
      "automation": "stop_service:{subject}", "auto_default": false},
 
     {"id": "a_firewall_allow", "label": "보안 제품 방화벽에 허용 규칙 추가", "kind": "firewall_allow",
@@ -273,7 +289,8 @@ const char* const kDefaultRulesParts[] = {
 
     {"id": "a_driver_update_block", "label": "이 드라이버의 자동 업데이트 일시 보류", "kind": "toggle_setting",
      "steps": ["Windows 업데이트가 같은 드라이버를 다시 설치하지 않도록 'show or hide updates' 도구나 그룹 정책으로 이 드라이버 업데이트를 숨깁니다."],
-     "rollback": "숨긴 업데이트를 다시 표시합니다.", "reversible": true, "requires_reboot": false, "risk": "low",
+)JSON",
+    R"JSON(     "rollback": "숨긴 업데이트를 다시 표시합니다.", "reversible": true, "requires_reboot": false, "risk": "low",
      "automation": "wu_hide_driver:{subject}", "auto_default": false},
 
     {"id": "a_update_pause", "label": "Windows 업데이트 7일 일시 중지", "kind": "toggle_setting",
@@ -297,8 +314,7 @@ const char* const kDefaultRulesParts[] = {
      "automation": "gpu_power_limit:-10", "auto_default": true},
 
     {"id": "a_fan_curve", "label": "팬 속도를 높게 조정", "kind": "toggle_setting",
-)JSON",
-    R"JSON(     "steps": ["메인보드·그래픽카드 유틸에서 팬 커브를 '성능' 또는 더 높은 속도로 바꿉니다.", "같은 작업으로 온도와 증상을 다시 확인합니다."],
+     "steps": ["메인보드·그래픽카드 유틸에서 팬 커브를 '성능' 또는 더 높은 속도로 바꿉니다.", "같은 작업으로 온도와 증상을 다시 확인합니다."],
      "rollback": "팬 설정을 원래 프로필로 되돌립니다.", "reversible": true, "requires_reboot": false, "risk": "low",
      "automation": "fan_curve:aggressive", "auto_default": true},
 
@@ -333,7 +349,9 @@ const char* const kDefaultRulesParts[] = {
      "advice": "보안 제품의 방화벽에서 해당 프로그램을 허용 목록에 추가하고 재현해 보세요."},
     {"id": "pause_other_sw", "label": "의심 프로그램 종료", "action": "a_stop_process", "cost_seconds": 60, "reliability": 0.8, "categories": ["other_sw"],
      "advice": "해당 프로그램을 종료한 상태로 재현해 보세요."},
-    {"id": "clean_boot", "label": "클린 부트(서드파티 전체 중지)", "action": "a_clean_boot", "cost_seconds": 480, "reliability": 0.92, "group": true, "layers": ["SW"],
+    {"id": "app_memory_restart_test", "label": "저장 후 프로그램 재시작", "action": "a_app_restart", "cost_seconds": 120, "reliability": 0.85, "categories": ["app_memory"], "symptoms": ["slow", "freeze"],
+     "advice": "작업을 저장하고 프로그램을 완전히 종료한 뒤 다시 열어 보세요. 체감 속도가 바로 회복되면 프로그램 안에 쌓인 메모리(실행 취소 이력·캐시·플러그인)가 원인입니다."},
+    {"id": "clean_boot", "label": "클린 부트(서드파티 전체 중지)", "action": "a_clean_boot", "cost_seconds": 480, "reliability": 0.92, "group": true, "categories": ["anticheat", "antivirus", "fin_security", "security_firewall", "overlay", "input_util", "other_sw"],
      "advice": "Microsoft 서비스를 제외한 모든 서비스와 시작 프로그램을 끄고 재부팅해 재현해 보세요. 소프트웨어 충돌 전체를 한 번에 가릅니다."},
     {"id": "rollback_gpu_driver_quick", "label": "GPU 드라이버 롤백(장치 관리자)", "action": "a_driver_rollback", "cost_seconds": 420, "reliability": 0.75, "categories": ["gpu_driver"],
      "advice": "장치 관리자 → 디스플레이 어댑터 → 드라이버 → '드라이버 롤백'으로 이전 버전으로 되돌리고 재현해 보세요. 롤백 버튼이 꺼져 있으면 다음 단계(DDU 재설치)로 넘어갑니다."},
@@ -359,7 +377,7 @@ const char* const kDefaultRulesParts[] = {
      "advice": "온도·케이블·장착 상태를 한 번에 확인합니다. 하드웨어 층 전체를 거칠게 가릅니다."},
     {"id": "fan_curve_test", "label": "팬 속도 높여 재현", "action": "a_fan_curve", "cost_seconds": 300, "reliability": 0.7, "categories": ["thermal"],
      "advice": "케이스를 열지 않고 팬 속도만 높여서 같은 작업을 해 보세요. 증상이 줄면 냉각 문제입니다."},
-    {"id": "gpu_power_limit_test", "label": "GPU 전력 제한 낮춰 재현", "action": "a_gpu_power_limit", "cost_seconds": 120, "reliability": 0.65, "categories": ["power"], "symptoms": ["unexpected_reboot", "freeze", "app_crash", "fps_drop"],
+    {"id": "gpu_power_limit_test", "label": "GPU 전력 제한 낮춰 재현", "action": "a_gpu_power_limit", "cost_seconds": 120, "reliability": 0.65, "categories": ["power"], "symptoms": ["unexpected_reboot", "freeze", "app_crash", "fps_drop", "slow"],
      "advice": "GPU 전력 제한을 90%로 낮추고 같은 작업을 해 보세요. 꺼지지 않으면 순간 전력 부족(파워) 문제일 가능성이 큽니다."},
     {"id": "xmp_off_test", "label": "메모리 XMP 끄고 재현", "action": "a_xmp_off", "cost_seconds": 600, "reliability": 0.75, "categories": ["memory"],
      "advice": "BIOS에서 XMP를 끄고 같은 작업을 해 보세요. 메모리 테스트보다 빨리 메모리 쪽인지 가를 수 있습니다."},
@@ -368,7 +386,11 @@ const char* const kDefaultRulesParts[] = {
   ],
 
   "remedies": [
-    {"id": "r_anticheat_autostart_off", "label": "안티치트를 해당 게임을 할 때만 켜기", "categories": ["anticheat"], "symptoms": ["app_crash", "freeze", "fps_drop"],
+    {"id": "r_app_memory_hygiene", "label": "프로그램 메모리 위생: 캐시 비우기·실행 취소 한도·플러그인 점검", "categories": ["app_memory"], "symptoms": ["slow", "freeze"],
+)JSON",
+    R"JSON(     "description": "장시간 작업 중 프로그램 자체가 실행 취소 이력·미리보기 캐시·플러그인 누수로 메모리를 계속 쌓는 경우입니다. 다른 프로그램과의 충돌이 아니므로 종료할 상대가 없고, 캐시를 비우고 한도를 낮추는 것이 해결입니다 (Adobe·Blender 공식 매뉴얼의 1차 조치).",
+     "actions": ["a_app_memory_hygiene"], "success_seed": 0.6},
+    {"id": "r_anticheat_autostart_off", "label": "안티치트를 해당 게임을 할 때만 켜기", "categories": ["anticheat"], "symptoms": ["app_crash", "freeze", "fps_drop", "slow"],
      "description": "다른 게임용 커널 안티치트가 상시 상주하면서 무관한 프로그램에 간섭하는 경우입니다. 상시 실행을 끄면 원래 게임은 그대로 쓰면서 충돌을 없앨 수 있습니다.",
      "actions": ["a_anticheat_autostart_off"], "success_seed": 0.7},
     {"id": "r_anticheat_repair", "label": "안티치트·게임 복구 및 최신 버전 업데이트", "categories": ["anticheat"],
@@ -394,8 +416,7 @@ const char* const kDefaultRulesParts[] = {
     {"id": "r_finsec_remove_unused", "label": "사용하지 않는 보안모듈 제거", "categories": ["fin_security"],
      "description": "한 번 설치된 보안모듈은 사이트를 다시 쓰지 않아도 남아 있습니다. 쓰지 않는 모듈을 지우면 필터 드라이버가 줄어듭니다.",
      "actions": ["a_finsec_uninstall"], "success_seed": 0.6},
-)JSON",
-    R"JSON(    {"id": "r_finsec_reinstall", "label": "보안모듈 최신 버전으로 재설치", "categories": ["fin_security"],
+    {"id": "r_finsec_reinstall", "label": "보안모듈 최신 버전으로 재설치", "categories": ["fin_security"],
      "description": "이전 버전 모듈이 Windows 업데이트 후 호환되지 않는 경우가 있습니다.",
      "actions": ["a_reinstall"], "success_seed": 0.5},
 
@@ -456,6 +477,12 @@ const char* const kDefaultRulesParts[] = {
      "description": "메모리 오버클럭(XMP)이 불안정한 경우입니다. 끄면 속도는 조금 줄지만 오류가 사라집니다.", "actions": ["a_xmp_off"], "success_seed": 0.6}
   ],
 
+  "autoupdate_noise": [
+    "google chrome", "microsoft edge", "webview2", "copilot", "microsoft teams", "onedrive",
+    "visual studio code", "discord", "steam", "epic games launcher", "nvidia app", "zoom", "slack", "notion", "kakaotalk",
+    "microsoft gameinput", "xbox", "microsoft store", "windows app runtime", "microsoft visual c++"
+  ],
+
   "baseline_checklist": [
     "rollback_gpu_driver",
     "clean_boot",
@@ -475,9 +502,12 @@ const char* const kDefaultRulesParts[] = {
     {"symptom": "input_loss",   "category": "input_util",        "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
     {"symptom": "network_fail", "category": "security_firewall", "subject": "",        "weight": 0.7,  "solved": 0, "rejected": 0},
     {"symptom": "launch_fail",  "category": "antivirus",         "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
-    {"symptom": "flicker",      "category": "display_util",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0},
+)JSON",
+    R"JSON(    {"symptom": "flicker",      "category": "display_util",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0},
     {"symptom": "fps_drop",     "category": "thermal",           "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
-    {"symptom": "unexpected_reboot", "category": "power",        "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0}
+    {"symptom": "unexpected_reboot", "category": "power",        "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
+    {"symptom": "slow",         "category": "app_memory",        "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0},
+    {"symptom": "slow",         "category": "fin_security",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0}
   ]
 }
 )JSON",
