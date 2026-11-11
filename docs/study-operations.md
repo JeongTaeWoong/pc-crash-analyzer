@@ -204,7 +204,8 @@ StudyTools summary --in D:\pca\study-decrypted
 | 참여자 PC 장기(2주) 안정성 | **미확인** | 하트비트 `self.cpuPctOfMachine`·`privateMB` 로 원격 관찰 |
 | 자동 업데이트(0.9): 서명·버전·주소 규칙, 묶음 풀기, 폴더 교체·되돌리기 | **검증됨(11/11)** | StudyCore.Tests 90건(업데이트 42건) |
 | 자동 업데이트 전체 흐름 — 표준 사용자 경로 | **검증됨(11/11, 이 PC)** | `tools\test-update.ps1`: 업데이트·낮은 버전 무시·되돌리기·건너뛰기·고친 안내문 거부·바뀐 묶음 거부 |
-| 자동 업데이트 전체 흐름 — 관리자 경로, 실제 설치 위치, GitHub 에서 받기 | **미확인** | 관리자 PowerShell 에서 `tools\test-update.ps1 -Mode admin`. 실제 위치·GitHub 는 첫 릴리스 전에 한 번 |
+| 자동 업데이트 전체 흐름 — 관리자 경로(예약 작업 + 시험 설치본 교체) | **검증됨(11/11, 이 PC)** | `tools\test-update.ps1 -Mode admin`: 28개 확인 통과. 시험 폴더·시험용 예약 작업에서 돈다 |
+| 자동 업데이트 — 실제 설치 위치(Program Files)에서의 교체, GitHub 에서 받기 | **미확인** | GitHub 쪽은 릴리스를 올린 뒤 `tools\release-participant.ps1 -Verify`. 실제 위치는 0.9.1 을 낼 때 팀 PC 나 가상 머신에서 먼저 |
 
 ## 7. 문제 해결
 
