@@ -116,6 +116,15 @@ public static class EngineSnapshotBuilder
         if (resourceTrends != null)
             snapshot["resource_trends"] = resourceTrends;
 
+        // 확장 필드(11/12): 덤프 창(마킹 전 5분~후 30초)의 자원 요약. 60분 추세는 프로세스가 10분 이상 살아야 채워지므로
+        // 방금 켠 프로그램이 만든 느려짐은 여기에만 남는다. 요약 실패가 덤프를 잃게 하면 안 된다 — 실패하면 필드를 뺀다.
+        try
+        {
+            if (RecentResources.Summarize(events) is { } recent)
+                snapshot["resource_recent"] = recent;
+        }
+        catch { /* 필드 생략 */ }
+
         if (processes.Count > 0)
             snapshot["processes"] = processes.Take(300).ToList();
 

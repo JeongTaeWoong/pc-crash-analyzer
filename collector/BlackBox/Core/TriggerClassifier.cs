@@ -57,6 +57,22 @@ public static class TriggerClassifier
     private static readonly HashSet<string> GpuLiveCodes = new(StringComparer.OrdinalIgnoreCase) { "141", "117", "0x141", "0x117" };
     private static readonly HashSet<string> Usb3LiveCodes = new(StringComparer.OrdinalIgnoreCase) { "144", "0x144" };
 
+    /// <summary>
+    /// WER 1001의 P4([8])가 "오류 모듈 이름"인 유형인가. 유형마다 P4의 뜻이 다르다 — 크래시 계열 보고에서만 모듈로 읽는다.
+    /// 11/12 실험실 게스트 실측(가상 머신 사례 덤프들의 1001 기록 53건):
+    ///   APPCRASH        → FaultPlugin.dll / KERNELBASE.dll (모듈 맞음)
+    ///   LiveKernelEvent → "aaaaaaaaaaaaaaaa" (라이브 덤프 매개변수)
+    ///   AppHangB1       → "2cd5" (응답 없음 서명)
+    ///   crashpad_log    → "0x80040827" (Edge 업데이트의 오류 코드) — 트리거는 아니지만 이벤트의 faultingModule 로 실려
+    ///                     엔진이 "크래시의 오류 모듈"로 읽고 느려짐 사례의 1순위 후보로 올렸다.
+    /// 크래시 계열 안에서도 CLR20r3·MoAppCrash 의 P4 뜻은 미확인 — 기존 동작(모듈로 읽음)을 유지한다.
+    /// </summary>
+    public static bool WerP4IsModule(string? werEventType)
+    {
+        string t = werEventType ?? "";
+        return CrashWerPrefixes.Any(p => t.StartsWith(p, StringComparison.OrdinalIgnoreCase));
+    }
+
     public static TriggerClass Classify(string log, int eventId, string? provider, string? werEventType, EventDetail? detail = null)
     {
         switch (log, eventId)

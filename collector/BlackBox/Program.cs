@@ -27,6 +27,20 @@ if (Array.IndexOf(args, "--verify-eventlog") is var vi && vi >= 0)
     return;
 }
 
+if (Array.IndexOf(args, "--resource-recent") is var ri && ri >= 0)
+{
+    // 이미 만든 덤프의 events.json 에서 엔진용 최근 자원 요약(resource_recent)을 다시 계산해 출력한다 (읽기 전용, 수집 없음).
+    // 요약 규칙을 바꿨을 때 예전 덤프로 확인하는 용도.
+    if (ri + 1 >= args.Length || !File.Exists(args[ri + 1])) { Console.Error.WriteLine("usage: BlackBox --resource-recent <events.json>"); Environment.ExitCode = 2; return; }
+    using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(args[ri + 1]));
+    var arr = doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array ? doc.RootElement : doc.RootElement.GetProperty("events");
+    var replay = new List<SignalEvent>();
+    foreach (var e in arr.EnumerateArray())
+        replay.Add(new SignalEvent(e.GetProperty("t").GetDateTimeOffset(), e.GetProperty("source").GetString() ?? "", e.GetProperty("payload").GetRawText()));
+    Console.WriteLine(Json.Serialize(RecentResources.Summarize(replay), indented: true));
+    return;
+}
+
 var host = new CollectorHost(new CollectorHostOptions
 {
     DumpRoot = Path.Combine(Environment.CurrentDirectory, "dumps"),
@@ -49,7 +63,9 @@ while (true)
 {
     var line = Console.ReadLine();
     if (line == null) break; // stdin EOF
-    var cmd = line.Trim();
+    // 표준 입력을 UTF-8 로 넘기는 호출자는 첫 줄 앞에 BOM 을 붙이기도 한다. 이쪽도 UTF-8 로 읽었다면 U+FEFF 로 남으므로 떼어 낸다.
+    // (이쪽 입력 코드 페이지가 다르면 깨진 글자로 읽혀 여기서 못 고친다 — 호출자가 ASCII 로 보내야 한다. 11/12 lab/vm/guest-case.ps1)
+    var cmd = line.Trim().TrimStart('﻿').Trim();
     if (cmd.StartsWith("m ", StringComparison.OrdinalIgnoreCase))
     {
         // m [증상] [대상]  예: m slow blender / m freeze / m Unity.exe

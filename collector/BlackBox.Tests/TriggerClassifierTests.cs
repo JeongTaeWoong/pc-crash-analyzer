@@ -49,6 +49,24 @@ public class TriggerClassifierTests
         Assert.Equal("freeze", c.SymptomType);
     }
 
+    // 11/12 실험실 게스트 실측: 1001의 P4가 LiveKernelEvent 에서는 덤프 매개변수("aaaaaaaaaaaaaaaa"),
+    // AppHangB1 에서는 응답 없음 서명("2cd5"), crashpad_log 에서는 오류 코드("0x80040827")였다 — 크래시 계열에서만 모듈이다.
+    [Theory]
+    [InlineData("LiveKernelEvent", false)]
+    [InlineData("AppHangB1", false)]
+    [InlineData("MoAppHang", false)]
+    [InlineData("crashpad_log", false)]
+    [InlineData("RADAR_PRE_LEAK_64", false)]
+    [InlineData("SomethingNew", false)]
+    [InlineData("APPCRASH", true)]
+    [InlineData("BEX64", true)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void Wer_p4_is_a_module_only_for_crash_types(string? werType, bool expected)
+    {
+        Assert.Equal(expected, TriggerClassifier.WerP4IsModule(werType));
+    }
+
     [Theory]
     [InlineData("", null, null)]
     [InlineData("slow", "slow", null)]

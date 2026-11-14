@@ -101,7 +101,8 @@ public sealed class EventLogSource : ISignalSource
                     pid = ParsePid(Val(p, 8)); modulePath = Str(p, 11); reportId = Str(p, 12);
                     break;
                 case ("Application", 1001):
-                    werType = Str(p, 2); pname = Str(p, 5); module = Str(p, 8);
+                    werType = Str(p, 2); pname = Str(p, 5);
+                    module = TriggerClassifier.WerP4IsModule(werType) ? Str(p, 8) : null; // P4가 모듈이 아닌 유형(라이브 덤프·응답 없음) 제외
                     if (werType?.StartsWith("LiveKernelEvent", StringComparison.OrdinalIgnoreCase) == true)
                     {
                         detail = new EventDetail(LiveKernelCode: pname);
