@@ -1,0 +1,5 @@
+{
+  "schema": 1,
+  "note": "Smallest possible plan, used to test session.ps1 itself: a low-memory clone with two small programs.",
+  "jobs": [ { "name": "smoke1", "spec": "office-low", "bundle": "tools", "save": "bundle-tools" } ]
+}

@@ -8,5 +8,19 @@
   "memory_gb": 8,
   "disk_gb": 100,
   "switch": "Default Switch",
-  "warn_running_above": 3
+  "warn_running_above": 3,
+  "host_wait_processes": [ "LOSTARK", "EasyAntiCheat*", "BEService*", "VALORANT*", "League of Legends*", "GameMon*", "GameGuard*" ],
+  "host_wait_processes_note": "Sessions may run while the PC is in use (decided 2026-11-14). While one of these processes runs on the host (a game or its anti-cheat; wildcards on the process name), session.ps1 starts no new job and waits. Add your own games here. A game started in the middle of a case is not noticed - the case's host_load in scenario.json shows it.",
+  "download_dirs_note": "Folders on the host where installers the user downloaded by hand are looked for (by file name). Not committed content: only the folder names.",
+  "download_dirs": [ "F:/2026CAU/Capstone2" ],
+  "artcraft_dir": "F:/ArtCraft",
+  "gpus_note": "Host GPUs a VM may get a partition of (lab/vm/gpu.ps1), matched by PCI vendor id in the name Get-VMHostPartitionableGpu prints. igpu = AMD integrated Radeon (default: it is not the GPU the user plays and works on), nvidia = RTX 4070 Ti SUPER.",
+  "gpus": { "igpu": "VEN_1002", "nvidia": "VEN_10DE" },
+  "profiles_note": "Hardware shapes for case VMs (clone.ps1 -New <name> -Spec <profile>), added 2026-11-12: the target users include office PCs that are short of memory or slow. cpu_cap_percent limits how much of each host core a virtual CPU may use (the host CPU is far faster than an office PC); disk_iops limits the disk (0 = no limit). These are approximations of a slower PC, not a model of any specific machine: say so wherever a result from them is reported. office-old disk_iops was 500 until 2026-11-13 (Hyper-V counts in 8 KB units, so 500 = about 4 MB/s): with that limit the disk was 97 % busy with 800 ms answers in a run with NO fault, installs took 26 minutes and a disk hog could not be told from an idle desktop. 3000 (about 24 MB/s) leaves an idle desktop below the limit (other clones idle at 1-2 MB/s) while a program that writes hundreds of MB/s still fills it. Cases record the limit they ran with (scenario.json disk_iops_limit); case.ps1 sets the limit again after a checkpoint is restored.",
+  "profiles": {
+    "standard":   { "cpu": 4, "memory_gb": 8,  "cpu_cap_percent": 100, "disk_iops": 0 },
+    "office-low": { "cpu": 2, "memory_gb": 4,  "cpu_cap_percent": 100, "disk_iops": 0 },
+    "office-old": { "cpu": 2, "memory_gb": 4,  "cpu_cap_percent": 50,  "disk_iops": 3000 },
+    "work":       { "cpu": 8, "memory_gb": 16, "cpu_cap_percent": 100, "disk_iops": 0 }
+  }
 }

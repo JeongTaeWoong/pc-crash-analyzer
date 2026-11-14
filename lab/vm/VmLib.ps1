@@ -46,6 +46,8 @@ function New-LabVm($cfg, [string]$vmName, [string]$vhdPath, [string]$dir) {
     Set-VMKeyProtector -VMName $vmName -NewLocalKeyProtector
     Enable-VMTPM -VMName $vmName
     Set-VM -Name $vmName -CheckpointType Standard -AutomaticCheckpointsEnabled $false -AutomaticStartAction Nothing -AutomaticStopAction ShutDown
+    # 16:9 screen for the plain (console) connection, which is what unattended runs and screen.ps1 see
+    try { Set-VMVideo -VMName $vmName -HorizontalResolution 1920 -VerticalResolution 1080 -ResolutionType Single } catch { Write-Host "note: could not set the video resolution ($($_.Exception.Message))" }
     return $vm
 }
 
@@ -99,4 +101,168 @@ function Remove-LabVm([string]$vmName) {
         } catch { Start-Sleep -Seconds 2 }
     }
     return (-not (Get-VM -Name $vmName -ErrorAction SilentlyContinue))
+}
+
+# Applies a hardware profile from vm.json to a VM that is off, and records the profile name in the VM notes.
+function Set-LabVmProfile($cfg, [string]$vmName, [string]$profileName) {
+    $p = $cfg.profiles.$profileName
+    if (-not $p) { throw "Unknown profile '$profileName'. Known: $(($cfg.profiles.PSObject.Properties | ForEach-Object { $_.Name }) -join ', ')" }
+    Set-VMProcessor -VMName $vmName -Count ([int]$p.cpu) -Maximum ([int]$p.cpu_cap_percent)
+    Set-VMMemory -VMName $vmName -DynamicMemoryEnabled $false -StartupBytes ([int64]$p.memory_gb * 1GB)
+    Get-VMHardDiskDrive -VMName $vmName | Set-VMHardDiskDrive -MaximumIOPS ([uint64]$p.disk_iops)
+    Set-LabVmNote $vmName 'profile' $profileName
+}
+function Get-LabVmProfileName($vm) { $p = Get-LabVmNote $vm 'profile'; if ($p) { return $p } else { return 'standard' } }
+# How much a VM is slowed down on purpose (CPU cap, disk limit), read from the VM itself. factor = by how much lab
+# scripts stretch their waits and time limits for it (1 = not slowed down). First run on such a clone, 2026-11-12:
+# installs that take 2-5 min elsewhere ran into the 20 min limit and loading a test program took 80 s.
+function Get-LabVmSlowdown([string]$vmName, [double]$factorWhenSlow = 3) {
+    $cap = [int](Get-VMProcessor -VMName $vmName).Maximum
+    $iops = [int64](@(Get-VMHardDiskDrive -VMName $vmName | ForEach-Object { $_.MaximumIOPS }) | Measure-Object -Maximum).Maximum
+    $slow = ($cap -lt 100 -or $iops -gt 0)
+    return [pscustomobject]@{ cpu_cap_percent = $cap; disk_iops = $iops; factor = $(if ($slow) { $factorWhenSlow } else { 1 }) }
+}
+
+# ---- keyboard and screen of a VM through Hyper-V's WMI provider (root\virtualization\v2), no guest software needed ----
+# Used to answer "Press any key to boot from CD or DVD" and to look at what a VM shows (installer windows) without a person.
+# Input goes to virtual machines only; the lab never sends input to programs on the host (games).
+$script:VirtNs = 'root\virtualization\v2'
+
+function Get-VmWmiSystem([string]$vmName) {
+    $vm = Get-VM -Name $vmName
+    $cs = Get-CimInstance -Namespace $script:VirtNs -ClassName Msvm_ComputerSystem -Filter "Name='$($vm.Id.ToString().ToUpper())'"
+    if (-not $cs) { throw "No WMI object for $vmName." }
+    return $cs
+}
+
+# $keyCode = Windows virtual-key code (13 = Enter, 32 = Space, 27 = Esc).
+function Send-VmKey([string]$vmName, [int]$keyCode) {
+    $cs = Get-VmWmiSystem $vmName
+    $kb = Get-CimAssociatedInstance -InputObject $cs -ResultClassName Msvm_Keyboard | Select-Object -First 1
+    if (-not $kb) { throw "No keyboard device on $vmName (is it running?)." }
+    $r = Invoke-CimMethod -InputObject $kb -MethodName TypeKey -Arguments @{ keyCode = [uint32]$keyCode }
+    return [int]$r.ReturnValue
+}
+
+# Saves what the VM displays as a PNG. Returns the path.
+function Save-VmScreenshot([string]$vmName, [string]$path, [int]$width = 1024, [int]$height = 768) {
+    $cs = Get-VmWmiSystem $vmName
+    $vssd = Get-CimAssociatedInstance -InputObject $cs -ResultClassName Msvm_VirtualSystemSettingData |
+        Where-Object { $_.VirtualSystemType -eq 'Microsoft:Hyper-V:System:Realized' } | Select-Object -First 1
+    if (-not $vssd) { throw "No active settings object for $vmName." }
+    $svc = Get-CimInstance -Namespace $script:VirtNs -ClassName Msvm_VirtualSystemManagementService
+    $r = Invoke-CimMethod -InputObject $svc -MethodName GetVirtualSystemThumbnailImage -Arguments @{ TargetSystem = $vssd; WidthPixels = [uint16]$width; HeightPixels = [uint16]$height }
+    if ($r.ReturnValue -ne 0 -or -not $r.ImageData) { throw "GetVirtualSystemThumbnailImage returned $($r.ReturnValue)." }
+    Add-Type -AssemblyName System.Drawing
+    $bmp = New-Object System.Drawing.Bitmap($width, $height, [System.Drawing.Imaging.PixelFormat]::Format16bppRgb565)
+    try {
+        $rect = New-Object System.Drawing.Rectangle(0, 0, $width, $height)
+        $data = $bmp.LockBits($rect, [System.Drawing.Imaging.ImageLockMode]::WriteOnly, $bmp.PixelFormat)
+        [System.Runtime.InteropServices.Marshal]::Copy([byte[]]$r.ImageData, 0, $data.Scan0, [Math]::Min($r.ImageData.Length, $data.Stride * $height))
+        $bmp.UnlockBits($data)
+        New-Item -ItemType Directory -Force -Path (Split-Path $path -Parent) | Out-Null
+        $bmp.Save($path, [System.Drawing.Imaging.ImageFormat]::Png)
+    } finally { $bmp.Dispose() }
+    return $path
+}
+
+# ---- VM notes as "key=value key=value" (profile, gpu) ----
+function Get-LabVmNote($vm, [string]$key) { if ("$($vm.Notes)" -match "(?:^|\s)$key=([A-Za-z0-9_-]+)") { return $Matches[1] } else { return $null } }
+function Set-LabVmNote([string]$vmName, [string]$key, [string]$value) {
+    $parts = @("$((Get-VM -Name $vmName).Notes)" -split '\s+' | Where-Object { $_ -and $_ -notlike "$key=*" })
+    if ($value) { $parts += "$key=$value" }
+    Set-VM -Name $vmName -Notes ($parts -join ' ')
+}
+
+# ---- GPU partition (GPU-P): gives a VM a share of a host GPU. Verified on this PC 2026-11-12 without a guest OS:
+# the adapter attaches and the VM starts; a checkpoint CANNOT be made while a partition is assigned (off or running);
+# restoring a checkpoint taken before the adapter removes it. So clone.ps1 detaches around a checkpoint and re-attaches.
+# The guest then needs the host's driver files (gpu.ps1 -InstallDriver): it runs the SAME driver version as the host.
+function Test-LabVmGpu([string]$vmName) { return (@(Get-VMGpuPartitionAdapter -VMName $vmName -ErrorAction SilentlyContinue).Count -gt 0) }
+function Get-HostGpu($cfg, [string]$gpuKey) {
+    $ven = $cfg.gpus.$gpuKey
+    if (-not $ven) { throw "Unknown GPU '$gpuKey'. Known: $(($cfg.gpus.PSObject.Properties | ForEach-Object { $_.Name }) -join ', ')" }
+    $g = Get-VMHostPartitionableGpu | Where-Object { $_.Name -like "*$ven*" } | Select-Object -First 1
+    if (-not $g) { throw "The host offers no partitionable GPU matching $ven." }
+    return $g
+}
+function Add-LabVmGpu($cfg, [string]$vmName, [string]$gpuKey) {
+    if ((Get-VM -Name $vmName).State -ne 'Off') { throw "$vmName must be off to attach a GPU partition." }
+    if (Test-LabVmGpu $vmName) { throw "$vmName already has a GPU partition." }
+    $g = Get-HostGpu $cfg $gpuKey
+    Add-VMGpuPartitionAdapter -VMName $vmName -InstancePath $g.Name
+    Set-VM -Name $vmName -GuestControlledCacheTypes $true -LowMemoryMappedIoSpace 1GB -HighMemoryMappedIoSpace 32GB
+    Set-LabVmNote $vmName 'gpu' $gpuKey
+}
+function Remove-LabVmGpu([string]$vmName) {
+    if ((Get-VM -Name $vmName).State -ne 'Off') { throw "$vmName must be off to detach its GPU partition." }
+    Get-VMGpuPartitionAdapter -VMName $vmName -ErrorAction SilentlyContinue | Remove-VMGpuPartitionAdapter
+    Set-LabVmNote $vmName 'gpu' $null
+}
+
+# ---- running things inside a guest ----
+# Plain PowerShell Direct commands have no desktop. Installers, browsers and other programs with windows must run in the
+# session of the logged-on user: this registers a one-off scheduled task for that user (interactive, highest privileges =
+# elevated without a UAC prompt, because the lab account is an administrator), starts it and waits for it to finish.
+# Returns an object: ExitCode (null = timed out), Log (text the script wrote), TimedOut.
+function Invoke-GuestDesktop($session, [string]$scriptText, [int]$timeoutSec = 900) {
+    $id = [Guid]::NewGuid().ToString('N').Substring(0, 12)
+    Invoke-Command -Session $session -ArgumentList $id, $scriptText -ScriptBlock {
+        param($id, $scriptText)
+        $dir = 'C:\lab\jobs'
+        New-Item -ItemType Directory -Force -Path $dir | Out-Null
+        $job = Join-Path $dir "$id.ps1"; $wrap = Join-Path $dir "$id.wrap.ps1"; $log = Join-Path $dir "$id.log"; $done = Join-Path $dir "$id.done"
+        [IO.File]::WriteAllText($job, $scriptText, (New-Object Text.UTF8Encoding($true)))
+        $w = @"
+`$ErrorActionPreference = 'Continue'
+`$code = 0
+try { & '$job' *>&1 | Out-File -FilePath '$log' -Encoding UTF8; if (`$LASTEXITCODE) { `$code = `$LASTEXITCODE } }
+catch { "ERROR: `$(`$_.Exception.Message)" | Out-File -FilePath '$log' -Encoding UTF8 -Append; `$code = 1 }
+"`$code" | Out-File -FilePath '$done' -Encoding ASCII
+"@
+        [IO.File]::WriteAllText($wrap, $w, (New-Object Text.UTF8Encoding($true)))
+        $a = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$wrap`""
+        $p = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType Interactive -RunLevel Highest
+        $s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Hours 6)
+        Register-ScheduledTask -TaskName "pca-job-$id" -Action $a -Principal $p -Settings $s -Force | Out-Null
+        Start-ScheduledTask -TaskName "pca-job-$id"
+    }
+    $deadline = (Get-Date).AddSeconds($timeoutSec)
+    $code = $null
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Seconds 2
+        $c = Invoke-Command -Session $session -ArgumentList $id -ScriptBlock { param($id) $d = "C:\lab\jobs\$id.done"; if (Test-Path $d) { (Get-Content $d -Raw).Trim() } }
+        if ($null -ne $c -and "$c" -ne '') { $code = [int]$c; break }
+    }
+    $log = Invoke-Command -Session $session -ArgumentList $id -ScriptBlock {
+        param($id)
+        $l = "C:\lab\jobs\$id.log"
+        $text = if (Test-Path $l) { Get-Content $l -Raw -Encoding UTF8 } else { '' }
+        Unregister-ScheduledTask -TaskName "pca-job-$id" -Confirm:$false -ErrorAction SilentlyContinue
+        $text
+    }
+    return [pscustomobject]@{ ExitCode = $code; Log = "$log".Trim(); TimedOut = ($null -eq $code) }
+}
+
+function New-GuestSession($cfg, [string]$name) {
+    $vmName = Get-CloneVmName $cfg $name
+    $vm = Get-VM -Name $vmName -ErrorAction SilentlyContinue
+    if (-not $vm) { throw "No VM named $vmName." }
+    if ($vm.State -ne 'Running') { throw "$vmName is $($vm.State). Start it:  lab\vm\clone.ps1 -Start $name" }
+    return New-PSSession -VMName $vmName -Credential (Get-GuestCredential)
+}
+
+# Waits until Windows in the guest answers and the lab user's desktop (explorer) is up.
+function Wait-GuestDesktop($cfg, [string]$name, [int]$timeoutSec = 300) {
+    $vmName = Get-CloneVmName $cfg $name
+    $cred = Get-GuestCredential
+    $deadline = (Get-Date).AddSeconds($timeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        try {
+            $ok = Invoke-Command -VMName $vmName -Credential $cred -ErrorAction Stop -ScriptBlock { [bool](Get-Process explorer -ErrorAction SilentlyContinue) }
+            if ($ok) { return $true }
+        } catch { }
+        Start-Sleep -Seconds 5
+    }
+    return $false
 }

@@ -1,0 +1,30 @@
+{
+  "note": "Second case session, written 2026-11-12 evening after the review of the first one (17 runs: 13 usable, 3 reported ok without holding the fault, 1 ran out of time). Order: (1) the changed tooling on normal clones - crash-plugin where the VC++ runtime is missing (dev1, design1), a mark that waits for the load (dev1 cpu-hog), a hang on a GPU clone (its own kernel-live dumps must not end the wait), and the collector changes of the same evening: the disk signal (dev1 disk-hog) and a newly started process showing up in the first CPU reading (design1 cpu-hog - on 11-12 video1's hog was missing from the reading taken 30 s after it started); then four alias runs (added 2026-11-12 night): the fault program under an ordinary name from aliases.json, with decoy programs that do nothing wrong - the form every case must have before it is shown to a model, first try in a guest; (2) idle runs: does a GPU clone write LiveKernelEvent 0x193 with no program started at all? dev1 is the control without a GPU; (3) long variants on office1: do the collector's per-process trends name the culprit when it runs for 10 minutes or more? (4) the slowed-down office PC again: install what failed (Chrome: winget hash mismatch on 11-12, may still fail), then its cases with stretched waits. About 5 hours in all (an estimate); the session can be stopped and run again - finished cases are skipped.",
+  "jobs": [
+    { "name": "dev1",    "from": "bundle-dev",    "case": "crash-plugin", "open": [ "vscode" ] },
+    { "name": "design1", "from": "bundle-design", "case": "crash-plugin", "open": [ "gimp", "photocraft" ] },
+    { "name": "dev1",    "from": "bundle-dev",    "case": "cpu-hog",      "open": [ "vscode", "godot" ] },
+    { "name": "design1", "from": "bundle-design", "case": "hang",         "open": [ "krita" ] },
+    { "name": "video1",  "from": "bundle-video",  "case": "crash-dotnet", "open": [ "obs" ] },
+    { "name": "dev1",    "from": "bundle-dev",    "case": "disk-hog",     "open": [ "vscode" ] },
+    { "name": "design1", "from": "bundle-design", "case": "cpu-hog",      "open": [ "blender" ] },
+
+    { "name": "office1", "from": "bundle-office", "case": "cpu-hog",      "open": [ "chrome", "libreoffice" ], "alias": "auto", "decoys": 1 },
+    { "name": "office1", "from": "bundle-office", "case": "crash-plugin", "open": [ "chrome" ],                "alias": "auto", "decoys": 1 },
+    { "name": "dev1",    "from": "bundle-dev",    "case": "mem-pressure", "open": [ "vscode" ],                "alias": "auto", "decoys": 2 },
+    { "name": "dev1",    "from": "bundle-dev",    "case": "hang",         "open": [ "notepadpp" ],             "alias": "auto" },
+
+    { "name": "design1", "from": "bundle-design", "case": "idle" },
+    { "name": "video1",  "from": "bundle-video",  "case": "idle" },
+    { "name": "dev1",    "from": "bundle-dev",    "case": "idle" },
+
+    { "name": "office1", "from": "bundle-office", "case": "cpu-hog-long",  "open": [ "chrome", "libreoffice" ] },
+    { "name": "office1", "from": "bundle-office", "case": "mem-leak-slow", "open": [ "chrome", "libreoffice", "kakaotalk" ] },
+
+    { "name": "office2", "spec": "office-old", "from": "bundle-office", "bundle": "office", "save": "bundle-office-b" },
+    { "name": "office2", "from": "bundle-office-b", "case": "disk-hog",     "open": [ "libreoffice", "kakaotalk" ] },
+    { "name": "office2", "from": "bundle-office-b", "case": "mem-pressure", "open": [ "libreoffice", "kakaotalk" ] },
+    { "name": "office2", "from": "bundle-office-b", "case": "cpu-hog",      "open": [ "libreoffice", "notepadpp" ] },
+    { "name": "office2", "from": "bundle-office-b", "case": "baseline" }
+  ]
+}

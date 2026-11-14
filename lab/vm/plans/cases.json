@@ -1,0 +1,30 @@
+{
+  "note": "First case session (2026-11-12): bundles first (skipped when their checkpoint exists), then for every clone a baseline run (all installed programs started once = launch check + a 'nothing wrong' case) and injected faults with real programs open. Ordered by priority: the session stops starting jobs when time runs out and can be run again later - finished cases are skipped. Last block: a slower office PC (office-old: 2 CPUs capped at 50 %, 4 GB, 500 IOPS) - its bundle install alone may take 40 minutes or more.",
+  "jobs": [
+    { "name": "office1", "spec": "office-low", "bundle": "office", "save": "bundle-office" },
+    { "name": "dev1",    "spec": "standard",   "bundle": "dev",    "save": "bundle-dev" },
+    { "name": "design1", "spec": "standard",   "gpu": "igpu", "bundle": "design", "save": "bundle-design" },
+    { "name": "video1",  "spec": "work",       "gpu": "igpu", "bundle": "video",  "save": "bundle-video" },
+
+    { "name": "video1",  "from": "bundle-video",  "case": "baseline" },
+    { "name": "office1", "from": "bundle-office", "case": "baseline" },
+    { "name": "design1", "from": "bundle-design", "case": "baseline" },
+    { "name": "dev1",    "from": "bundle-dev",    "case": "baseline" },
+
+    { "name": "office1", "from": "bundle-office", "case": "mem-pressure", "open": [ "chrome", "libreoffice", "kakaotalk" ] },
+    { "name": "office1", "from": "bundle-office", "case": "crash-plugin", "open": [ "chrome", "libreoffice" ] },
+    { "name": "office1", "from": "bundle-office", "case": "hang",         "open": [ "chrome" ] },
+    { "name": "office1", "from": "bundle-office", "case": "cpu-hog",      "open": [ "chrome", "libreoffice" ] },
+    { "name": "office1", "from": "bundle-office", "case": "disk-hog",     "open": [ "libreoffice", "pdfcraft" ] },
+    { "name": "dev1",    "from": "bundle-dev",    "case": "crash-dotnet", "open": [ "vscode" ] },
+    { "name": "design1", "from": "bundle-design", "case": "mem-pressure", "open": [ "blender", "krita" ] },
+    { "name": "design1", "from": "bundle-design", "case": "crash-plugin", "open": [ "gimp", "photocraft" ] },
+    { "name": "video1",  "from": "bundle-video",  "case": "cpu-hog",      "open": [ "obs", "davinci-resolve" ] },
+    { "name": "video1",  "from": "bundle-video",  "case": "mem-pressure", "open": [ "davinci-resolve", "filmcraft" ] },
+
+    { "name": "office2", "spec": "office-old", "bundle": "office", "save": "bundle-office" },
+    { "name": "office2", "from": "bundle-office", "case": "baseline" },
+    { "name": "office2", "from": "bundle-office", "case": "disk-hog",     "open": [ "libreoffice", "chrome" ] },
+    { "name": "office2", "from": "bundle-office", "case": "mem-pressure", "open": [ "chrome", "libreoffice" ] }
+  ]
+}

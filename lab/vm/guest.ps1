@@ -18,6 +18,8 @@ param(
     [switch]$Wait,
     [int]$TimeoutSec = 300,
     [string]$Run,
+    [string]$RunFile,                     # host path of a .ps1 to run in the guest
+    [switch]$Desktop,                     # with -RunFile: run in the logged-on desktop session (windows, installers), elevated
     [string]$CopyTo,
     [string]$CopyFrom,
     [string]$Dest,
@@ -63,6 +65,23 @@ if ($Run) {
     exit 0
 }
 
+
+if ($RunFile) {
+    # Runs a script file from the host inside the guest. With -Desktop it runs in the logged-on user's desktop session
+    # (needed for anything with a window), elevated; without, as a plain background command.
+    if (-not (Test-Path $RunFile)) { throw "Not found on the host: $RunFile" }
+    $text = Get-Content $RunFile -Raw -Encoding UTF8
+    if ($Desktop) {
+        $s = New-PSSession -VMName $vmName -Credential $cred
+        try { $r = Invoke-GuestDesktop $s $text $TimeoutSec } finally { Remove-PSSession $s }
+        if ($r.Log) { Write-Host $r.Log }
+        if ($r.TimedOut) { Write-Host "TIMED OUT after $TimeoutSec s (the job may still be running in the guest)."; exit 124 }
+        exit $r.ExitCode
+    }
+    Invoke-Command -VMName $vmName -Credential $cred -ScriptBlock ([scriptblock]::Create($text))
+    exit 0
+}
+
 if ($CopyTo -or $CopyFrom) {
     if (-not $Dest) { throw 'Give -Dest.' }
     $s = New-PSSession -VMName $vmName -Credential $cred
@@ -80,4 +99,4 @@ if ($CopyTo -or $CopyFrom) {
     exit 0
 }
 
-throw 'Nothing to do: give -Wait, -Run, -CopyTo or -CopyFrom.'
+throw 'Nothing to do: give -Wait, -Run, -RunFile, -CopyTo or -CopyFrom.'

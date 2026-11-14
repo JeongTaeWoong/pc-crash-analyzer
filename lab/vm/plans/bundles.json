@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "note": "First unattended plan: one clone per kind of PC with its programs installed, each kept as a checkpoint to start cases from. Run with lab/vm/session.ps1 while the PC is not in use. A job whose checkpoint exists is skipped, so the plan can simply be run again. video1 gets the integrated GPU because DaVinci Resolve does not start without one.",
+  "jobs": [
+    { "name": "office1", "spec": "office-low", "bundle": "office", "save": "bundle-office" },
+    { "name": "dev1",    "spec": "standard",   "bundle": "dev",    "save": "bundle-dev" },
+    { "name": "design1", "spec": "standard",   "gpu": "igpu", "bundle": "design", "save": "bundle-design" },
+    { "name": "video1",  "spec": "work",       "gpu": "igpu", "bundle": "video",  "save": "bundle-video" }
+  ]
+}

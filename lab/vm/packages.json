@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "note": "Real programs for 'recipe' scenarios (lab/vm/scenarios.json, added 2026-11-14): an old version of a real program with a documented bug, plus the files the scenario needs. lab/vm/packages.ps1 builds one zip per package under <vm root>\\payload\\packages, laid out as it will sit on the guest's C: drive; case.ps1 expands it at C:\\ before the scenario. Sources are unpacked official archives under <vm root>\\payload\\packages\\src (not in the repository; official_url says where each came from). Programs go to C:\\Tools, the user's files to C:\\Work - ordinary names, nothing that says 'test'. A driver script under lab/case/drivers presses the keys a person would press; it is not part of the evidence.",
+  "packages": {
+    "ahk-2.0.29": {
+      "product": "AutoHotkey", "version": "2.0.29",
+      "official_url": "https://www.autohotkey.com/download/2.0/AutoHotkey_2.0.29.zip",
+      "sha256_archive": "B2D0200724A6B6AD22C965C939C5E5A2C64A35D1CCB455A3CA3F8CE415C5A296",
+      "copy": [ { "src": "ahk-2.0.29", "dest": "Tools/AutoHotkey" } ],
+      "files": [
+        { "dest": "Work/hotkeys/window-keys.ahk", "lines": [
+          "#Requires AutoHotkey v2.0",
+          "#NoTrayIcon",
+          "a & b::AltTabMenu",
+          "Sleep 15000",
+          "SendLevel 1",
+          "SendEvent \"{a down}\"",
+          "Sleep 200",
+          "SendEvent \"{b down}{b up}\"",
+          "Sleep 200",
+          "SendEvent \"{a up}\"",
+          "Sleep 6000",
+          "Send \"{Esc}\"",
+          "Sleep 500",
+          "ExitApp 0"
+        ] }
+      ]
+    },
+    "godot-4.3": {
+      "product": "Godot Engine", "version": "4.3-stable",
+      "official_url": "https://godotengine.org/download/archive/4.3-stable/",
+      "sample_url": "https://github.com/godotengine/godot/issues/98341",
+      "copy": [
+        { "src": "godot-4.3", "dest": "Tools/Godot" },
+        { "src": "godot-sample", "dest": "Work/game-project", "exclude": [ ".godot" ] }
+      ]
+    },
+    "python-3.13.5": {
+      "product": "Python", "version": "3.13.5",
+      "official_url": "https://www.python.org/ftp/python/3.13.5/python-3.13.5-embed-amd64.zip",
+      "copy": [ { "src": "python-3.13.5", "dest": "Tools/Python313" } ]
+    },
+    "git-2.47.0": {
+      "product": "Git for Windows", "version": "2.47.0",
+      "official_url": "https://github.com/git-for-windows/git/releases/download/v2.47.0.windows.1/MinGit-2.47.0-64-bit.zip",
+      "sha256_archive": "6b175d4675bfa7014ba649e3c0976da2a281d89bd9a096f1f41437f9995497a8",
+      "copy": [ { "src": "git-2.47.0", "dest": "Tools/Git" } ],
+      "files": [ { "dest": "Work/notes-repo/README.md", "lines": [ "# notes", "", "meeting notes and drafts" ] } ]
+    },
+    "blender-5.1.0": {
+      "product": "Blender", "version": "5.1.0",
+      "official_url": "https://download.blender.org/release/Blender5.1/blender-5.1.0-windows-x64.zip",
+      "sha256_archive": "bc184226962904e3f26c5809ba7ec86bbeb670060825b046930b0c02a30a4eee",
+      "sample_url": "https://projects.blender.org/blender/blender/issues/155851",
+      "copy": [
+        { "src": "blender-5.1.0", "dest": "Tools/Blender51", "exclude": [ "blender.pdb" ] },
+        { "src": "blender-scene", "dest": "Work/shots" }
+      ]
+    },
+    "steamcmd": {
+      "product": "SteamCMD", "version": "bootstrap (updates itself on the first run)",
+      "official_url": "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip",
+      "note": "No checksum is published; the Authenticode signature of steamcmd.exe was checked on the host (Valid, signer Valve) on 2026-11-14.",
+      "copy": [ { "src": "steamcmd", "dest": "Tools/SteamCMD" } ]
+    },
+    "npp-8.6.7": {
+      "product": "Notepad++", "version": "8.6.7",
+      "official_url": "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/tag/v8.6.7",
+      "copy": [ { "src": "npp-8.6.7", "dest": "Tools/Notepad++" } ],
+      "files": [ { "dest": "lab/case/drivers/npp-column.ps1", "from_repo": "collector/experiments/repro/gui-npp-column.ps1" } ]
+    }
+  }
+}

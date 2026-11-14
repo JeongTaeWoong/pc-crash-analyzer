@@ -1,0 +1,246 @@
+{
+  "schema": 2,
+  "note": "Scenarios a case run can play inside a lab guest (lab/vm/case.ps1, guest side lab/vm/guest-case.ps1). Added 2026-11-12. kind = launch (start every program installed in the clone one after another while the collector runs, then one manual mark: a 'nothing is wrong' case plus a check that the programs start), idle (nothing is started except the -Open programs; the collector runs idle_sec, then one manual mark - made to see what a clone does on its own, e.g. the LiveKernelEvent 0x193 of GPU clones) or fault (collector/experiments/FaultLab injects a known problem into its own process). truth = what the engine and the agent should find; it is known because the problem was injected, so confidence is 'injected' (a fourth label next to official / user / guess of docs/conflict-test-plan.md - proposed here, not agreed yet). The cause_category words below are descriptive; their mapping to the engine's categories is not decided. mem_percent = how much of the guest's memory the leak takes. Rules added after the first session (schema 2, 2026-11-12 evening): mark.wait_for = the line FaultLab prints when the load is really running (LOAD_AT, LOAD_READY_AT) - the mark is sent after_sec after THAT line, not after the process was started (a slow guest needed 80 s just to load the test program, so the dump held no fault). expect_dump_kind = the dump the scenario must produce (prefix of the collector's dump kind); any other dump does not count. fault.ok_exit = exit codes of FaultLab that mean the fault was really made. On a slowed-down profile (CPU cap or disk limit) every wait is multiplied by slow_factor.",
+  "defaults": { "warmup_sec": 90, "launch_sec": 25, "open_gap_sec": 8, "wait_dump_sec": 150, "slow_factor": 3 },
+  "scenarios": {
+    "baseline": {
+      "kind": "launch", "expect_dump_kind": "manual",
+      "title": "No fault: every installed program is started once, then a manual mark",
+      "truth": { "symptom": "none", "cause_category": "none", "culprit": null, "note": "a healthy run; any crash event that shows up is a real finding and must be looked at by hand" }
+    },
+    "idle": {
+      "kind": "idle", "idle_sec": 300, "expect_dump_kind": "manual",
+      "title": "No fault and no program started (except -Open): the collector watches an idle desktop for 5 minutes, then a manual mark",
+      "truth": { "symptom": "none", "cause_category": "none", "culprit": null, "note": "made to tell apart what a clone does on its own from what a program causes" }
+    },
+    "idle-late": {
+      "kind": "idle", "idle_sec": 300, "pre_collector_sec": 180, "expect_dump_kind": "manual",
+      "title": "idle, but the collector starts 3 minutes later than usual",
+      "note": "Added 2026-11-13. In two sessions every run on a GPU clone (design1, video1) had LiveKernelEvent 0x193 (WATCHDOG report) 111-115 s after the collector started, also with no program started; no run on a clone without a GPU partition had one. That does not say whether the collector sets it off or the clone does it on its own a fixed time after logon. Here the collector starts 180 s later: result.json boot_at and live_kernel_events show whether the event moved with the collector.",
+      "truth": { "symptom": "none", "cause_category": "none", "culprit": null, "note": "an experiment about the clone, not an evaluation case" }
+    },
+    "crash-dotnet": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "crash",
+      "title": "A program ends with an unhandled exception 15 s after it starts",
+      "fault": { "mode": "crash-c", "args": [], "timeout_sec": 120 },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "FaultLab.exe" }
+    },
+    "crash-plugin": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "crash",
+      "title": "A program crashes inside a third-party DLL (access violation in FaultPlugin.dll)",
+      "fault": { "mode": "plugin", "args": [], "timeout_sec": 120, "ok_exit": [ 0 ] },
+      "truth": { "symptom": "app_crash", "cause_category": "third_party_module", "culprit": "FaultPlugin.dll", "note": "faulting process FaultHost.exe" }
+    },
+    "hang": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "hang",
+      "title": "A window stops responding and Windows reports it (event 1002)",
+      "fault": { "mode": "hang-report", "args": [ 60, 6 ], "timeout_sec": 180 },
+      "truth": { "symptom": "freeze", "cause_category": "app_bug", "culprit": "FaultLab.exe" }
+    },
+    "mem-pressure": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "manual",
+      "title": "One program takes most of the memory while other programs are open; the user marks 'slow'",
+      "fault": { "mode": "leak", "mem_percent": 85, "args_after_mb": [ 100 ], "timeout_sec": 400, "ok_exit": [ 0 ] },
+      "mark": { "wait_for": "LOAD_READY_AT", "after_sec": 20, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "memory_pressure", "culprit": "FaultLab.exe" }
+    },
+    "cpu-hog": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "manual",
+      "title": "One program uses every CPU core for 100 s; the user marks 'slow'",
+      "fault": { "mode": "cpu", "args": [ 100 ], "timeout_sec": 240, "ok_exit": [ 0 ] },
+      "mark": { "wait_for": "LOAD_AT", "after_sec": 45, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "cpu_contention", "culprit": "FaultLab.exe" }
+    },
+    "cpu-hog-long": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "manual",
+      "title": "One program uses every CPU core for 13 minutes; the user marks 'slow' after 11 minutes",
+      "note": "Made after the first session: the collector's per-process trends (engine-snapshot resource_trends.top_cpu_60, top_memory_growers) need at least 10 one-minute samples of a process, so the 100 s hog of cpu-hog never shows up there - only in the raw resources events. This variant is long enough to check whether the trends name the culprit.",
+      "fault": { "mode": "cpu", "args": [ 780 ], "timeout_sec": 960, "ok_exit": [ 0 ] },
+      "mark": { "wait_for": "LOAD_AT", "after_sec": 660, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "cpu_contention", "culprit": "FaultLab.exe" }
+    },
+    "mem-leak-slow": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "manual",
+      "title": "One program leaks memory slowly (50 MB every 14 s) up to 60 % of the memory; the user marks 'slow' when it is full",
+      "note": "The slow counterpart of mem-pressure (which fills the memory in seconds): long enough for the collector's per-process trends (10 one-minute samples). On a 4 GB guest the leak takes about 11 minutes, on 8 GB about 23.",
+      "fault": { "mode": "leak", "mem_percent": 60, "args_after_mb": [ 100, 14000 ], "timeout_sec": 1800, "ok_exit": [ 0 ] },
+      "mark": { "wait_for": "LOAD_READY_AT", "after_sec": 20, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "memory_leak", "culprit": "FaultLab.exe" }
+    },
+    "disk-hog": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "manual",
+      "title": "One program writes and reads a 1 GB file over and over for 100 s; the user marks 'slow'",
+      "fault": { "mode": "disk", "args": [ 100, 1024 ], "timeout_sec": 300, "ok_exit": [ 0 ] },
+      "mark": { "wait_for": "LOAD_AT", "after_sec": 45, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "disk_contention", "culprit": "FaultLab.exe" }
+    },
+
+    "cpu-hog-early": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "manual",
+      "title": "One program uses every CPU core for 150 s; the user marks 'slow' already after 25 s",
+      "note": "Variants added 2026-11-14 for the test set (docs/evaluation-design-v3.md section 3: parameters that the development cases do not have). They use only FaultLab modes that already exist. Here the mark comes early: the dump holds one or two CPU readings of the culprit.",
+      "fault": { "mode": "cpu", "args": [ 150 ], "timeout_sec": 300, "ok_exit": [ 0 ] },
+      "mark": { "wait_for": "LOAD_AT", "after_sec": 25, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "cpu_contention", "culprit": "FaultLab.exe" }
+    },
+    "cpu-hog-late": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "manual",
+      "title": "One program uses every CPU core for 260 s; the user marks 'slow' after 210 s",
+      "fault": { "mode": "cpu", "args": [ 260 ], "timeout_sec": 420, "ok_exit": [ 0 ] },
+      "mark": { "wait_for": "LOAD_AT", "after_sec": 210, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "cpu_contention", "culprit": "FaultLab.exe" }
+    },
+    "mem-leak-mid": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "manual",
+      "title": "One program leaks memory at a middle speed (50 MB every 3 s) up to 85 % of the memory; the user marks 'slow' when it is full",
+      "note": "Between mem-pressure (full in seconds) and mem-leak-slow (50 MB every 14 s). About 3.5 minutes on a 4 GB guest, 6.5 on 8 GB, 13 on 16 GB.",
+      "fault": { "mode": "leak", "mem_percent": 85, "args_after_mb": [ 100, 3000 ], "timeout_sec": 1500, "ok_exit": [ 0 ] },
+      "mark": { "wait_for": "LOAD_READY_AT", "after_sec": 20, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "memory_leak", "culprit": "FaultLab.exe" }
+    },
+    "hang-late": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "hang",
+      "title": "A window stops responding; Windows reports it 25 s later (event 1002)",
+      "fault": { "mode": "hang-report", "args": [ 90, 25 ], "timeout_sec": 240 },
+      "truth": { "symptom": "freeze", "cause_category": "app_bug", "culprit": "FaultLab.exe" }
+    },
+    "crash-start": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "crash",
+      "title": "A program ends with an unhandled exception the moment it starts",
+      "fault": { "mode": "crash-a", "args": [], "timeout_sec": 120 },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "FaultLab.exe" }
+    },
+    "crash-failfast": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "crash",
+      "title": "A program stops itself with a fatal error 5 s after it starts (Environment.FailFast)",
+      "note": "NOT verified in a guest before the test session: whether Windows writes event 1000 for a FailFast and the collector makes a crash dump from it is not known. If no crash dump appears the run fails and is simply not a case.",
+      "fault": { "mode": "crash-b", "args": [], "timeout_sec": 120 },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "FaultLab.exe" }
+    },
+    "disk-hog-long": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "manual",
+      "title": "One program writes and reads a 512 MB file over and over for 200 s; the user marks 'slow' after 150 s",
+      "note": "For the slow-disk profile only: on a fast disk the write never saturates the disk and the run is not a case (dev1 11/13, office1 11/14).",
+      "fault": { "mode": "disk", "args": [ 200, 512 ], "timeout_sec": 480, "ok_exit": [ 0 ] },
+      "mark": { "wait_for": "LOAD_AT", "after_sec": 150, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "disk_contention", "culprit": "FaultLab.exe" }
+    },
+
+    "real-ahk-alttab": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "crash", "confidence": "reproduced",
+      "title": "Real program bug: AutoHotkey 2.0.29 crashes when an 'a & b::AltTabMenu' hotkey fires",
+      "note": "kind = recipe (added 2026-11-14): a real program is run with given arguments - no FaultLab. packages = lab/vm/packages.json. Reproduced 3/3 on the host on 2026-11-10 (exit 0xC000041D, events 1000 and 1001); not yet run in a guest.",
+      "packages": [ "ahk-2.0.29" ],
+      "recipe": { "exe": "C:\\Tools\\AutoHotkey\\AutoHotkey64.exe", "args": [ "C:\\Work\\hotkeys\\window-keys.ahk" ], "timeout_sec": 90, "crash": true },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "AutoHotkey64.exe",
+                 "known_issue": { "product": "AutoHotkey", "affected": "2.0.20 - 2.0.29", "fixed_in": "2.0.30", "fix": "update", "source": "https://www.autohotkey.com/docs/v2/ChangeLog.htm" } }
+    },
+    "real-godot-svg": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "crash", "confidence": "reproduced",
+      "title": "Real program bug: Godot 4.3 crashes while importing an SVG that embeds a JPEG",
+      "note": "Reproduced 3/3 on the host on 2026-11-10 (0xC0000005). Headless import, no window; not yet run in a guest.",
+      "packages": [ "godot-4.3" ],
+      "recipe": { "exe": "C:\\Tools\\Godot\\Godot_v4.3-stable_win64.exe", "args": [ "--headless", "--disable-crash-handler", "--path", "C:\\Work\\game-project", "--import" ], "timeout_sec": 180, "crash": true },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "Godot_v4.3-stable_win64.exe",
+                 "known_issue": { "product": "Godot Engine", "affected": "4.3-stable, 4.4-dev3", "fixed_in": "4.5-dev4", "fix": "update", "source": "https://github.com/godotengine/godot/issues/98341" } }
+    },
+    "real-npp-column": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "crash", "confidence": "reproduced",
+      "title": "Real program bug: Notepad++ 8.6.7 closes when the Column Editor inserts numbers with a large step",
+      "note": "Reproduced 3/3 on the host on 2026-11-10 (0xC000041D). Needs the desktop: a driver script presses the keys. Driver exit codes 3, 4, 5 = the driver could not do its job; 0 = Notepad++ ended normally. Not yet run in a guest.",
+      "packages": [ "npp-8.6.7" ],
+      "recipe": { "driver": "npp-column.ps1", "driver_args": [ "-Npp", "C:\\Tools\\Notepad++\\notepad++.exe", "-Work", "C:\\Work\\notes" ], "timeout_sec": 150, "crash": true, "fail_exit": [ 0, 3, 4, 5 ] },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "notepad++.exe",
+                 "known_issue": { "product": "Notepad++", "affected": "8.6.7", "fixed_in": "8.6.8", "fix": "update", "source": "https://github.com/notepad-plus-plus/notepad-plus-plus/issues/15144" } }
+    },
+    "real-python-setlocale": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "crash", "confidence": "reproduced",
+      "title": "Real program bug: CPython 3.13.5 ends abruptly on locale.setlocale() with a long locale name",
+      "note": "Spike on the host 2026-11-14: exit 0xC0000409, event 1000 with faulting module ucrtbase.dll (a Windows DLL - the cause is still Python). Not yet run in a guest.",
+      "packages": [ "python-3.13.5" ],
+      "recipe": { "exe": "C:\\Tools\\Python313\\python.exe", "args": [ "-c", "import locale; locale.setlocale(locale.LC_CTYPE, 'ks_IN.UTF-8@devanagari')" ], "cwd": "C:\\Work\\scripts", "timeout_sec": 60, "crash": true },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "python.exe", "also": [ "Python", "CPython" ],
+                 "known_issue": { "product": "Python", "affected": "3.12 - 3.13.5", "fixed_in": "3.13.6", "fix": "update", "source": "https://github.com/python/cpython/issues/137273" } }
+    },
+    "real-git-maintenance": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "crash", "confidence": "documented",
+      "title": "Real program bug: Git for Windows 2.47.0 crashes on 'git maintenance start'",
+      "note": "From the 2.47.0(2) release notes and PR 5198; NOT reproduced by us yet (on the host it would register scheduled tasks, so the first run is in a guest). If git ends normally the run is not a case.",
+      "packages": [ "git-2.47.0" ],
+      "recipe": { "exe": "C:\\Windows\\System32\\cmd.exe", "args": [ "/c", "C:\\Tools\\Git\\cmd\\git.exe init . && C:\\Tools\\Git\\cmd\\git.exe maintenance start" ], "cwd": "C:\\Work\\notes-repo", "timeout_sec": 90, "crash": true },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "git.exe", "also": [ "Git for Windows" ],
+                 "known_issue": { "product": "Git for Windows", "affected": "2.47.0", "fixed_in": "2.47.0(2)", "fix": "update", "source": "https://github.com/git-for-windows/git/pull/5198" } }
+    },
+    "real-blender-bgscene": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "prefer_dump_kind": "crash", "confidence": "documented",
+      "title": "Real program bug: Blender 5.1.0 crashes when Cycles renders a scene that has a Background Scene",
+      "note": "From the 5.1.1 corrective release notes and issue 155851 (reported on Windows 11, viewport render). NOT reproduced by us: whether a background render (-b) crashes too is unknown, and so is whether Windows writes a crash event - Blender may handle its own crash and just end. So the user's mark 'crash' is sent at the end (dump kind manual); if the collector also writes a crash dump, that one is used (prefer_dump_kind). If Blender ends normally the run is not a case.",
+      "packages": [ "blender-5.1.0" ],
+      "recipe": { "exe": "C:\\Tools\\Blender51\\blender.exe", "args": [ "-b", "C:\\Work\\shots\\interior-shot.blend", "-E", "CYCLES", "-o", "C:\\Work\\shots\\frame_", "-f", "1" ], "cwd": "C:\\Work\\shots", "timeout_sec": 300, "crash": true },
+      "mark": { "at_end": true, "text": "crash" },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "blender.exe", "also": [ "Blender" ],
+                 "known_issue": { "product": "Blender", "affected": "5.1.0", "fixed_in": "5.1.1", "fix": "update", "source": "https://developer.blender.org/docs/release_notes/5.1/corrective_releases/" } }
+    },
+    "sys-defender-scan": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "by_design",
+      "title": "Windows' own work: a full Microsoft Defender scan is running and the user marks 'slow'",
+      "note": "Microsoft: manual scans run without a CPU limit. The busy program is Defender, and the sound advice is to let the scan finish or schedule it - turning the antivirus off is a wrong recommendation. Not yet run in a guest (whether a full scan starts there is unknown).",
+      "recipe": { "exe": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe", "args": [ "-NoProfile", "-Command", "Start-MpScan -ScanType FullScan" ], "timeout_sec": 300, "stop_at_end": true },
+      "mark": { "after_sec": 120, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "system_work", "culprit": "MsMpEng.exe", "also": [ "Microsoft Defender", "Windows Defender", "Defender", "Antimalware Service Executable" ],
+                 "known_issue": { "product": "Microsoft Defender Antivirus", "fix": "wait_or_schedule", "source": "https://learn.microsoft.com/en-us/defender-endpoint/configure-advanced-scan-types-microsoft-defender-antivirus" } }
+    },
+    "bg-steam-update": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "by_design",
+      "title": "A launcher's own work: Steam downloads and verifies a large game-server package and the user marks 'slow'",
+      "note": "The 'a game is updating' situation. SteamCMD with Steam's anonymous login - no personal account in the guest (decided 2026-11-14: personal accounts are not put into guests for now). The busy program is the answer and the sound advice is to wait, limit the download speed or schedule updates. The first run updates SteamCMD itself, so how long it takes until the download really starts is unknown. Not yet run in a guest.",
+      "packages": [ "steamcmd" ],
+      "recipe": { "exe": "C:\\Tools\\SteamCMD\\steamcmd.exe", "args": [ "+force_install_dir", "C:\\Games\\server", "+login", "anonymous", "+app_update", "232250", "validate", "+quit" ], "cwd": "C:\\Tools\\SteamCMD", "timeout_sec": 420, "stop_at_end": true },
+      "mark": { "after_sec": 180, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "system_work", "culprit": "steamcmd.exe", "also": [ "Steam", "SteamCMD" ],
+                 "known_issue": { "product": "Steam", "fix": "wait_or_limit_download" } }
+    },
+
+    "work-7zip": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "by_design",
+      "title": "No fault: the user compresses a big folder with 7-Zip (their own heavy job) and marks 'slow' while it runs",
+      "note": "A confusable-normal case (added 2026-11-14): the PC is busy because of what the user asked for. truth.culprit is null; truth.workload names the program doing the job. Counted apart from clean no-fault runs (review flag user_workload). Not yet run in a guest.",
+      "recipe": { "app": "7zip", "exe_name": "7z.exe", "args": [ "a", "-mx=9", "-mmt=on", "-bd", "programs.7z", "C:\\Program Files", "C:\\Windows\\System32", "-xr!*.7z" ], "cwd": "C:\\Work\\backup", "timeout_sec": 240, "stop_at_end": true },
+      "mark": { "after_sec": 100, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "user_workload", "culprit": null, "workload": "7z.exe" }
+    },
+    "work-blender": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "by_design",
+      "title": "No fault: the user renders a frame with Blender on the CPU (their own heavy job) and marks 'slow' while it runs",
+      "note": "Only on clones with Blender (design bundle). Not yet run in a guest.",
+      "recipe": { "app": "blender", "exe_name": "blender.exe", "args": [ "-b", "--python-expr", "import bpy; s=bpy.context.scene; s.render.engine='CYCLES'; s.cycles.device='CPU'; s.cycles.samples=4096; s.render.resolution_percentage=200", "-o", "C:\\Work\\render\\frame_", "-f", "1" ], "cwd": "C:\\Work\\render", "timeout_sec": 300, "stop_at_end": true },
+      "mark": { "after_sec": 100, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "user_workload", "culprit": null, "workload": "blender.exe" }
+    },
+    "busy-mem-pressure": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "manual",
+      "title": "Two things at once: the user's 7-Zip job is running AND another program takes most of the memory; the user marks 'slow'",
+      "note": "workload = a real program started before the fault (same fields as recipe). The answer is the program that takes the memory, not the user's job. Not yet run in a guest.",
+      "workload": { "app": "7zip", "exe_name": "7z.exe", "args": [ "a", "-mx=5", "-mmt=on", "-bd", "programs.7z", "C:\\Program Files", "C:\\Windows\\System32", "-xr!*.7z" ], "cwd": "C:\\Work\\backup", "lead_sec": 20 },
+      "fault": { "mode": "leak", "mem_percent": 85, "args_after_mb": [ 100 ], "timeout_sec": 400, "ok_exit": [ 0 ] },
+      "mark": { "wait_for": "LOAD_READY_AT", "after_sec": 20, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "memory_pressure", "culprit": "FaultLab.exe", "workload": "7z.exe" }
+    },
+    "busy-hang": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "hang",
+      "title": "Two things at once: the user's 7-Zip job is running AND another program's window stops responding (event 1002)",
+      "note": "The answer is the program that stopped responding. Not yet run in a guest.",
+      "workload": { "app": "7zip", "exe_name": "7z.exe", "args": [ "a", "-mx=5", "-mmt=on", "-bd", "programs.7z", "C:\\Program Files", "C:\\Windows\\System32", "-xr!*.7z" ], "cwd": "C:\\Work\\backup", "lead_sec": 20 },
+      "fault": { "mode": "hang-report", "args": [ 60, 6 ], "timeout_sec": 180 },
+      "truth": { "symptom": "freeze", "cause_category": "app_bug", "culprit": "FaultLab.exe", "workload": "7z.exe" }
+    },
+    "busy-crash-plugin": {
+      "kind": "fault", "expect_dump": true, "expect_dump_kind": "crash",
+      "title": "Two things at once: the user's 7-Zip job is running AND a program crashes inside a third-party DLL",
+      "note": "The answer is the DLL. Not yet run in a guest.",
+      "workload": { "app": "7zip", "exe_name": "7z.exe", "args": [ "a", "-mx=5", "-mmt=on", "-bd", "programs.7z", "C:\\Program Files", "C:\\Windows\\System32", "-xr!*.7z" ], "cwd": "C:\\Work\\backup", "lead_sec": 20 },
+      "fault": { "mode": "plugin", "args": [], "timeout_sec": 120, "ok_exit": [ 0 ] },
+      "truth": { "symptom": "app_crash", "cause_category": "third_party_module", "culprit": "FaultPlugin.dll", "note": "faulting process FaultHost.exe", "workload": "7z.exe" }
+    }
+  }
+}

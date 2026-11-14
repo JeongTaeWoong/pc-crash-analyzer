@@ -1,9 +1,9 @@
 # Self-test of lab/vm base.ps1, clone.ps1 and guest.ps1 without a guest OS: makes throwaway VMs under <vm root>/_test and removes them. ASCII only.
-#   powershell -ExecutionPolicy Bypass -File lab/vm/test-vm-scripts.ps1      (about 2 minutes; refuses when a VM named pca-base, pca-a or pca-b exists)
+#   powershell -ExecutionPolicy Bypass -File lab/vm/test-vm-scripts.ps1      (about 2 minutes; refuses when a VM named pca-base or pca-a to pca-d exists)
 $ErrorActionPreference = 'Continue'
 $vmDir = $PSScriptRoot
 $root = Join-Path ((Get-Content (Join-Path $PSScriptRoot 'vm.json') -Raw -Encoding UTF8 | ConvertFrom-Json).root) '_test'
-if (Get-VM -ErrorAction SilentlyContinue | Where-Object { $_.Name -in 'pca-base', 'pca-a', 'pca-b' }) { Write-Host 'Refusing: a VM named pca-base, pca-a or pca-b exists (this test would delete it).'; exit 9 }
+if (Get-VM -ErrorAction SilentlyContinue | Where-Object { $_.Name -in 'pca-base', 'pca-a', 'pca-b', 'pca-c', 'pca-d' }) { Write-Host 'Refusing: a VM named pca-base or pca-a to pca-d exists (this test would delete it).'; exit 9 }
 $iso = Join-Path $env:TEMP 'pca-dummy.iso'
 $pass = 0; $fail = 0
 function Run($file, [string[]]$a) {
@@ -57,6 +57,10 @@ try {
 
     $r = Run 'clone.ps1' @('-New', 'a');                      Check 'clone a created with checkpoint clean' ($r.Code -eq 0 -and (Get-VMSnapshot -VMName pca-a -Name clean -ErrorAction SilentlyContinue)) $r.Out
     $r = Run 'clone.ps1' @('-New', 'b', '-Boot');             Check 'clone b created and started' ($r.Code -eq 0 -and (Get-VM pca-b).State -eq 'Running') $r.Out
+    $r = Run 'clone.ps1' @('-New', 'c', '-Spec', 'office-old', '-Boot'); $vc = Get-VM pca-c -ErrorAction SilentlyContinue
+    Check 'profile office-old: 2 CPUs capped at 50%, 4 GB, disk 3000 IOPS, starts' ($r.Code -eq 0 -and $vc.ProcessorCount -eq 2 -and $vc.MemoryStartup -eq 4GB -and (Get-VMProcessor -VMName pca-c).Maximum -eq 50 -and (Get-VMHardDiskDrive -VMName pca-c).MaximumIOPS -eq 3000 -and $vc.State -eq 'Running') $r.Out
+    $r = Run 'clone.ps1' @('-New', 'd', '-Spec', 'nope');   Check 'unknown profile refused, nothing made' ($r.Code -ne 0 -and -not (Get-VM pca-d -ErrorAction SilentlyContinue)) $r.Out
+    $r = Run 'clone.ps1' @('-Remove', 'c');                 Check 'remove c' ($r.Code -eq 0 -and -not (Get-VM pca-c -ErrorAction SilentlyContinue)) $r.Out
     $r = Run 'clone.ps1' @('-New', 'Bad Name');               Check 'bad name refused' ($r.Code -ne 0 -and $r.Out -match 'Bad name') $r.Out
     $r = Run 'clone.ps1' @('-Start', 'a');                    Check 'two clones run at once' ($r.Code -eq 0 -and @(Get-VM pca-a, pca-b | Where-Object State -eq 'Running').Count -eq 2) $r.Out
     Check 'clone disk is differencing on the base' ((Get-VHD "$root\clones\a\disk.vhdx" -ErrorAction SilentlyContinue).ParentPath -eq "$root\base\base.vhdx" -or (Get-VMHardDiskDrive -VMName pca-a | Get-VHD).VhdType -eq 'Differencing') ''
@@ -73,7 +77,7 @@ try {
 }
 catch { $fail++; Write-Host "[ERROR] $($_.Exception.Message)" }
 finally {
-    foreach ($n in 'pca-a', 'pca-b', 'pca-base') { try { $v = Get-VM $n -ErrorAction SilentlyContinue; if ($v) { if ($v.State -ne 'Off') { Stop-VM -Name $n -TurnOff -Force }; Remove-VM -Name $n -Force } } catch { Write-Host "cleanup $n : $($_.Exception.Message)" } }
+    foreach ($n in 'pca-a', 'pca-b', 'pca-c', 'pca-d', 'pca-base') { try { $v = Get-VM $n -ErrorAction SilentlyContinue; if ($v) { if ($v.State -ne 'Off') { Stop-VM -Name $n -TurnOff -Force }; Remove-VM -Name $n -Force } } catch { Write-Host "cleanup $n : $($_.Exception.Message)" } }
     Start-Sleep 3
     if (Test-Path $root) { Get-ChildItem $root -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object { $_.IsReadOnly = $false }; Remove-Item $root -Recurse -Force -ErrorAction SilentlyContinue }
     Remove-Item $iso -Force -ErrorAction SilentlyContinue

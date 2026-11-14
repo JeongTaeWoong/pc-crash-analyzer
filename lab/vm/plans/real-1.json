@@ -1,0 +1,30 @@
+{
+  "note": "HARD cases, first trial (written 2026-11-14, decision of the same day: add real-program bugs, the user's own heavy job, and two things at once). DEVELOPMENT runs: nothing here has been run in a guest before, so this session first shows which recipes work. Scenario kinds: real-* = an old version of a real program with a documented bug (packages built by lab\\vm\\packages.ps1), work-* = the user's own heavy job and no culprit, busy-* = an injected fault while the user's job is running. Run it AFTER a test-set session, never in the middle of one: the test-set runs are moved by time (eval\\split_test.py --since/--until).",
+  "jobs": [
+    { "id": "r1-01", "name": "office1", "from": "bundle-office",   "case": "real-ahk-alttab",   "open": [ "firefox" ],               "decoys": 1 },
+    { "id": "r1-02", "name": "design1", "from": "bundle-design",   "case": "real-ahk-alttab",   "open": [ "krita" ] },
+    { "id": "r1-03", "name": "office1", "from": "bundle-office",   "case": "real-godot-svg",    "open": [ "libreoffice" ],           "decoys": 2 },
+    { "id": "r1-04", "name": "video1",  "from": "bundle-video",    "case": "real-godot-svg",    "open": [ "vlc" ] },
+    { "id": "r1-05", "name": "design1", "from": "bundle-design",   "case": "real-npp-column",   "open": [ "gimp" ] },
+    { "id": "r1-06", "name": "video1",  "from": "bundle-video",    "case": "real-npp-column" },
+    { "id": "r1-07", "name": "dev1",    "from": "bundle-dev",      "case": "real-npp-column",   "open": [ "vscode" ] },
+    { "id": "r1-08", "name": "office1", "from": "bundle-office",   "case": "work-7zip",         "open": [ "chrome", "libreoffice" ] },
+    { "id": "r1-09", "name": "dev1",    "from": "bundle-dev",      "case": "work-7zip",         "open": [ "vscode" ],                "decoys": 1 },
+    { "id": "r1-10", "name": "office2", "from": "bundle-office-b", "case": "work-7zip",         "open": [ "firefox" ] },
+    { "id": "r1-11", "name": "design1", "from": "bundle-design",   "case": "work-blender",      "open": [ "krita" ] },
+    { "id": "r1-12", "name": "office1", "from": "bundle-office",   "case": "busy-mem-pressure", "open": [ "firefox" ],               "alias": "auto", "decoys": 1 },
+    { "id": "r1-13", "name": "dev1",    "from": "bundle-dev",      "case": "busy-hang",         "open": [ "vscode" ],                "alias": "auto", "decoys": 1 },
+    { "id": "r1-14", "name": "design1", "from": "bundle-design",   "case": "busy-crash-plugin", "open": [ "gimp" ],                  "alias": "auto" },
+    { "id": "r1-15", "name": "office2", "from": "bundle-office-b", "case": "busy-hang",         "open": [ "libreoffice" ],           "alias": "auto" },
+    { "id": "r1-16", "name": "office1", "from": "bundle-office",   "case": "real-python-setlocale", "open": [ "chrome" ] },
+    { "id": "r1-17", "name": "video1",  "from": "bundle-video",    "case": "real-python-setlocale", "open": [ "vlc" ],            "decoys": 1 },
+    { "id": "r1-18", "name": "design1", "from": "bundle-design",   "case": "real-git-maintenance",  "open": [ "inkscape" ] },
+    { "id": "r1-19", "name": "office1", "from": "bundle-office",   "case": "real-git-maintenance" },
+    { "id": "r1-20", "name": "office1", "from": "bundle-office",   "case": "sys-defender-scan",     "open": [ "firefox", "libreoffice" ] },
+    { "id": "r1-21", "name": "dev1",    "from": "bundle-dev",      "case": "sys-defender-scan",     "open": [ "vscode" ] },
+    { "id": "r1-22", "name": "video1",  "from": "bundle-video",    "case": "real-blender-bgscene",  "open": [ "vlc" ] },
+    { "id": "r1-23", "name": "office1", "from": "bundle-office",   "case": "real-blender-bgscene" },
+    { "id": "r1-24", "name": "office2", "from": "bundle-office-b", "case": "bg-steam-update",       "open": [ "firefox" ] },
+    { "id": "r1-25", "name": "dev1",    "from": "bundle-dev",      "case": "bg-steam-update",       "open": [ "vscode" ] }
+  ]
+}

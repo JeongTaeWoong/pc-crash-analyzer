@@ -1,0 +1,36 @@
+{
+  "note": "Third case session, written 2026-11-13 after the review of the second one (19 runs made: 18 usable, dev1 disk-hog dropped because a fast disk was never saturated; office2 disk-hog failed again when the remote session broke). Purpose: (1) the first sizeable batch of alias cases - every fault scenario on several clones, the fault program under a random ordinary name with one or two decoy programs, and runs with decoys but NO fault (a PC with unfamiliar programs where nothing is wrong); these are DEVELOPMENT cases, the test set is made later from variants. Every job has an id, so the same clone and scenario can appear more than once (done marks: cases/_done/<id>.txt). (2) idle-late on both GPU clones: does LiveKernelEvent 0x193 move when the collector starts 3 minutes later? (3) office2 with the gentler disk limit (vm.json office-old 500 -> 3000 IOPS, set again by case.ps1 after the checkpoint is restored): baseline first - is the disk still saturated with no fault? - then disk-hog, which has never produced a case. About 4 hours in all (an estimate: 4.5-6 min per run on normal clones, 9 min for idle runs, 15-25 min on office2).",
+  "jobs": [
+    { "id": "c3-01", "name": "design1", "from": "bundle-design", "case": "idle-late" },
+    { "id": "c3-02", "name": "video1",  "from": "bundle-video",  "case": "idle-late" },
+
+    { "id": "c3-10", "name": "office1", "from": "bundle-office", "case": "cpu-hog",      "open": [ "libreoffice", "kakaotalk" ],  "alias": "auto", "decoys": 2 },
+    { "id": "c3-11", "name": "office1", "from": "bundle-office", "case": "mem-pressure", "open": [ "chrome", "libreoffice" ],     "alias": "auto", "decoys": 1 },
+    { "id": "c3-12", "name": "office1", "from": "bundle-office", "case": "hang",         "open": [ "chrome", "kakaotalk" ],       "alias": "auto", "decoys": 2 },
+    { "id": "c3-13", "name": "office1", "from": "bundle-office", "case": "crash-dotnet", "open": [ "libreoffice" ],               "alias": "auto", "decoys": 1 },
+    { "id": "c3-14", "name": "office1", "from": "bundle-office", "case": "disk-hog",     "open": [ "chrome" ],                    "alias": "auto", "decoys": 1 },
+    { "id": "c3-15", "name": "office1", "from": "bundle-office", "case": "idle",         "open": [ "chrome", "libreoffice" ],     "decoys": 2 },
+
+    { "id": "c3-20", "name": "dev1",    "from": "bundle-dev",    "case": "cpu-hog",      "open": [ "vscode", "godot" ],           "alias": "auto", "decoys": 2 },
+    { "id": "c3-21", "name": "dev1",    "from": "bundle-dev",    "case": "crash-plugin", "open": [ "vscode" ],                    "alias": "auto", "decoys": 1 },
+    { "id": "c3-22", "name": "dev1",    "from": "bundle-dev",    "case": "crash-dotnet", "open": [ "godot" ],                     "alias": "auto", "decoys": 2 },
+    { "id": "c3-23", "name": "dev1",    "from": "bundle-dev",    "case": "idle",         "open": [ "vscode" ],                    "decoys": 2 },
+
+    { "id": "c3-30", "name": "design1", "from": "bundle-design", "case": "cpu-hog",      "open": [ "krita" ],                     "alias": "auto", "decoys": 1 },
+    { "id": "c3-31", "name": "design1", "from": "bundle-design", "case": "mem-pressure", "open": [ "gimp", "photocraft" ],        "alias": "auto", "decoys": 2 },
+    { "id": "c3-32", "name": "design1", "from": "bundle-design", "case": "crash-plugin", "open": [ "blender" ],                   "alias": "auto", "decoys": 1 },
+    { "id": "c3-33", "name": "design1", "from": "bundle-design", "case": "hang",         "open": [ "gimp" ],                      "alias": "auto", "decoys": 2 },
+
+    { "id": "c3-40", "name": "video1",  "from": "bundle-video",  "case": "cpu-hog",      "open": [ "obs" ],                       "alias": "auto", "decoys": 2 },
+    { "id": "c3-41", "name": "video1",  "from": "bundle-video",  "case": "mem-pressure", "open": [ "obs" ],                       "alias": "auto", "decoys": 1 },
+    { "id": "c3-42", "name": "video1",  "from": "bundle-video",  "case": "hang",         "open": [ "obs" ],                       "alias": "auto", "decoys": 1 },
+
+    { "id": "c3-50", "name": "office1", "from": "bundle-office", "case": "cpu-hog-long",  "open": [ "chrome", "libreoffice" ],    "alias": "auto", "decoys": 1 },
+    { "id": "c3-51", "name": "office1", "from": "bundle-office", "case": "mem-leak-slow", "open": [ "libreoffice", "kakaotalk" ], "alias": "auto", "decoys": 1 },
+
+    { "id": "c3-60", "name": "office2", "from": "bundle-office-b", "case": "idle" },
+    { "id": "c3-61", "name": "office2", "from": "bundle-office-b", "case": "disk-hog",     "open": [ "libreoffice" ],              "alias": "auto", "decoys": 1 },
+    { "id": "c3-62", "name": "office2", "from": "bundle-office-b", "case": "cpu-hog",      "open": [ "libreoffice", "notepadpp" ], "alias": "auto", "decoys": 1 },
+    { "id": "c3-63", "name": "office2", "from": "bundle-office-b", "case": "mem-pressure", "open": [ "kakaotalk" ],                "alias": "auto", "decoys": 1 }
+  ]
+}
