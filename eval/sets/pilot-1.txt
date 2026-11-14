@@ -1,0 +1,16 @@
+# Pilot set 1 (2026-11-13). Purpose: real cost per method and model, and how much answers move between repetitions.
+# NOT an accuracy set: 10 cases, all of them development cases (the engine rules were tuned on runs of these scenarios).
+# Only cases whose input does not give the answer away: fault runs under an alias, and runs without a fault.
+# four alias fault runs (the first ones made, second session)
+office1-cpu-hog+alias/20261113-034459
+office1-crash-plugin+alias/20261113-035057
+dev1-mem-pressure+alias/20261113-035533
+dev1-hang+alias/20261113-040130
+# no fault, clean
+dev1-idle/20261113-042315
+dev1-baseline/20261112-124601            # first session: needs --replay (dump made before resource_recent existed)
+office1-baseline/20261112-120606         # first session: needs --replay
+# no fault, but the clone has something of its own (not counted as plain "healthy" - see review.json flags)
+design1-idle/20261113-040556             # GPU clone: LiveKernelEvent 0x193 in the window
+video1-idle/20261113-041435              # GPU clone: two LiveKernelEvent 0x193
+office2-baseline/20261113-062700         # slowed-down profile: the disk is saturated with no fault at all

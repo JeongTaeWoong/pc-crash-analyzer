@@ -39,3 +39,8 @@ lab/runs-*/
 # API 키가 든 빌드 설정 — 커밋 금지 (docs/product-architecture-v2.md 3.4)
 *.apikey
 apikey.local.*
+
+# 평가 실험(eval/): 가상 환경과 실행 원자료(요청·응답 전문) — 커밋 금지. 키는 환경 변수로만 읽는다
+eval/.venv/
+eval/runs/
+eval/uv.lock

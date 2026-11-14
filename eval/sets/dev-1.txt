@@ -1,0 +1,39 @@
+# Development set 1 (2026-11-14): every usable case made up to the third session whose culprit runs under an
+# ordinary name, plus every no-fault run. For prompt and rule development only - never a reported number.
+# family / culprit / flags are comments; the loader reads the id only.
+design1-baseline/20261112-123655                   # baseline      None                   own_event:LiveKernelEvent,other_dumps
+design1-cpu-hog+alias/20261114-035552              # cpu-hog       MediaIndexer.exe       own_event:LiveKernelEvent,other_dumps
+design1-crash-plugin+alias/20261114-040740         # crash-plugin  gbcompress64.dll       own_event:LiveKernelEvent,other_dumps
+design1-hang+alias/20261114-041209                 # hang          ScanBridge.exe         own_event:LiveKernelEvent,other_dumps
+design1-idle/20261113-040556                       # idle          None                   own_event:LiveKernelEvent,other_dumps
+design1-idle-late/20261114-022928                  # idle-late     None                   own_event:LiveKernelEvent,other_dumps
+design1-mem-pressure+alias/20261114-040129         # mem-pressure  CloudNoteSync.exe      own_event:LiveKernelEvent,other_dumps
+dev1-baseline/20261112-124601                      # baseline      None                   
+dev1-cpu-hog+alias/20261114-033045                 # cpu-hog       ScanBridge.exe         
+dev1-crash-dotnet+alias/20261114-034123            # crash-dotnet  MediaIndexer.exe       
+dev1-crash-plugin+alias/20261114-033651            # crash-plugin  grdexport64.dll        
+dev1-hang+alias/20261113-040130                    # hang          InvoiceExport.exe      
+dev1-idle/20261113-042315                          # idle          None                   
+dev1-idle+alias/20261114-034620                    # idle          None                   
+dev1-mem-pressure+alias/20261113-035533            # mem-pressure  FontPreviewHost.exe    
+office1-baseline/20261112-120606                   # baseline      None                   
+office1-cpu-hog+alias/20261113-034459              # cpu-hog       UpdateNotifier.exe     
+office1-cpu-hog+alias/20261114-025258              # cpu-hog       LabelPrintAgent.exe    
+office1-cpu-hog-long+alias/20261114-043339         # cpu-hog-long  BackupScheduler.exe    
+office1-crash-dotnet+alias/20261114-031021         # crash-dotnet  ThumbCacheBuilder.exe  
+office1-crash-plugin+alias/20261113-035057         # crash-plugin  nsdeskew64.dll         
+office1-hang+alias/20261114-030506                 # hang          FontPreviewHost.exe    
+office1-idle+alias/20261114-032054                 # idle          None                   
+office1-mem-leak-slow+alias/20261114-045106        # mem-leak-slow UpdateNotifier.exe     
+office1-mem-pressure+alias/20261114-025902         # mem-pressure  UpdateNotifier.exe     
+office2-baseline/20261113-062700                   # baseline      None                   hardware_limit:disk
+office2-cpu-hog+alias/20261114-052602              # cpu-hog       CloudNoteSync.exe      
+office2-disk-hog+alias/20261114-051824             # disk-hog      InvoiceExport.exe      
+office2-idle/20261114-050855                       # idle          None                   
+office2-mem-pressure+alias/20261114-053448         # mem-pressure  BackupScheduler.exe    
+video1-baseline/20261112-122824                    # baseline      None                   own_event:LiveKernelEvent,other_dumps
+video1-cpu-hog+alias/20261114-041659               # cpu-hog       PrintQueueHelper.exe   own_event:LiveKernelEvent,other_dumps
+video1-hang+alias/20261114-042859                  # hang          UpdateNotifier.exe     own_event:LiveKernelEvent,other_dumps
+video1-idle/20261113-041435                        # idle          None                   own_event:LiveKernelEvent,other_dumps
+video1-idle-late/20261114-024114                   # idle-late     None                   own_event:LiveKernelEvent,other_dumps
+video1-mem-pressure+alias/20261114-042302          # mem-pressure  ChartRenderHost.exe    own_event:LiveKernelEvent,other_dumps

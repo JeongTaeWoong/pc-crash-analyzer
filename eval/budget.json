@@ -1,0 +1,11 @@
+{
+  "note": "API budget, decided 2026-11-12 (docs/evaluation-design-v3.md section 8): 300 USD must last until the end of November. The reserve is spent only after the owner agrees - then a phase limit below is raised by hand and the change is written into the design document's change log.",
+  "total_usd": 300,
+  "reserve_usd": 120,
+  "phases": {
+    "pilot": { "limit_usd": 15, "until": "2026-11-16", "what": "cost and run-to-run spread on about 10 cases, every method and model" },
+    "exp_a": { "limit_usd": 85, "until": "2026-11-30", "what": "judgment accuracy vs cost (A0-A6)" },
+    "exp_c": { "limit_usd": 65, "until": "2026-11-30", "what": "agent with action tools in lab guests, Lv3 included" },
+    "judge": { "limit_usd": 15, "until": "2026-11-30", "what": "rubric-based grading of explanations" }
+  }
+}
