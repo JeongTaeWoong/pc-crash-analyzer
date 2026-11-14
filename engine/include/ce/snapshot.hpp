@@ -169,6 +169,55 @@ struct ResourceTrends {
   std::vector<ProcTrend> top_cpu;         // CPU 평균 상위
 };
 
+// 프로세스 하나의 '덤프 창'(마킹 전 5분~후 30초) 자원 사용 (수집기 RecentResources, 2026-11-12)
+struct RecentProc {
+  int pid = 0;
+  std::string name;
+  double cpu_avg = -1;       // 창 안 CPU 측정 전체의 평균 %(상위 목록에 없던 측정은 0 으로 센다)
+  double cpu_max = -1;
+  int measurements = 0;      // 상위 목록에 든 측정 횟수 (측정 간격 30초)
+  double io_mbps_avg = -1;   // 프로세스 I/O (MB/s)
+  double io_mbps_max = -1;
+  double priv_mb_last = -1;  // Private Bytes: 창의 마지막 값
+  double priv_mb_first = -1;
+  double priv_mb_delta = 0;
+  int seconds = 0;           // 처음 본 때부터 마지막까지
+  bool started_in_window = false;  // 창 안에서 새로 켜진 프로세스
+};
+
+// 디스크 하나의 덤프 창 요약 (PhysicalDisk 카운터). busy = 100 - 쉬는 시간 비율
+struct RecentDisk {
+  std::string name;  // "1 C:"
+  int samples = 0;
+  double busy_pct_avg = -1;
+  double busy_pct_max = -1;
+  int busy_ge90_samples = -1;  // 90% 이상 바빴던 표본 수 (10초 표본). 수집기 2026-11-14 추가 — 그 전 요약에는 없다(-1)
+  double queue_avg = -1;
+  double latency_ms_avg = -1;
+  double latency_ms_max = -1;
+};
+
+// 수집기가 덤프 창의 원시 표본에서 뽑은 요약. 60분 추세(ResourceTrends)는 프로세스가 10분 이상 살아야 채워지므로,
+// 방금 켠 프로그램이 만든 느려짐은 여기에만 남는다.
+struct ResourceRecent {
+  bool available = false;
+  int window_seconds = 0;
+  int samples = 0;
+  int cpu_measurements = 0;
+  double cpu_total_pct_avg = -1;
+  double cpu_total_pct_max = -1;
+  double commit_pct_last = -1;  // 마킹 시점의 실제 값 (resource_trends.commit_pct_now 는 분 단위라 최대 1분 늦다)
+  double commit_pct_max = -1;
+  double commit_limit_mb = -1;
+  double avail_mb_min = -1;
+  double pages_per_sec_max = -1;
+  std::vector<RecentProc> top_cpu;
+  std::vector<RecentProc> top_io;
+  std::vector<RecentProc> top_memory;         // 크기순
+  std::vector<RecentProc> top_memory_growth;  // 창 안 증가량순 (50MB 이상만)
+  std::vector<RecentDisk> disks;              // 바쁜 순
+};
+
 struct BaselineDiff {  // 베이스라인 스냅샷 대비 변화 (제안서 5.1)
   bool available = false;
   std::vector<std::string> added;
@@ -226,6 +275,7 @@ struct Snapshot {
   std::vector<DiskHealth> disks;
   BaselineDiff baseline;
   ResourceTrends trends;
+  ResourceRecent recent;
   Availability available;
 
   // 벤치마크 전용. 실측 스냅샷에는 없고 실험용 시나리오 파일에만 들어간다.

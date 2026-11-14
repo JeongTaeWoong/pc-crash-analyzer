@@ -86,6 +86,38 @@
 `gpu_temp_max ≥ 83 && gpu_clock_min < 0.75×gpu_clock_max` → thermal · 초점이 아닌 프로세스 `cpuAvg ≥ 10` → 상주 과부하 후보(hints 로 분류) ·
 이벤트 37(Kernel-Processor-Power) → power 근거.
 
+## resource_recent (선택 — 수집기 2026-11-12)
+
+수집기가 **덤프 창(마킹 전 5분 ~ 후 30초)의 원시 표본**에서 뽑은 요약. `resource_trends` 는 프로세스가 1분 표본 10개 이상
+있어야 행이 생기므로, 방금 켠 프로그램이 몇 분 동안 만든 느려짐은 여기에만 남는다(11/12 가상 머신 사례 13개에서 `top_cpu_60`·
+`top_memory_growers` 가 전부 빈 배열이었고, `commit_pct_now` 는 최대 1분 늦었다 — 실제 96.4%, 요약 33.6%).
+값이 없는 항목은 필드를 생략한다. `disks` 는 디스크 신호가 추가된 수집기부터 있다.
+
+```json
+"resource_recent": {
+  "window_seconds": 190, "samples": 20, "cpu_measurements": 6,
+  "cpu_total_pct_avg": 48.8, "cpu_total_pct_max": 100.0,
+  "commit_pct_last": 51.7, "commit_pct_min": 46.1, "commit_pct_max": 63.1, "commit_limit_mb": 5503,
+  "avail_mb_last": 1179, "avail_mb_min": 455, "pages_per_sec_avg": 14777.9, "pages_per_sec_max": 115546.6,
+  "top_cpu":    [ {"pid": 3280, "name": "faultlab", "cpu_avg": 31.8, "cpu_max": 99.1, "measurements": 2, "priv_mb_last": 7.5} ],
+  "top_io":     [ {"pid": 5304, "name": "faultlab", "io_mbps_avg": 354.08, "io_mbps_max": 1121.13, "measurements": 2} ],
+  "top_memory": [ {"pid": 9888, "name": "FaultLab", "priv_mb_last": 7104.1, "priv_mb_first": 5435.2, "priv_mb_delta": 1668.9,
+                   "seconds": 80, "samples": 9, "started_in_window": true} ],
+  "top_memory_growth": [ {"...": "top_memory 와 같은 형식, 창 안에서 50MB 이상 늘어난 것만"} ],
+  "disks":      [ {"name": "1 C:", "samples": 30, "busy_pct_avg": 97.5, "busy_pct_max": 100.0, "queue_avg": 4.2, "queue_max": 9.0,
+                   "latency_ms_avg": 85.0, "latency_ms_max": 310.0, "iops_avg": 480.0, "mbps_avg": 30.1} ]
+}
+```
+
+- CPU 는 30초마다 잰다. `cpu_avg` 는 창 안 측정 전체의 평균이고 상위 목록에 없던 측정은 0 으로 센다. `measurements` 는 상위 목록에 든 횟수.
+- `top_cpu`·`top_io` 의 `name` 은 성능 카운터 인스턴스 이름(소문자, 확장자 없음), `top_memory` 의 `name` 은 프로세스 이름이다.
+- `disks[].busy_pct` = 100 − 쉬는 시간 비율(PhysicalDisk `% Idle Time`). 바쁜 순으로 정렬.
+
+엔진 규칙(`candidates.cpp addFromResourceRecent`, 기준값은 잠정 — `rules_rationale.md` 9절):
+`cpu_max ≥ 50 && measurements ≥ 2 && cpu_avg ≥ 15` → 그 프로세스(대상 프로그램 자신은 제외) ·
+`commit_pct_last ≥ 85` 이고 `top_memory[0].priv_mb_last ≥ 0.3 × commit_limit_mb` → 그 프로그램(app_memory) ·
+`disks[0].busy_pct_avg ≥ 80 && samples ≥ 6` 이고 `top_io[0].io_mbps_avg ≥ 1` → 그 프로세스, 그리고 디스크가 바빴다는 안내.
+
 ## 배열 원소 형식
 
 ```json

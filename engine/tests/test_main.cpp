@@ -298,6 +298,303 @@ void testScenarios() {
     check(Rules::defaults().isAutoUpdateNoise("Microsoft GameInput"), "Microsoft Store 자동 업데이트도 노이즈 목록");
   }
   {
+    // 2026-11-12 가상 머신 사례에서 나온 값 그대로: 60분 추세는 비어 있고(프로세스가 10분을 못 살았다),
+    // 범인은 덤프 창 요약(resource_recent)에만 있다.
+    std::cout << "[s14] 방금 켠 프로그램의 짧은 CPU 점유 — resource_recent (office1 cpu-hog 실측값)\n";
+    json::Value v = loadJson("s12_slow_app_memory.json");
+    json::Value rt = json::Value::makeObject();
+    rt.set("window_minutes", json::Value(60.0));
+    rt.set("samples", json::Value(2.0));
+    v.set("resource_trends", rt);
+    v.set("events", json::Value::makeArray());
+    json::Value sym = v["symptom"];
+    sym.set("target_process", json::Value(""));
+    v.set("symptom", sym);
+    json::Value rr = json::Value::makeObject();
+    rr.set("window_seconds", json::Value(190.0));
+    rr.set("samples", json::Value(20.0));
+    rr.set("cpu_measurements", json::Value(6.0));
+    rr.set("cpu_total_pct_avg", json::Value(48.8));
+    rr.set("cpu_total_pct_max", json::Value(100.0));
+    rr.set("commit_pct_last", json::Value(51.7));
+    rr.set("commit_limit_mb", json::Value(5503.0));
+    json::Value top = json::Value::makeArray();
+    json::Value hog = json::Value::makeObject();
+    hog.set("pid", json::Value(3280.0));
+    hog.set("name", json::Value("faultlab"));
+    hog.set("cpu_avg", json::Value(31.8));
+    hog.set("cpu_max", json::Value(99.1));
+    hog.set("measurements", json::Value(2.0));
+    top.push(hog);
+    json::Value av = json::Value::makeObject();  // 한 번 튄 백신 검사: 최대 20% 는 기준(50%)에 못 미친다
+    av.set("pid", json::Value(3192.0));
+    av.set("name", json::Value("msmpeng"));
+    av.set("cpu_avg", json::Value(5.0));
+    av.set("cpu_max", json::Value(20.6));
+    av.set("measurements", json::Value(6.0));
+    top.push(av);
+    rr.set("top_cpu", top);
+    v.set("resource_recent", rr);
+    std::vector<std::string> warn;
+    const Snapshot s = parseSnapshot(v, &warn);
+    check(s.recent.available && s.recent.top_cpu.size() == 2 && s.recent.cpu_measurements == 6, "resource_recent 를 읽음");
+    const Diagnosis d = diagnose(s, Rules::defaults(), EngineVersion::V1, guide, warn);
+    check(d.top() && sameSubject(d.top()->subject, "faultlab"), "1순위 = CPU 를 차지한 프로세스", topLabel(d));
+    bool avCpu = false;
+    bool weak = false;
+    for (std::size_t i = 0; i < d.candidates.size(); i++) {
+      for (std::size_t k = 0; k < d.candidates[i].evidence.size(); k++) {
+        if (containsNoCase(d.candidates[i].subject, "msmpeng") &&
+            d.candidates[i].evidence[k].detail.find("CPU") != std::string::npos) {
+          avCpu = true;
+        }
+      }
+    }
+    for (std::size_t i = 0; i < d.warnings.size(); i++) {
+      if (d.warnings[i].find("근거 부족") != std::string::npos) weak = true;
+    }
+    check(!avCpu, "잠깐 20% 를 쓴 프로세스는 CPU 근거를 받지 않음");
+    check(!weak, "근거가 있으므로 '근거 부족' 경고 없음");
+  }
+  {
+    std::cout << "[s15] 메모리 압박 + 한 프로세스가 커밋 한도의 64% — resource_recent (design1 mem-pressure 실측값)\n";
+    json::Value v = loadJson("s12_slow_app_memory.json");
+    json::Value rt = json::Value::makeObject();
+    rt.set("window_minutes", json::Value(60.0));
+    rt.set("samples", json::Value(2.0));
+    rt.set("commit_pct_now", json::Value(33.56));  // 분 단위 롤업은 문제 직전 값이었다
+    v.set("resource_trends", rt);
+    v.set("events", json::Value::makeArray());
+    json::Value sym = v["symptom"];
+    sym.set("target_process", json::Value(""));
+    v.set("symptom", sym);
+    json::Value rr = json::Value::makeObject();
+    rr.set("window_seconds", json::Value(200.0));
+    rr.set("cpu_measurements", json::Value(6.0));
+    rr.set("commit_pct_last", json::Value(96.3));
+    rr.set("commit_limit_mb", json::Value(11141.0));
+    json::Value mem = json::Value::makeArray();
+    json::Value big = json::Value::makeObject();
+    big.set("pid", json::Value(9888.0));
+    big.set("name", json::Value("FaultLab"));
+    big.set("priv_mb_last", json::Value(7104.1));
+    big.set("priv_mb_first", json::Value(5435.2));
+    big.set("priv_mb_delta", json::Value(1668.9));
+    big.set("seconds", json::Value(80.0));
+    big.set("started_in_window", json::Value(true));
+    mem.push(big);
+    json::Value other = json::Value::makeObject();
+    other.set("pid", json::Value(4100.0));
+    other.set("name", json::Value("blender"));
+    other.set("priv_mb_last", json::Value(501.5));
+    mem.push(other);
+    rr.set("top_memory", mem);
+    v.set("resource_recent", rr);
+    std::vector<std::string> warn;
+    const Snapshot s = parseSnapshot(v, &warn);
+    const Diagnosis d = diagnose(s, Rules::defaults(), EngineVersion::V1, guide, warn);
+    check(d.top() && sameSubject(d.top()->subject, "FaultLab") && d.top()->category == "app_memory",
+          "1순위 = 메모리를 쥔 프로세스(app_memory)", topLabel(d));
+
+    // 같은 압박이라도 한 프로세스가 한도의 30% 를 넘지 않으면(여러 프로그램이 나눠 쓴 경우) 후보를 만들지 않는다
+    json::Value small = json::Value::makeArray();
+    json::Value chrome = json::Value::makeObject();
+    chrome.set("pid", json::Value(100.0));
+    chrome.set("name", json::Value("chrome"));
+    chrome.set("priv_mb_last", json::Value(900.0));
+    small.push(chrome);
+    rr.set("top_memory", small);
+    v.set("resource_recent", rr);
+    const Snapshot s2 = parseSnapshot(v, &warn);
+    const Diagnosis d2 = diagnose(s2, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool chromeMem = false;
+    for (std::size_t i = 0; i < d2.candidates.size(); i++) {
+      if (d2.candidates[i].category == "app_memory" && sameSubject(d2.candidates[i].subject, "chrome")) chromeMem = true;
+    }
+    check(!chromeMem, "한도의 8% 를 쓰는 프로세스는 메모리 후보가 아님");
+  }
+  {
+    std::cout << "[s16] 디스크 포화 + 입출력 1위 프로세스 — resource_recent.disks (수집기 2026-11-12 추가 신호)\n";
+    json::Value v = loadJson("s12_slow_app_memory.json");
+    json::Value rt = json::Value::makeObject();
+    rt.set("window_minutes", json::Value(60.0));
+    rt.set("samples", json::Value(2.0));
+    v.set("resource_trends", rt);
+    v.set("events", json::Value::makeArray());
+    json::Value sym = v["symptom"];
+    sym.set("target_process", json::Value(""));
+    v.set("symptom", sym);
+    json::Value rr = json::Value::makeObject();
+    rr.set("window_seconds", json::Value(300.0));
+    rr.set("cpu_measurements", json::Value(10.0));
+    rr.set("cpu_total_pct_max", json::Value(8.2));
+    rr.set("commit_pct_last", json::Value(47.6));
+    rr.set("commit_limit_mb", json::Value(5503.0));
+    json::Value disks = json::Value::makeArray();
+    json::Value c = json::Value::makeObject();
+    c.set("name", json::Value("0 C:"));
+    c.set("samples", json::Value(30.0));
+    c.set("busy_pct_avg", json::Value(97.5));
+    c.set("busy_pct_max", json::Value(100.0));
+    c.set("latency_ms_avg", json::Value(85.0));
+    disks.push(c);
+    rr.set("disks", disks);
+    json::Value io = json::Value::makeArray();
+    json::Value w = json::Value::makeObject();
+    w.set("pid", json::Value(4580.0));
+    w.set("name", json::Value("backuptool"));
+    w.set("io_mbps_avg", json::Value(12.5));
+    w.set("io_mbps_max", json::Value(30.0));
+    w.set("measurements", json::Value(10.0));
+    io.push(w);
+    rr.set("top_io", io);
+    v.set("resource_recent", rr);
+    std::vector<std::string> warn;
+    const Snapshot s = parseSnapshot(v, &warn);
+    const Diagnosis d = diagnose(s, Rules::defaults(), EngineVersion::V1, guide, warn);
+    check(d.top() && sameSubject(d.top()->subject, "backuptool"), "1순위 = 디스크 입출력 1위 프로세스", topLabel(d));
+    bool note = false;
+    for (std::size_t i = 0; i < d.notes.size(); i++) {
+      if (d.notes[i].find("0 C:") != std::string::npos) note = true;
+    }
+    check(note, "디스크가 계속 바빴다는 안내가 붙음");
+
+    // 디스크가 한가하면(평균 20%) 입출력이 많아도 후보가 아니다 — 빠른 디스크에서의 큰 복사는 느려짐의 원인이 아니다
+    c.set("busy_pct_avg", json::Value(20.0));
+    json::Value idleDisks = json::Value::makeArray();
+    idleDisks.push(c);
+    rr.set("disks", idleDisks);
+    v.set("resource_recent", rr);
+    const Snapshot s2 = parseSnapshot(v, &warn);
+    const Diagnosis d2 = diagnose(s2, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool ioCand = false;
+    for (std::size_t i = 0; i < d2.candidates.size(); i++) {
+      if (sameSubject(d2.candidates[i].subject, "backuptool")) ioCand = true;
+    }
+    check(!ioCand, "디스크가 한가하면 입출력 1위 프로세스를 후보로 올리지 않음");
+
+    // [s18] 2026-11-14 office2 disk-hog 실측값: 마킹 직전 1분만 포화 — 창 평균 44.1%, 90% 이상 표본 9개, 응답 최대 6.3초.
+    std::cout << "[s18] 구간의 일부만 포화된 디스크 — busy_ge90_samples (수집기 2026-11-14 추가)\n";
+    c.set("samples", json::Value(24.0));
+    c.set("busy_pct_avg", json::Value(44.1));
+    c.set("busy_ge90_samples", json::Value(9.0));
+    c.set("latency_ms_avg", json::Value(293.06));
+    c.set("latency_ms_max", json::Value(6271.68));
+    json::Value partDisks = json::Value::makeArray();
+    partDisks.push(c);
+    rr.set("disks", partDisks);
+    w.set("name", json::Value("invoiceexport"));
+    w.set("io_mbps_avg", json::Value(3.87));
+    w.set("io_mbps_max", json::Value(15.07));
+    w.set("measurements", json::Value(3.0));
+    json::Value partIo = json::Value::makeArray();
+    partIo.push(w);
+    rr.set("top_io", partIo);
+    v.set("resource_recent", rr);
+    const Snapshot s3 = parseSnapshot(v, &warn);
+    const Diagnosis d3 = diagnose(s3, Rules::defaults(), EngineVersion::V1, guide, warn);
+    check(d3.top() && sameSubject(d3.top()->subject, "invoiceexport"), "1순위 = 포화된 동안 입출력 1위 프로세스", topLabel(d3));
+    bool partNote = false;
+    for (std::size_t i = 0; i < d3.notes.size(); i++) {
+      if (d3.notes[i].find("한동안") != std::string::npos) partNote = true;
+    }
+    check(partNote, "디스크가 한동안 포화였다는 안내가 붙음");
+
+    // 같은 PC, 아무 문제 없음(office2 idle): 90% 이상 표본 1개 — 후보를 만들지 않는다
+    c.set("busy_pct_avg", json::Value(7.6));
+    c.set("busy_ge90_samples", json::Value(1.0));
+    json::Value calmDisks = json::Value::makeArray();
+    calmDisks.push(c);
+    rr.set("disks", calmDisks);
+    v.set("resource_recent", rr);
+    const Snapshot s4 = parseSnapshot(v, &warn);
+    const Diagnosis d4 = diagnose(s4, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool calmCand = false;
+    for (std::size_t i = 0; i < d4.candidates.size(); i++) {
+      if (sameSubject(d4.candidates[i].subject, "invoiceexport")) calmCand = true;
+    }
+    check(!calmCand, "포화 표본이 1개뿐이면 후보로 올리지 않음");
+
+    // 요약에 표본 수가 없는 예전 덤프(-1): (나)는 켜지지 않는다
+    json::Value oldDisk = json::Value::makeObject();
+    oldDisk.set("name", json::Value("0 C:"));
+    oldDisk.set("samples", json::Value(24.0));
+    oldDisk.set("busy_pct_avg", json::Value(44.1));
+    oldDisk.set("busy_pct_max", json::Value(100.0));
+    json::Value oldDisks = json::Value::makeArray();
+    oldDisks.push(oldDisk);
+    rr.set("disks", oldDisks);
+    v.set("resource_recent", rr);
+    const Snapshot s5 = parseSnapshot(v, &warn);
+    const Diagnosis d5 = diagnose(s5, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool oldCand = false;
+    for (std::size_t i = 0; i < d5.candidates.size(); i++) {
+      if (sameSubject(d5.candidates[i].subject, "invoiceexport")) oldCand = true;
+    }
+    check(!oldCand, "표본 수 항목이 없는 예전 요약에서는 평균 기준만 쓴다");
+  }
+  {
+    // 2026-11-13 두 번째 세션의 값 그대로. (가) 13분 동안 평균 65% 를 쓴 프로그램 옆에서 백신이 평균 23% 를 썼다:
+    // 둘이 같은 세기의 근거를 받아 백신이 1순위가 됐었다. (나) 마킹 45초 전에 켜진 프로그램은 5분 창 평균이 15.9% 로 묽어진다.
+    std::cout << "[s17] CPU 근거의 세기는 쓴 만큼 — resource_recent (office1 cpu-hog-long, office2 cpu-hog 실측값)\n";
+    json::Value v = loadJson("s12_slow_app_memory.json");
+    json::Value rt = json::Value::makeObject();
+    rt.set("window_minutes", json::Value(60.0));
+    rt.set("samples", json::Value(2.0));
+    v.set("resource_trends", rt);
+    v.set("events", json::Value::makeArray());
+    json::Value sym = v["symptom"];
+    sym.set("target_process", json::Value(""));
+    v.set("symptom", sym);
+    json::Value secu = json::Value::makeObject();
+    json::Value rtav = json::Value::makeArray();
+    rtav.push(json::Value("Windows Defender"));
+    secu.set("realtime_av", rtav);
+    v.set("security", secu);
+    json::Value rr = json::Value::makeObject();
+    rr.set("window_seconds", json::Value(320.0));
+    rr.set("cpu_measurements", json::Value(11.0));
+    rr.set("cpu_total_pct_max", json::Value(100.0));
+    rr.set("commit_pct_last", json::Value(63.8));
+    rr.set("commit_limit_mb", json::Value(5503.0));
+    json::Value top = json::Value::makeArray();
+    json::Value hog = json::Value::makeObject();
+    hog.set("pid", json::Value(5416.0));
+    hog.set("name", json::Value("faultlab"));
+    hog.set("cpu_avg", json::Value(65.2));
+    hog.set("cpu_max", json::Value(99.5));
+    hog.set("measurements", json::Value(11.0));
+    top.push(hog);
+    json::Value av = json::Value::makeObject();
+    av.set("pid", json::Value(3604.0));
+    av.set("name", json::Value("msmpeng"));
+    av.set("cpu_avg", json::Value(23.3));
+    av.set("cpu_max", json::Value(65.7));
+    av.set("measurements", json::Value(10.0));
+    top.push(av);
+    rr.set("top_cpu", top);
+    v.set("resource_recent", rr);
+    std::vector<std::string> warn;
+    const Snapshot s = parseSnapshot(v, &warn);
+    const Diagnosis d = diagnose(s, Rules::defaults(), EngineVersion::V1, guide, warn);
+    check(d.top() && sameSubject(d.top()->subject, "faultlab"), "(가) 1순위 = 더 많이 쓴 프로세스 (백신이 아님)", topLabel(d));
+
+    json::Value top2 = json::Value::makeArray();
+    json::Value late = json::Value::makeObject();
+    late.set("pid", json::Value(700.0));
+    late.set("name", json::Value("faultlab"));
+    late.set("cpu_avg", json::Value(14.0));   // 12회 가운데 3회만 잡혔다: 잡힌 동안 평균 56%
+    late.set("cpu_max", json::Value(92.6));
+    late.set("measurements", json::Value(3.0));
+    top2.push(late);
+    rr.set("cpu_measurements", json::Value(12.0));
+    rr.set("top_cpu", top2);
+    v.set("resource_recent", rr);
+    const Snapshot s2 = parseSnapshot(v, &warn);
+    const Diagnosis d2 = diagnose(s2, Rules::defaults(), EngineVersion::V1, guide, warn);
+    check(d2.top() && sameSubject(d2.top()->subject, "faultlab"), "(나) 마킹 직전에 켜져 창 평균이 묽어진 프로세스도 1순위", topLabel(d2));
+  }
+  {
     std::cout << "[s12b] 같은 스냅샷 + GPU 메모리 95% (B 메커니즘)\n";
     json::Value v = loadJson("s12_slow_app_memory.json");
     json::Value rt = v["resource_trends"];

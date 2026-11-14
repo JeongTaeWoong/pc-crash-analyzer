@@ -471,6 +471,102 @@ void addFromResourceTrends(const Snapshot& s, const Rules& r, CandidateBag& bag)
   }
 }
 
+// 수집기의 '덤프 창' 자원 요약(resource_recent, 마킹 전 5분~후 30초)으로 후보를 만든다.
+// 60분 추세(addFromResourceTrends)는 프로세스가 10분 이상 살아야 행이 생기므로, 방금 켠 프로그램이 몇 분 동안
+// CPU·메모리·디스크를 차지해 느려진 경우는 여기서만 잡힌다 (2026-11-12 가상 머신 사례 13개에서 추세 항목이 전부 비어 있었다).
+//   E2 짧은 CPU 점유 : 창 안에서 2회 이상 측정(1분 이상)에 걸쳐 최대 50% 이상, 잡힌 동안 평균 25% 이상 → 그 프로세스
+//                      (세기는 가장 많이 쓴 프로세스 대비 비율. 2026-11-13 두 번째 세션 뒤 고침)
+//   A2 메모리 압박   : 마킹 시점 커밋 85% 이상 + 가장 큰 프로세스가 커밋 한도의 30% 이상 → 그 프로그램(app_memory)
+//   D2 디스크 포화   : 가장 바쁜 디스크가 창 평균 80% 이상 바쁨(또는 90% 이상인 표본이 3개 이상) + 입출력 1위 프로세스
+//                      평균 1MB/s 이상 → 그 프로세스
+// 기준값은 잠정값이다. 근거: 주입 사례(전 코어 점유 99%·평균 31.8%, 4GB 중 3.5GB 점유로 커밋 87~96%)와
+// 기존 60분 규칙(평균 10%, 커밋 85%)의 눈금. 실제 프로그램 사례가 쌓이면 다시 맞춘다 (docs/rules_rationale.md).
+void addFromResourceRecent(const Snapshot& s, const Rules& r, CandidateBag& bag) {
+  const ResourceRecent& t = s.recent;
+  if (!t.available) return;
+  const double scale = (s.symptom == Symptom::Slow) ? 1.0 : 0.5;
+  const std::string span = t.window_seconds >= 90 ? "약 " + std::to_string((t.window_seconds + 30) / 60) + "분"
+                                                   : std::to_string(t.window_seconds) + "초";
+
+  // E2. 짧은 CPU 점유
+  //   평균은 '그 프로세스가 측정에 잡힌 동안'의 평균(activeAvg)으로 본다. 창 전체 평균(cpu_avg)은 마킹 45초 전에 켜진
+  //   프로그램을 5분 창으로 나눠 기준 언저리까지 묽힌다 (2026-11-13 office2 cpu-hog: 창 평균 15.9%, 잡힌 3회 평균 63.6%).
+  //   근거 세기는 가장 많이 쓴 프로세스 대비 비율로 줄인다. 범인이 평균 65% 를 쓰는 동안 23% 를 쓴 백신이 같은 세기를
+  //   받아, 사전 가중치 차이만으로 1순위가 된 일이 있었다 (같은 날 office1 cpu-hog-long).
+  std::vector<double> activeAvg(t.top_cpu.size(), 0.0);
+  double heaviest = 0;
+  for (std::size_t i = 0; i < t.top_cpu.size(); i++) {
+    const RecentProc& p = t.top_cpu[i];
+    if (p.measurements <= 0 || p.cpu_avg < 0) continue;
+    activeAvg[i] = (t.cpu_measurements > p.measurements) ? p.cpu_avg * t.cpu_measurements / p.measurements : p.cpu_avg;
+    if (p.cpu_max >= 50.0 && p.measurements >= 2 && activeAvg[i] > heaviest) heaviest = activeAvg[i];
+  }
+  for (std::size_t i = 0; i < t.top_cpu.size(); i++) {
+    const RecentProc& p = t.top_cpu[i];
+    if (p.cpu_max < 50.0 || p.measurements < 2 || activeAvg[i] < 25.0) continue;
+    if (!s.target_process.empty() && sameSubject(p.name, s.target_process)) continue;  // 사용자가 쓰던 프로그램 자체의 작업
+    std::string cat;
+    std::string label;
+    r.classifyName(p.name, p.name, "other_sw", &cat, &label);
+    const int idx = bag.get(cat, p.name, label);
+    std::string detail = "마킹 직전 " + span + " 가운데 측정 " + std::to_string(p.measurements) + "회(약 " +
+                         std::to_string(p.measurements * 30) + "초)에 걸쳐 CPU 를 평균 " + fmt1(activeAvg[i]) +
+                         "%, 최대 " + fmt1(p.cpu_max) + "% 썼습니다";
+    if (t.cpu_total_pct_max >= 0) detail += " (같은 구간 PC 전체 최대 " + fmt1(t.cpu_total_pct_max) + "%)";
+    const double share = heaviest > 0 ? activeAvg[i] / heaviest : 1.0;
+    bag.addEvidence(idx, "coexist", detail + ".", (t.cpu_total_pct_max >= 90 ? 0.7 : 0.5) * share * scale, 0);
+  }
+
+  // A2. 메모리 압박 + 큰 프로세스
+  if (t.commit_pct_last >= 85 && t.commit_limit_mb > 0 && !t.top_memory.empty()) {
+    const RecentProc& p = t.top_memory[0];
+    if (p.priv_mb_last >= 0.3 * t.commit_limit_mb) {
+      const int idx = bag.get("app_memory", p.name, p.name + " (프로그램 자체의 메모리 누적)");
+      bag.addEvidence(idx, "sensor",
+                      "커밋 메모리가 " + fmt1(t.commit_pct_last) + "% 인 상태에서 이 프로세스가 " +
+                          fmt1(p.priv_mb_last) + "MB(커밋 한도의 " +
+                          fmt1(100.0 * p.priv_mb_last / t.commit_limit_mb) + "%)를 쓰고 있습니다.",
+                      0.8 * scale, 0);
+      if (p.started_in_window) {
+        bag.addEvidence(idx, "sensor", "이 프로세스는 마킹 직전 " + span + " 안에 새로 켜졌습니다.", 0.4 * scale, 0);
+      } else if (p.priv_mb_delta >= 500) {
+        bag.addEvidence(idx, "sensor",
+                        "최근 " + std::to_string(p.seconds) + "초 사이 메모리가 " + fmt1(p.priv_mb_delta) + "MB 늘었습니다.",
+                        0.4 * scale, 0);
+      }
+    }
+  }
+
+  // D2. 디스크 포화 + 입출력 1위 프로세스 (디스크 신호는 수집기 2026-11-12 추가분부터 있다)
+  //   (가) 구간 내내: 창 평균 80% 이상.
+  //   (나) 구간의 일부: 90% 이상 바빴던 표본이 3개(약 30초) 이상이고 그 프로세스가 2회 이상 측정에 잡힘 (2026-11-14).
+  //        창 평균은 마킹 직전 1분의 포화를 5분으로 나눠 묽힌다 — 11/14 office2 disk-hog 는 표본 24개 중 9개가 93~100%,
+  //        응답이 최대 6.3초까지 늦어졌는데 창 평균은 44.1% 라 (가)에 걸리지 않았다. E2 를 11/13 에 고친 것과 같은 이유.
+  //        아무 문제 없는 같은 PC 는 90% 이상 표본이 1개(프로그램 하나 여는 순간)였다.
+  if (!t.disks.empty() && t.disks[0].samples >= 6 && !t.top_io.empty() && t.top_io[0].io_mbps_avg >= 1.0) {
+    const RecentDisk& d = t.disks[0];
+    const RecentProc& p = t.top_io[0];
+    const bool whole = d.busy_pct_avg >= 80;
+    const bool part = !whole && d.busy_ge90_samples >= 3 && p.measurements >= 2;
+    if (whole || part) {
+      std::string cat;
+      std::string label;
+      r.classifyName(p.name, p.name, "other_sw", &cat, &label);
+      const int idx = bag.get(cat, p.name, label);
+      std::string detail = "디스크 " + d.name + " 가 마킹 직전 " + span;
+      if (whole) {
+        detail += " 평균 " + fmt1(d.busy_pct_avg) + "% 바빴고(응답 평균 " + fmt1(d.latency_ms_avg) + "ms)";
+      } else {
+        detail += " 가운데 약 " + std::to_string(d.busy_ge90_samples * 10) + "초 동안 거의 쉬지 못했고(90% 이상 바쁨, 응답 평균 " +
+                  fmt1(d.latency_ms_avg) + "ms, 최대 " + fmt1(d.latency_ms_max) + "ms)";
+      }
+      detail += ", 이 프로세스가 디스크 입출력을 가장 많이 썼습니다(평균 " + fmt1(p.io_mbps_avg) + "MB/s).";
+      // 세기는 (가)(나) 같게 둔다 — 둘을 다르게 줄 근거(사례)가 아직 없다
+      bag.addEvidence(idx, "sensor", detail, 0.6 * scale, 0);
+    }
+  }
+}
+
 // 조건(pred)에 맞는 이벤트 수. firstTime 이 있으면 처음 나온 이벤트 시각을 적어 준다.
 int countEvents(const Snapshot& s, bool (*pred)(const EventItem&), long long* firstTime) {
   int n = 0;
@@ -682,6 +778,7 @@ std::vector<Candidate> buildCandidates(const Snapshot& s, const Rules& r,
   addDriverEventEvidence(s, r, bag);
   addHardwareCandidates(s, bag);
   addFromResourceTrends(s, r, bag);
+  addFromResourceRecent(s, r, bag);
 
   const std::string symptom = toString(s.symptom);
   const double availability = availabilityFactor(s);

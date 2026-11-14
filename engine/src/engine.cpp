@@ -1,6 +1,7 @@
 #include "ce/engine.hpp"
 
 #include <cmath>
+#include <cstdio>
 #include <sstream>
 
 #include "ce/signals.hpp"
@@ -139,18 +140,39 @@ Diagnosis diagnose(const Snapshot& s, const Rules& r, EngineVersion version,
     for (std::size_t i = 0; i < d.candidates.size() && !trendEvidence; i++) {
       for (std::size_t k = 0; k < d.candidates[i].evidence.size(); k++) {
         const Evidence& e = d.candidates[i].evidence[k];
+        // 기여도 0 인 근거("센서 값을 읽을 수 없어 확인 불가")는 근거가 아니다 — 가상 머신처럼 센서가 없는 PC 에서
+        // 이 줄 때문에 '근거 부족' 경고가 사라졌었다 (2026-11-12)
+        if (e.contribution <= 0) continue;
         if (e.kind == "sensor" || (e.kind == "coexist" && e.detail.find("CPU") != std::string::npos)) {
           trendEvidence = true;
           break;
         }
       }
     }
-    if (!s.trends.available) {
+    if (!s.trends.available && !s.recent.available) {
       d.warnings.push_back("느려짐 판정에 필요한 60분 자원 추세(resource_trends)가 없습니다. 수집기를 켜 둔 상태에서 "
                            "느려질 때 다시 마킹해 주세요.");
     } else if (!trendEvidence) {
-      d.warnings.push_back("느려짐 근거 부족: 최근 60분 추세에서 메모리 누적·GPU 메모리 압박·열 스로틀·배경 CPU 점유 중 "
-                           "뚜렷한 것이 없습니다. 아래 후보는 설치 이력·상주 여부만으로 본 약한 추정입니다.");
+      d.warnings.push_back("느려짐 근거 부족: 최근 60분 추세와 마킹 직전 구간에서 메모리 누적·메모리 압박·GPU 메모리 압박·"
+                           "열 스로틀·CPU 점유·디스크 포화 중 뚜렷한 것이 없습니다. 아래 후보는 설치 이력·상주 여부만으로 본 "
+                           "약한 추정입니다.");
+    }
+    // 디스크가 계속 바빴다면 범인 프로세스가 보이든 아니든 알려 준다 (느린 저장장치가 병목인 사무용 PC)
+    if (s.recent.available && !s.recent.disks.empty() && s.recent.disks[0].busy_pct_avg >= 80 &&
+        s.recent.disks[0].samples >= 6) {
+      char buf[64];
+      std::snprintf(buf, sizeof(buf), "%.1f%%, 응답 평균 %.1fms", s.recent.disks[0].busy_pct_avg,
+                    s.recent.disks[0].latency_ms_avg);
+      d.notes.push_back("디스크 " + s.recent.disks[0].name + " 가 마킹 직전 구간 내내 바빴습니다(평균 " + buf +
+                        "). CPU·메모리에 여유가 있어도 저장장치가 병목이면 PC 전체가 느려집니다.");
+    } else if (s.recent.available && !s.recent.disks.empty() && s.recent.disks[0].busy_ge90_samples >= 3 &&
+               s.recent.disks[0].samples >= 6) {
+      // 구간의 일부만 포화 (2026-11-14): 창 평균이 낮아도 그 동안에는 PC 전체가 기다린다
+      char buf[96];
+      std::snprintf(buf, sizeof(buf), "약 %d초, 응답 최대 %.1fms", s.recent.disks[0].busy_ge90_samples * 10,
+                    s.recent.disks[0].latency_ms_max);
+      d.notes.push_back("디스크 " + s.recent.disks[0].name + " 가 마킹 직전 구간 가운데 한동안 거의 쉬지 못했습니다(" + buf +
+                        "). 그 동안에는 CPU·메모리에 여유가 있어도 PC 전체가 느려집니다.");
     }
   }
 

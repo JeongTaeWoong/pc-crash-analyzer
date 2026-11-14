@@ -353,6 +353,57 @@ Snapshot parseSnapshot(const json::Value& v, std::vector<std::string>* warn) {
     s.available.trends = true;
   }
 
+  // 수집기 확장(2026-11-12): 덤프 창의 자원 요약. 선택 필드 — 없으면 available=false, 경고 없음.
+  const json::Value& rr = v["resource_recent"];
+  if (rr.isObject()) {
+    ResourceRecent& t = s.recent;
+    t.available = true;
+    t.window_seconds = rr["window_seconds"].asInt(0);
+    t.samples = rr["samples"].asInt(0);
+    t.cpu_measurements = rr["cpu_measurements"].asInt(0);
+    t.cpu_total_pct_avg = rr["cpu_total_pct_avg"].asNumber(-1);
+    t.cpu_total_pct_max = rr["cpu_total_pct_max"].asNumber(-1);
+    t.commit_pct_last = rr["commit_pct_last"].asNumber(-1);
+    t.commit_pct_max = rr["commit_pct_max"].asNumber(-1);
+    t.commit_limit_mb = rr["commit_limit_mb"].asNumber(-1);
+    t.avail_mb_min = rr["avail_mb_min"].asNumber(-1);
+    t.pages_per_sec_max = rr["pages_per_sec_max"].asNumber(-1);
+    const char* lists[] = {"top_cpu", "top_io", "top_memory", "top_memory_growth"};
+    std::vector<RecentProc>* outs[] = {&t.top_cpu, &t.top_io, &t.top_memory, &t.top_memory_growth};
+    for (int k = 0; k < 4; k++) {
+      const json::Array& arr = rr[lists[k]].asArray();
+      for (std::size_t i = 0; i < arr.size(); i++) {
+        RecentProc p;
+        p.pid = arr[i]["pid"].asInt(0);
+        p.name = arr[i]["name"].asString("");
+        p.cpu_avg = arr[i]["cpu_avg"].asNumber(-1);
+        p.cpu_max = arr[i]["cpu_max"].asNumber(-1);
+        p.measurements = arr[i]["measurements"].asInt(0);
+        p.io_mbps_avg = arr[i]["io_mbps_avg"].asNumber(-1);
+        p.io_mbps_max = arr[i]["io_mbps_max"].asNumber(-1);
+        p.priv_mb_last = arr[i]["priv_mb_last"].asNumber(-1);
+        p.priv_mb_first = arr[i]["priv_mb_first"].asNumber(-1);
+        p.priv_mb_delta = arr[i]["priv_mb_delta"].asNumber(0);
+        p.seconds = arr[i]["seconds"].asInt(0);
+        p.started_in_window = arr[i]["started_in_window"].asBool(false);
+        if (!p.name.empty()) outs[k]->push_back(p);
+      }
+    }
+    const json::Array& dk = rr["disks"].asArray();
+    for (std::size_t i = 0; i < dk.size(); i++) {
+      RecentDisk d;
+      d.name = dk[i]["name"].asString("");
+      d.samples = dk[i]["samples"].asInt(0);
+      d.busy_pct_avg = dk[i]["busy_pct_avg"].asNumber(-1);
+      d.busy_pct_max = dk[i]["busy_pct_max"].asNumber(-1);
+      d.busy_ge90_samples = dk[i]["busy_ge90_samples"].asInt(-1);
+      d.queue_avg = dk[i]["queue_avg"].asNumber(-1);
+      d.latency_ms_avg = dk[i]["latency_ms_avg"].asNumber(-1);
+      d.latency_ms_max = dk[i]["latency_ms_max"].asNumber(-1);
+      t.disks.push_back(d);
+    }
+  }
+
   const json::Value& bd = v["baseline_diff"];
   if (!bd.isNull()) {
     s.baseline.available = true;
