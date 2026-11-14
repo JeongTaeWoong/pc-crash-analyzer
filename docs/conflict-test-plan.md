@@ -93,13 +93,18 @@ L3 양 추정 근거: 이 PC 30일 로그 127건 중 재분류 후 트리거 대
 case-<id>/
   engine-snapshot.json      # 수집기 산출 (이미 %USERPROFILE% 치환)
   ground_truth.json         # {"symptom":"crash|freeze|slow|bsod", "cause_category":"M1..M4|unknown",
-                            #  "culprit":"<모듈/프로그램 또는 null>", "confidence":"official|user|guess",
+                            #  "culprit":"<모듈/프로그램 또는 null>", "confidence":"official|injected|user|guess",
                             #  "what_user_did":"...", "what_fixed_it":"...", "source":"<KB URL 또는 설문>"}
   engine-output.json        # crash_engine 결과 (가설·근거)
 ```
 
-`confidence` 3단계가 중요하다. **official**(벤더 KB에 있는 충돌)만 정량 평가에 쓰고, user·guess는 탐색용으로 분리한다.
+`confidence` 단계가 중요하다. **official**(벤더 KB에 있는 충돌)만 정량 평가에 쓰고, user·guess는 탐색용으로 분리한다.
 이렇게 하면 "우리가 정답을 정해놓고 맞췄다"는 지적을 피할 수 있다.
+
+**injected (11/12 확정, 정태웅)**: 우리가 문제를 직접 넣은 사례(`lab/vm/case.ps1` + FaultLab, 가상 머신). 정답은 확실하지만 인공 문제라
+실제 버그보다 맞히기 쉽다 → official 과 **합치지 않고 따로 집계**한다. 발표에서는 "직접 넣은 문제 N건 중 몇 건 / 실제 프로그램 문제 M건 중 몇 건"으로
+나눠 말한다. 골드셋은 이 두 묶음(injected, 실제 재현)으로 이루어진다. `cause_category` 낱말(`app_bug`, `third_party_module`, `memory_pressure`,
+`memory_leak`, `cpu_contention`, `disk_contention`)은 임시이고, 엔진 분류와의 대응표는 엔진 형식으로 내보낼 때 만든다.
 
 ### 3.3 지인 PC 참여 절차 (개인정보)
 
@@ -116,6 +121,7 @@ case-<id>/
 | 검출률 | L1·L2에서 트리거 발생 / 시나리오 수 | L1 9/9 | L1 100%, L2 ≥ 80% |
 | 증거 포착률 | 크래시 프로세스 모듈 목록에 개입 모듈 포함 | L1 9/9(관리자+ETW) | L2 ≥ 80% |
 | 가설 정확도 | 엔진이 official 정답 culprit을 1순위로 지목 | 미측정 | ≥ 70% (official 케이스 한정) |
+| 가설 정확도(injected) | 직접 넣은 문제의 culprit을 1순위로 지목 — official 과 따로 센다 | 11/12 가상 머신 13개 사례 재생(오프라인): 느려짐 6건 중 4건(메모리 3/3, CPU 1/2, 디스크 0/1), 크래시·멈춤 3건 중 1건(서드파티 DLL) | 목표 미정 |
 | 숨김 정밀도 | hidden 등급 중 실제로 무의미한 비율(설문 대조) | 미측정 | ≥ 90% |
 | 오버헤드 | 30분 평균 CPU | 0.13% (실측) | < 1% 유지 |
 

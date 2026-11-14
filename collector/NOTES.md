@@ -925,3 +925,403 @@ SKB(통신사 속도 측정) 계열은 10/28 유휴 CPU 13~22% 관찰분과 같�
 | AI 서비스 키 검사 `tools\find-api-key.ps1` | **검증됨** | 만든 가짜 키로 7개 확인: 접두어만 있는 문서는 통과, ASCII 키·UTF-16 키(바이너리 안)·zip 안의 키는 검출, 스크립트에서 불러 쓰는 방식. 0.9.0 참여자 폴더와 공개한 업데이트 묶음은 "키 없음". `publish-participant.ps1`(배포 폴더)과 `release-participant.ps1`(올릴 묶음)에 연결 — 연결한 뒤의 전체 빌드는 다음 릴리스에서 처음 돈다(구문 검사만 함) |
 | ├ 한계 | 미지원 | 쪼개거나 인코딩·암호화해 넣은 키는 못 찾는다 |
 | `docs/security-impact-design.md` 낡은 내용 | 정정 | 8절·11.3절의 "Windows 11 Home이라 가상 머신 불가", 3.4절의 추정 시간(블록 1.6시간·k=4 → 실측 56분·k=6). 사전 등록 문서라 원문을 남기고 정정 표시 |
+| 가상 머신 PC 형태 프로필(`clone.ps1 -New <이름> -Spec office-low` 등, `vm.json` profiles) | **검증됨(설정값)** | 11/12 저녁. 자체 시험 27개 통과: `office-old` 복제본에 CPU 2개·코어당 50% 제한·메모리 4GB 고정·디스크 500 IOPS 가 적용되고 시작됨, 없는 프로필 이름은 아무것도 만들지 않고 거부. 게스트가 실제로 얼마나 느려지는지는 **미확인**(게스트 없음). 처음에 스위치 이름을 `-Profile` 로 했다가 PowerShell 의 자동 변수 `$PROFILE` 과 겹쳐 `-Spec` 으로 바꿈 |
+| 호스트 설치 전·후 측정(E1) | 보류 | 11/12 저녁 정태웅 제기: 심각성 판단 근거가 되지 않고 가상 머신으로 환경을 조정할 수 있어 필요 없는 실험일 수 있음. 중단 제안을 `docs/capstone-plan-v2.md` "11/12 저녁 — 방향 재검토"에 적음(확정 전). 확정 전에는 호스트 측정 세션을 돌리지 않는다 |
+| 가상 머신 키 입력·화면 캡처(WMI `root\virtualization\v2`: `Msvm_Keyboard.TypeKey`, `GetVirtualSystemThumbnailImage`) | **검증됨** | 11/12 밤, 일반 권한. `base.ps1 -Create` 가 시작 직후 8초 동안 Enter 를 14번 눌러 "Press any key to boot from CD or DVD"를 넘김 → 실제 평가판 ISO(26300.9457, ko-kr, Microsoft 배포 주소에서 받은 7.66GB)로 Windows 설치 화면까지 부팅. `screen.ps1 -Out` 으로 1024×768 PNG 저장, 화면에서 "설치 옵션 선택" 확인. 부작용: 남은 Enter 가 설치의 언어·키보드 화면 두 개를 기본값으로 넘겼다(한국어 기본값이라 해가 없음). 입력은 가상 머신에만 보낸다 |
+| 원본 가상 머신 `pca-base` | 진행 중 | 11/12 밤 생성(4 vCPU, 8GB, `F:\pca-vm\base\base.vhdx`). Windows 설치는 사용자가 창에서 직접. 봉인 전 |
+| GPU 분할(GPU-P) 가능 여부 | 미확인(목록만 확인) | `Get-VMHostPartitionableGpu` 에 내장 Radeon 과 RTX 4070 Ti SUPER 둘 다 나오고 `Add-VMGpuPartitionAdapter` 가 있다. 붙여 본 적은 없다. 게스트가 호스트와 같은 드라이버를 쓰게 되므로 "드라이버 버전 문제" 재현에는 맞지 않는다. 체크포인트와 함께 쓸 수 있는지 미확인 |
+| 사용자가 겪은 실행 오류 | 원인 확인 | `C:\WINDOWS\system32` 에서 `-File lab\vm\base.ps1` 처럼 상대 경로로 실행 → "-File 매개 변수에 대한 인수가 없습니다". 안내문을 전체 경로로 고침 |
+
+## 11/12 밤 — 호스트 측정 중단, 가상 머신 GPU
+
+결정(정태웅, `docs/capstone-plan-v2.md` "11/12 밤 결정"): 호스트 설치 전·후 측정 중단(C1·RQ-A 제외, 호스트에 보안 프로그램 설치 안 함) · 가상 머신에 GPU와 주변기기 사용 · 가상 머신 시험도 PC를 쓰지 않는 시간에 · 유료 프로그램은 무료·평가판 또는 같은 유형으로 · 골드셋(직접 만든 사례) → 실버셋(제조사 이슈 문서 기반) → 에이전트 순서.
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| GPU 분할(GPU-P) 붙이기 | **검증됨(호스트 쪽)** | 일반 권한. `Get-VMHostPartitionableGpu` 에 내장 Radeon(VEN_1002)·RTX 4070 Ti SUPER(VEN_10DE). 내장 Radeon 분할을 OS 없는 가상 머신에 붙이고 켬 → 5초 뒤 새 프로세스에서 Running |
+| GPU 분할 + 체크포인트 | **미지원** | 분할이 붙어 있으면 꺼진 상태·켜진 상태 모두 체크포인트 실패("하나 이상의 GPU 파티션이 할당되어 있어 … 작업을 수행할 수 없습니다"). 붙이기 전에 만든 체크포인트로 복원하면 분할이 사라짐. → `clone.ps1 -Save` 는 꺼진 상태에서 떼고 저장하고 다시 붙임, `-Restore` 는 복원 뒤 다시 붙임, 켜진 상태 저장은 이유를 말하고 거부. 시험 8개 통과(붙이기, 중복 거부, 저장, 시작, 켜진 상태 저장 거부, 복원 뒤 재부착, 떼기, 삭제) |
+| 게스트에 호스트 드라이버 넣기(`gpu.ps1 -InstallDriver`) | **미확인** | 호스트 쪽 파일 목록만 확인: 내장 Radeon 드라이버 32.0.21042.62 는 드라이버 저장소 폴더 1개(1,081MB) + 그 밖의 파일(SysWOW64 등), 모두 141개. `Get-CimAssociatedInstance … CIM_DataFile` 은 "잘못된 매개 변수"로 실패해 `Win32_PNPSignedDriverCIMDataFile` 을 직접 읽는 방식으로 바꿈. 게스트로 복사하고 게스트에서 어댑터가 동작하는지는 게스트가 있어야 확인 가능. Microsoft 가 클라이언트 Windows 의 일반 가상 머신에 공식 지원하는 구성이 아님 |
+| "복원 직후 4초간 Running" 관찰의 원인 | 정정 | Hyper-V 가 틀린 값을 준 것이 아니라, **오래 열어 둔 PowerShell 세션이 다른 프로세스가 바꾼 상태를 늦게 보여 준 것**으로 보인다(모듈의 캐시로 추정 — 같은 순간 새 프로세스에서는 맞는 값). 같은 세션에서 `Start` 뒤에도 `Off`, 떼기 뒤에도 이전 메모가 읽혔다. 시험은 새 프로세스에서 상태를 읽게 고침 |
+| `vm.json` 설명 문구의 역슬래시 | 수정 | `lab\vm\gpu.ps1` 을 JSON 문자열에 그대로 써서 `ConvertFrom-Json` 이 실패(모든 스크립트가 멈춤). `/` 로 바꿈. 시험이 바로 잡아냄 |
+| USB 장치 넘기기(확장 세션) | 미확인 | 호스트의 해당 정책 키가 없다(꺼짐). 켜려면 시스템 설정 변경이라 사용자 승인이 필요. 와콤·로지텍 장치가 넘어가는지 미확인 |
+| Windows 설치(`pca-base`) | 진행 중 | 11/12 밤 사용자가 창에서 설치 중(화면 캡처로 "설치 중 94%" 확인) |
+| Craft Anything | 확인 | 저장소 설명: 소프트웨어를 살펴보고 AI 코딩 에이전트로 자기 버전을 만드는 초기 알파 도구, MIT/Apache-2.0, Windows 용 서명된 MSI·포터블 zip. 그림·영상 도구가 아니라 개발 도구 |
+| 대체 프로그램: ArtCraft 의 Craft 앱 모음 | 확인(정정) | 사용자가 뜻한 것은 `getartcraft.com/apps` 의 앱들(PhotoCraft, VectorCraft, FilmCraft, PdfCraft, AniCraft, FigCraft, WordCraft, GridCraft 등 17개, 무료 오픈소스, 런처 v0.15.0). 페이지 표기로 초기 알파 5개, 나머지는 개발 중. 위 "Craft Anything" 행은 그중 하나만 본 것 |
+| 원본 Windows 설치 | 완료(봉인 전) | 11/12 02:16 사용자 화면: 바탕 화면, 계정 `lab`, Windows 11 Enterprise Evaluation(90일). 확장 세션 연결 창이 뜸 → 통합 서비스 동작 |
+| 가상 머신 화면 해상도(일반 연결) | 검증됨 | `New-LabVm` 이 `Set-VMVideo 1920x1080 Single` 적용(시험용 가상 머신에서 확인). 원본은 기본값 1920x1200 |
+| `base.ps1 -Prepare`(절전 끄기, `C:\lab`, 자동 로그온, 디스크 암호화·재시작 대기 보고) | **미확인** | 구문 검사만. 게스트 계정 저장(`guest.ps1 -SetCredential`) 뒤 처음 실행 |
+| USB 장치 넘기기 설정 방법 | 미확인 | 레지스트리 값(`fUsbRedirectionEnableMode`)만 넣어서는 안 됐다는 보고가 있어, 문서에 나오는 길(그룹 정책 편집기 → 재부팅)로 사용자가 직접 설정하기로 함. 확장 세션으로 연결 중에는 `screen.ps1` 이 콘솔 화면(잠금 화면)만 본다 → 무인 실행은 일반 연결 + 자동 로그온으로 |
+
+## 11/12 새벽 — 원본 봉인, 첫 복제본, 게스트에서 GPU 동작
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| USB 장치 넘기기 정책(호스트) | 설정됨 | 사용자가 그룹 정책 편집기에서 설정(한국어 Windows 에서 폴더 이름은 "원격 데스크톱 서비스"가 아니라 **"터미널 서비스"** — `ko-KR\TerminalServer.adml` 로 확인) → 02:29 재부팅 뒤 `fUsbRedirectionEnableMode = 2`, 서비스 `tsusbflt` 실행 중. 실제 장치가 게스트로 넘어가는지는 **미확인** |
+| PowerShell Direct(`guest.ps1`, `base.ps1 -Prepare`) | **검증됨** | 일반 권한 창에서 동작(Hyper-V Administrators 만으로 충분). 게스트 `lab` 계정은 관리자. 명령 실행·대기 확인, 파일 복사는 드라이버 복사로 확인(1GB, 약 110초) |
+| 원본 준비(`base.ps1 -Prepare`) | **검증됨** | 절전·화면 꺼짐 없음, `C:\lab`, 자동 로그온(문서화된 Winlogon 값), 자동 업데이트 정책 끔(`NoAutoUpdate = 1`), 자동 장치 암호화 방지 + C: 복호화(FullyDecrypted). 설정 앱의 업데이트 일시 중지는 11/30 까지라 정책을 따로 넣음 |
+| ├ 고친 것 | 수정 | ① `-ArgumentList … [bool]$NoAutoLogon` 이 문자열로 넘어가 자동 로그온이 건너뛰어짐 → 변수에 먼저 담음 ② 셸에서 넣은 줄의 역슬래시가 사라져 정규식·레지스트리 경로가 깨짐(실행 전에 발견된 것 1, 실행 중 오류로 드러난 것 1 — 게스트에 잘못된 키는 만들어지지 않음) ③ 있는 레지스트리 키에 `New-Item -Force` 를 쓰면 값이 지워지므로 없을 때만 만들게 함 |
+| 원본 봉인 | **검증됨** | 02:36 게스트 종료 → ISO 분리 → 가상 머신 삭제, 디스크 23.0GB 읽기 전용 |
+| 복제본 부팅(`try1`) | **검증됨** | 차등 디스크 + **새 가상 TPM** 으로 정상 부팅, 콘솔에 `lab` 자동 로그온(화면 캡처로 바탕 화면 확인), 1920×1080, 약 40초 만에 응답 |
+| 게스트에서 GPU 분할 동작 | **검증됨(장치 상태)** | 내장 Radeon 분할: 드라이버 넣기 전 `AMD Radeon(TM) Graphics` = Error(CM_PROB_FAILED_POST_START) → `gpu.ps1 -InstallDriver`(패키지 137파일 + 그 밖 55파일) + 재시작 → **OK**. 호스트 드라이버 폴더의 `.log` 하나가 사용 중이라 통째 복사가 실패 → 호스트에서 임시 폴더로 추린 뒤 보내게 고침. 실제 프로그램(Blender 등)이 이 GPU 로 그리는지는 **미확인** |
+| GPU 가 붙은 복제본의 체크포인트 | **검증됨** | `clone.ps1 -Save try1 -Label gpu-ready`: 꺼진 상태에서 분할을 떼고 저장하고 다시 붙임. 복제본 크기 5.0GB |
+| 게스트의 바탕 화면 세션에서 실행(`guest.ps1 -RunFile … -Desktop`) | **검증됨** | 예약 작업(로그온한 사용자, 대화형, 가장 높은 권한)으로 실행: 세션 1, 대화형, 관리자. 일반 PowerShell Direct 명령은 세션 0(바탕 화면 없음) |
+| 게스트의 winget | **검증됨(주의)** | v1.6.10121 이 들어 있다. 기본 설정으로는 `0x8a15005e`(Microsoft Store 소스 인증서 불일치)로 실패 → `--source winget` 을 붙여 해결. 목록의 winget ID 17개 모두 확인(`install.ps1 -Check`) |
+| 프로그램 무인 설치(`install.ps1`) | **검증됨** | `try1` 에 7-Zip 26.06(13초), Notepad++ 8.9.9(19초), Krita 5.3.4.1(37초), Blender 5.3.0(77초), ArtCraft 런처 0.19.0(MSI, 해시 확인, 6초). 설치 뒤 게스트의 설치 프로그램 목록에서 확인하고 `installed.json` 에 기록 |
+| GPU 분할로 프로그램 화면 그리기 | **검증됨(화면)** | Blender 5.3.0 을 게스트 바탕 화면에서 실행 → 30초 뒤 살아 있고 창 제목 정상, 화면 캡처에 3D 뷰포트와 시작 창이 그려짐. 가만히 있을 때의 GPU 사용률 카운터는 0 이라 어느 어댑터가 그렸는지는 따로 확인하지 못함 |
+| 무인 세션(`session.ps1`) | **검증됨(작은 계획)** | `plans\smoke.json`: 2코어·4GB 복제본 생성 → 시작 → 두 프로그램 설치 → 종료 → 체크포인트까지 1.7분, 끝난 뒤 켜진 가상 머신 없음. `plans\bundles.json`(사무·개발·디자인·영상 4개)은 미리 보기만 함 — **실제 실행 전** (→ 03:24 실행, 아래 "첫 무인 세션" 절) |
+| DaVinci Resolve 21.2 무인 설치 | **미확인** | 사용자가 받은 zip(Blackmagic 배포 주소, 3.5GB) 안에 설치 파일 1개. 조용한 설치 스위치(`/i /q /noreboot`)는 기억에 의존한 값이라 창이 뜰 수 있다 — 그 경우 시간 초과로 끝나고 화면이 남는다 (→ 04:08 설치 확인, 아래 절) |
+| ArtCraft 앱(PhotoCraft 등) 개별 설치 | **미확인** | 런처만 설치. 앱은 런처 안에서 설치해야 하고 자동화하지 않았다 |
+| 셸 치환(perl·sed)으로 파일 고치기 | 금지(이 저장소) | 이번 밤에만 역슬래시·따옴표가 깨져 JSON 2번, 스크립트 2번이 망가졌다(모두 시험에서 잡힘). 경로·따옴표가 든 줄은 편집 도구나 따옴표 친 heredoc 으로만 넣는다 |
+| ArtCraft 의 Craft 앱 19개 | **검증됨(실행)** | 11/12 03시경 사용자가 호스트 `F:\ArtCraft` 에 런처로 설치(앱마다 실행 파일 몇 개짜리 폴더, 합계 약 3.4GB). 폴더를 게스트 `C:\lab\apps\<id>` 로 복사하는 방식으로 목록에 추가(`apps.json` 의 `portable`, `vm.json` 의 `artcraft_dir`) → 19개 복사 241초, **19개 모두 게스트에서 창이 뜨고 20초 뒤에도 살아 있음**(GPU 분할이 붙은 복제본, 크래시 이벤트 0). 버전은 실행 파일에서 읽어 `installed.json` 에 기록(PhotoCraft 0.22.0, VectorCraft 0.23.0, WordCraft 0.17.0 등). 복사본이라 시작 메뉴 항목과 설치 프로그램 목록 항목은 없다. GPU 없는 복제본에서 뜨는지는 미확인 |
+| 묶음 갱신 | 완료 | `office` 에 WordCraft·DeckCraft·GridCraft·PdfCraft, `design` 에 PhotoCraft·VectorCraft·DesignCraft·FigCraft·AniCraft, `video` 에 FilmCraft·EffectCraft·SoundCraft, 새 묶음 `cad`·`artcraft`(전체). ArtCraft 런처는 묶음에서 뺌 |
+
+## 11/12 첫 무인 세션 — 묶음 4개 설치 (03:24~04:08, 사용자가 일반 권한 창에서 실행)
+
+`session.ps1 -Plan plans\bundles.json -Until 09:30`. 기록: `F:\pca-vm\sessions\20261112-032418\`. 위 표의 "실제 실행 전"·"미확인" 항목 중 아래가 바뀌었다.
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| 무인 세션(`session.ps1`), 작업 4개 | **검증됨** | 44분 만에 끝남(office1 19.5분, dev1 3.7분, design1 8.6분, video1 12분), 끝난 뒤 켜진 가상 머신 없음. 체크포인트 `bundle-office`·`bundle-dev`·`bundle-design`·`bundle-video`. GPU 작업 2개(design1, video1)는 분할 붙이기 → 드라이버 복사 → 재시작 → 설치 → 분할 떼고 저장 → 다시 붙이기까지 사람 손 없이 됨. 일반 권한 창으로 충분(관리자 창 불필요) |
+| 설치된 것(34개 항목 전부) | **검증됨** | office1(2코어·4GB): 7-Zip 26.06, Notepad++ 8.9.9, Chrome 157.0.8103.51, Firefox 160.0, LibreOffice 26.8.2.2(825초 — 이 묶음 시간의 대부분), 카카오톡 26.9.2.5342, VLC 3.0.24, WordCraft 0.17.0, DeckCraft 0.18.0, GridCraft 0.19.0, PdfCraft 0.21.0 / dev1: Git 2.56.0.4, VS Code 1.145.2, Godot 4.7.2, AutoHotkey 2.0.31 외 / design1: Krita 5.3.4.1, GIMP 3.2.6, Inkscape 1.4.4, Blender 5.3.0, Craft 앱 5개 / video1(8코어·16GB): VLC, OBS Studio 33.0.0, FilmCraft 0.20.0, EffectCraft 0.24.0, SoundCraft 0.19.0, DaVinci Resolve 21.2.00006 |
+| DaVinci Resolve 21.2 무인 설치 | **검증됨(설치)** | `/i /q /noreboot` 로 창 없이 끝남: 서명 확인(Blackmagic Design Pty Ltd) → 3.5GB 복사 → 설치, 합계 370초, 종료 코드 0, 설치 프로그램 목록에 `DaVinci Resolve 21.2.00006`, 바탕 화면에 아이콘. **실행되는지(창이 뜨는지, 내장 GPU 분할로 충분한지)는 미확인** |
+| 카카오톡 "설치 실패" 보고 | **거짓 실패 — 수정** | 세션은 `not installed: kakaotalk` 로 보고했지만 실제로는 설치돼 있었다(`C:\Program Files\Kakao\KakaoTalk\KakaoTalk.exe` 26.9.2.5342, winget 도 성공). 원인: 한국어 Windows 에서 설치 프로그램 목록의 이름이 한글 "카카오톡"이라 영문 이름으로 찾지 못함. `install.ps1` 이 표시 이름에서 못 찾으면 **레지스트리 키 이름**(`KakaoTalk`)으로 찾게 고침 → 재확인 통과. 세션의 `summary.json` 은 그때 기록 그대로 둠(office1 "done with failures"), `installed.json` 은 바로잡음(`recheck_note`) |
+| ├ 같이 고친 것 | 수정 | ① 이미 설치된 프로그램을 다시 확인했을 때 `installed.json` 의 실패 기록이 그대로 남던 것 → 게스트에 있으면 기록을 고친다 ② Windows PowerShell 5.1 이 JSON 배열을 한 덩어리로 넘겨 기존 기록의 항목 비교가 목록 전체를 대상으로 돌던 것 → 풀어서 읽음 ③ `found` 값에 원격 실행 속성(`PSComputerName` 등)이 딸려 저장되던 것 → 글자만 저장(이전 기록은 다음에 쓸 때 정리됨) |
+| GPU 없는 복제본에서 Craft 앱 | **검증됨(4개)** | office1(GPU 분할 없음, 2코어·4GB)에서 WordCraft·DeckCraft·GridCraft·PdfCraft 모두 창이 뜨고 20초 뒤에도 살아 있음(87~203MB, 크래시 이벤트 0, 화면 `F:\pca-vm\shots\office1-craft-nogpu.png`). 그림·영상·CAD 쪽 앱은 GPU 없는 복제본에서 미확인 |
+| 프로그램이 스스로 버전을 올림 | 확인(주의) | 설치 8시간 뒤 office1 을 다시 켜자 몇 분 안에 Chrome 이 157.0.8103.51 → .52 로 바뀌어 있었고, GridCraft 는 0.19.1 업데이트 창을 띄웠다(체크포인트로 되돌려 저장 상태는 .51/0.19.0 그대로). **`installed.json` 의 버전은 설치 시점 값**이다 — 사례를 만들 때는 그 시점의 버전을 게스트에서 다시 읽어 적어야 하고, 버전을 고정해야 하는 사례는 네트워크를 끊거나 자동 업데이트를 꺼야 한다(방법 미정) |
+| 디스크 | 확인 | 복제본 크기: office1 11.0GB, dev1 7.5GB, design1 13.2GB, video1 27.5GB, try1 12.8GB. F: 남은 공간 1,269GB |
+| 확인 과정에서 가상 머신을 켠 것 | 기록 | 11/12 11:44~11:50 에 office1(2코어·4GB)만 세 번 켜서 카카오톡·Craft 앱을 확인하고 매번 `bundle-office` 로 되돌림. video1 은 켜지 않음("PC 를 쓰지 않는 시간에만" 규칙 — DaVinci Resolve 실행 확인은 다음 무인 세션으로) |
+
+## 11/12 낮 — 게스트 안 사례 만들기 (`lab/vm/case.ps1`, 수집기 콘솔판을 게스트에서 실행)
+
+수집기 코드는 바꾸지 않았다. 게스트에서 프로그램을 켜고 끄고 문제를 넣는 것은 모두 `lab/vm/`(실험 코드)의 일이다.
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| 게스트에 넣을 빌드(`payload.ps1`) | **검증됨** | 수집기 콘솔판 + FaultLab(자체 포함 빌드) + FaultHost.exe·FaultPlugin.dll → `F:\pca-vm\payload\case-payload.zip` 102.8MB, 커밋 `e1bb54f` 기준. 게스트로 복사·압축 풀기 약 30초 |
+| 게스트에서 수집기 실행(관리자, 바탕 화면 세션) | **검증됨** | office1(2코어·4GB): 소스 상태 `eventlog=ok, sensors=ok, processes=ok, resources=ok, etw-kernel=ok, hotkey=ok`. 표준 입력으로 `m`·`q` 를 보내 마킹·종료(종료 코드 0). **센서는 게스트에서 미지원**: 소스 상태는 ok 지만 값이 하나도 없다(`sensors: []`, 0 으로 읽힌 6개는 "없음" 처리, 엔진 스냅샷 `sensor_support: false`) → 온도·전압·팬이 근거가 되는 사례는 가상 머신으로 만들 수 없다 |
+| 시나리오 `crash-plugin`(서드파티 DLL 크래시) | **검증됨** | 12:00 office1: FaultHost.exe 가 FaultPlugin.dll 에서 `c0000005` → 수집기가 이벤트 1000 을 받아 30초 뒤 자동 덤프(`crash-1000`, 이벤트 207개, 파일 4개), 1001 후속 보고는 중복으로 억제. 유의성 10·`hidden`(시험용 프로그램 감점 −100 — 설계대로). 전체 3분 10초, 끝난 뒤 저장 지점으로 복원 |
+| 시나리오 `baseline`(문제 없음, 실행 확인) | **검증됨(office1)** | 12:06 무인 세션 경로(`session.ps1` → `case.ps1`)로 실행, 9.8분: 설치된 11개(7-Zip, Notepad++, Chrome, Firefox, LibreOffice, VLC, WordCraft, DeckCraft, GridCraft, PdfCraft, 카카오톡)를 하나씩 켜서 25초 뒤 **모두 살아 있고 창이 있음**, 크래시 이벤트 0, 끝에 수동 마킹 → 덤프 `manual`(이벤트 990개). 시작 메뉴 바로 가기에서 실행 파일을 찾는 방식(카카오톡만 경로 지정). 프로그램은 관리자 권한으로 켜진다(창 제목에 `[Administrator]`) — 일반 사용자의 실행과 다를 수 있음 |
+| 시나리오 `mem-pressure`(메모리 부족 + 사용자가 "느림" 마킹) | **검증됨(실행)** | 12:16 office1(4GB), Chrome·LibreOffice·카카오톡을 연 채로 FaultLab 이 3,500MB 를 약 8초에 점유 → 60초 뒤 `m slow` → 덤프 `manual`(이벤트 850개) → 100초 유지 뒤 정상 종료. 열어 둔 세 프로그램은 끝까지 살아 있고 응답함, 크래시 이벤트 0. 전체 6분. 덤프 안 신호는 "11/12 저녁" 절에서 확인(커밋 52→87%, 범인은 `processes` 의 `privMB`) |
+| 결과물 | 확인 | `F:\pca-vm\cases\<복제본>-<시나리오>\<시각>\`: `result.json`(시간표·프로그램 실행 결과·크래시 이벤트·덤프 목록·그 시점 설치 버전), `scenario.json`(넣은 문제 = 정답, `confidence: "injected"`), `dumps\`, `collector.log`, `shots\`(30초마다 화면) |
+| 정답 표기 | 제안(미합의) | 넣은 문제라 정답을 안다 → `injected`. `docs/conflict-test-plan.md` 의 official/user/guess 와 따로 센다. `cause_category` 낱말(`third_party_module`, `memory_pressure` 등)도 임시 — 엔진 분류와의 대응은 미정 |
+
+| 첫 사례 세션 계획(`plans\cases.json`, 22개 작업) | **실행 전** | 복제본 4개의 `baseline` → 문제 주입 10개(office1 5, dev1 1, design1 2, video1 2) → 느린 사무용 PC 형태 `office2`(`office-old`) 설치와 사례 3개. office1 의 `baseline`·`mem-pressure` 는 위 시험으로 이미 만들어져 건너뛴다. 예상 3~4시간(추정). 시험에 쓴 첫 `crash-plugin` 실행은 `F:\pca-vm\cases\_smoke\` 로 옮김(준비 시간 25초·연 프로그램이 달라 계획의 것과 다름) |
+| 첫 사례 세션 중간 결과(12:28 시작, 13:08 확인 — 아직 도는 중) | 확인(중간) | 끝난 8개 모두 `ok`: `baseline` video1·design1·dev1, office1 `crash-plugin`·`hang`(덤프 `hang-1001`)·`cpu-hog`. **DaVinci Resolve 실행됨**(창 "Welcome to DaVinci Resolve"), OBS·Krita·Inkscape·Blender 창 확인, GIMP 는 25초 안에 창이 안 뜸(살아는 있음) |
+| GPU 분할 복제본의 `LiveKernelEvent 0x193` | **실제 발견(원인 미확인)** | design1·video1 의 `baseline` 에서 각 2번, 수집기가 `kernel-live`(유의성 100, `major`)로 자동 덤프. 넣은 문제가 아니다. 0x193 은 그래픽 커널(dxgkrnl) 라이브 덤프 계열로 알고 있으나 **코드의 정확한 뜻과 원인은 미확인** — GPU 분할(지원 밖 구성)과 관련됐을 가능성이 있다는 것까지만. 같은 시간대 호스트에는 LiveKernelEvent·디스플레이 드라이버 이벤트 없음, 호스트 NVIDIA 드라이버 621.14 정상(`nvidia-smi` 응답) |
+| 시험하지 않은 시나리오 | → 아래 "11/12 저녁" 절 | 첫 세션에서 모두 한 번씩 돌았다. 결과와 무효 3건은 아래 절 |
+
+**이 절까지 합쳐 미확인으로 남은 것:** 그림·영상·CAD Craft 앱의 GPU 없는 실행 · `peripheral` 묶음(Logitech G HUB) · USB 장치 넘기기 · 버전 고정 방법. (설치된 프로그램의 실행은 첫 세션 `baseline` 으로 확인 — 아래 절)
+
+## 11/12 저녁 — 첫 사례 세션 검토(12:28~16:36)와 도구 수정
+
+세션 결과(콘솔): 건너뜀 6 · 완료 14 · 실패 섞인 완료 1(office2 설치) · 실패 1(office2 `baseline` 시간 초과). 사례 폴더 17개를 덤프까지 열어 본 결과 **쓸 수 있는 사례 13개, "성공"으로 표시됐지만 덤프에 문제가 담기지 않은 것 3개**(→ `F:\pca-vm\cases\_invalid\` 로 옮기고 이유를 `INVALID.txt` 에 적음), 결과 없음 1개.
+
+### 사례별 상태
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| `baseline` — 설치된 프로그램 실행 | **검증됨(4개 복제본)** | office1 11개·dev1 5개(7-Zip, Notepad++, VS Code, Godot, AutoHotkey)·design1 10개·video1 7개 모두 프로세스가 살아 있음. 창까지 확인: DaVinci Resolve·OBS·Krita·Inkscape·Blender·VLC·Craft 앱 전부. **GIMP 만 25초 안에 창이 없음**(프로세스는 살아 있음 — 첫 실행 준비가 긴 것으로 보이나 미확인). 크래시 이벤트 0 |
+| `crash-dotnet` (dev1) | **검증됨** | FaultLab 처리 안 된 예외 → 덤프 `crash-1000`, 엔진 스냅샷 `symptom=app_crash, target=FaultLab.exe, faulting_modules=[KERNELBASE.dll]`. 유의성 10·`hidden`(시험용 프로그램 감점) |
+| `crash-plugin` (office1) | **검증됨** | 덤프 `crash-1000`, `target=FaultHost.exe, faulting_modules=[FaultPlugin.dll]`, 태그 `third-party-module` |
+| `crash-plugin` (design1) | **무효** | FaultHost.exe 가 `0xC0000135`(DLL 없음)로 시작도 못 함 — design1 에는 VC++ 재배포 패키지가 없고 FaultHost 는 `/MD` 빌드라 `VCRUNTIME140.dll` 이 필요(`dumpbin /dependents` 로 확인). office1 은 LibreOffice 가 재배포 패키지를 깔아 줘서 우연히 됐다. 그런데도 `ok` 였던 이유: GPU 복제본이 스스로 남긴 `kernel-live` 덤프가 "덤프 있음"으로 세어졌다 |
+| `hang` (office1) | **검증됨** | `WerReportHang` → 덤프 `hang-1001`, `symptom=freeze, target=FaultLab.exe` |
+| `cpu-hog` (office1, video1) | **검증됨(원시 이벤트)** | `resources` 이벤트에 CPU 합계 99.9~100%, `topCpu` 1위 `faultlab 99.1%` — 범인이 이름으로 남는다 |
+| `disk-hog` (office1) | **검증됨(원시 이벤트)** | `topCpu` 의 `faultlab io 1121`(프로세스 I/O), `pagesPerSec` 13만대(평소 수십~수천). CPU 합계는 26% — **디스크가 원인인 느려짐은 CPU 로는 안 보인다** |
+| `mem-pressure` (office1, design1, video1) | **검증됨(원시 이벤트)** | 커밋 52→87%(office1), 34→96%(design1), 20→93%(video1), 사용 가능 메모리 최저 264~561MB. 범인은 `processes` 이벤트의 `privMB`(design1: FaultLab 7,104MB)로 남는다. `resources.topCpu` 에는 안 나온다(CPU 상위 목록이라 메모리만 쥔 프로세스는 빠짐) |
+| `disk-hog`·`mem-pressure` (office2, `office-old`) | **무효** | 느리게 만든 복제본에서 FaultLab(자체 포함 .NET) **읽어 들이는 데만 82초·34초**. 마킹은 "프로세스를 켠 뒤 45·60초"였고 덤프 창은 마킹+30초에 닫혀서, 부하가 시작(`LOAD_AT`)되기도 전에 덤프가 끝났다(disk: `LOAD_AT` 16:02:10 vs 덤프 창 끝 16:01:59). 덤프 속 FaultLab 은 CPU 0.1%·I/O 0. Chrome 을 "열어 둠"으로 적었지만 office2 에 Chrome 이 없었다 |
+| office2 `baseline` | 실패(시간 초과) | 14분 한도. 꾸러미 복사·압축 풀기와 프로그램 닫기가 느려 4번째 프로그램에서 끝남 |
+
+### 덤프를 열어 보고 알게 된 것 (수집기 쪽)
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| 짧게 돈 범인은 엔진 스냅샷 추세에 안 나온다 | **확인(설계 한계)** | `engine-snapshot.json` 의 `resource_trends.top_cpu_60`·`top_memory_growers` 가 13개 사례 전부 빈 배열. `MinuteRollup` 이 프로세스당 **1분 표본 10개 이상**일 때만 행을 만든다(`if (list.Count < 10) continue`) — 수집기를 5분 돌리고 범인이 100초 사는 사례에서는 원리상 비어 있다. 범인은 `events.json` 의 원시 `resources`/`processes` 에만 있다. 엔진이 `engine-snapshot.json` 만 읽는다면 느려짐 사례의 근거가 없다 → 긴 시나리오 2개(`cpu-hog-long`, `mem-leak-slow`)를 추가해 다음 세션에서 추세가 범인을 짚는지 본다 |
+| `commit_pct_now` 가 "지금"이 아니다 | **확인** | 분 단위 롤업의 마지막 값이라 최대 1분 늦다. design1 `mem-pressure`: 마킹 시점 원시 값 96.4%, 엔진 스냅샷 33.56%(문제 시작 직전 값). office1·video1 은 우연히 맞았다(86.7%, 93.0%) |
+| 디스크 수준 신호 없음 | **미지원 → 같은 날 밤 추가**(아래 "11/12 밤" 절) | 디스크 대기열·사용률·응답 시간을 수집하지 않는다. `office-old`(500 IOPS 제한)에서는 CPU 2~8%인데 `pagesPerSec` 가 계속 약 1,000 으로 평평 — 디스크가 한도에 붙어 있다는 간접 표시뿐. 사무용 느린 PC 가 대상이라면 필요한 신호 → 스파이크 후보(`PhysicalDisk` 카운터, 10/28 느려짐 스파이크에서 본 것과 같은 계열) |
+| WER 1001 의 P4 를 오류 모듈로 읽던 오류 | **수정·검증됨** | `LiveKernelEvent 0x193` → `faulting_modules=["aaaaaaaaaaaaaaaa"]`(덤프 매개변수), `AppHangB1` → `["2cd5"]`(응답 없음 서명)이 엔진 스냅샷에 들어갔고 유의성에 `unknownModule +10` 이 붙었다. `TriggerClassifier.WerP4IsModule` 추가 — 라이브 덤프·응답 없음 계열은 모듈 없음으로. 단위 테스트 91개 통과(7개 추가). **같은 날 밤 범위를 넓힘**: 크래시 계열(APPCRASH·BEX 등)에서만 모듈로 읽는다(아래 "11/12 밤" 절) |
+| `LiveKernelEvent 0x193` 의 뜻 | **확인(문서)** | Microsoft Learn "Bug Check 0x193 VIDEO_DXGKRNL_LIVEDUMP": 그래픽 커널(dxgkrnl)이 남기는 라이브 덤프 식별 코드, 실제 블루스크린 코드로는 쓰이지 않음, 매개변수 1 = 이유 코드. 이번 기록은 매개변수 4개가 모두 `0xaaaaaaaaaaaaaaaa` — 문서에 없는 값(미확인) |
+| GPU 분할 복제본의 0x193 | **재현됨(원인 미확인)** | design1·video1 에서 돈 6개 실행 **전부**에서 발생(총 9건), GPU 없는 복제본(office1·dev1·office2) 0건. 매번 수집기 시작 후 **111~115초**에 첫 건(준비 90초 + 첫 프로그램 직후), 일부는 139~221초에 한 번 더. 프로그램 종류와 무관해 보이나, 프로그램을 하나도 안 켜도 나는지는 모름 → `idle` 시나리오 추가. 수집기는 미분류 라이브 덤프 코드를 `freeze`·기본 90점으로 매겨 `major` 가 된다 — 0x193 을 GPU 계열(141·117 과 같은 묶음)로 볼지는 미정 |
+| 경로 치환 부작용 | 참고 | 게스트 사용자 이름이 `lab` 이라 `C:\lab\faultlab\...` 이 `C:\%USERNAME%\faultlab\...` 로 덤프됨(경로 조각 단위 치환 — 설계대로). 사용자 이름과 같은 폴더 이름이 있으면 경로가 달라 보인다 |
+| 느린 PC 에서 마킹 순간 비용 | 참고 | office2: 스냅샷 수집 82.7초(`captureDurationMs`), 평소 수 초 |
+
+### 설치 (office2, `office-old`: 2코어 50% 제한·4GB·500 IOPS)
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| 묶음 설치 101분 | 확인 | office1(제한 없음) 19.5분의 5배. Notepad++ 466초, Firefox 373초, VLC 736초 |
+| "시간 초과" 3건은 잘못된 기록 | **확인 → 수정** | 7-Zip·LibreOffice·카카오톡이 20분 한도에 걸려 실패로 적혔지만, 그 뒤 사례 실행 때 읽은 설치 목록에는 셋 다 있다(7-Zip 26.06, LibreOffice 26.8.2.2, 카카오톡 26.9.2.5342). 한도는 우리 대기를 끝낼 뿐 설치를 멈추지 않는다 |
+| Chrome 설치 실패 | 확인(원인: 외부) | `Installer hash does not match` — winget 목록의 해시와 Google 이 올려 둔 설치 파일이 다름(목록이 늦게 갱신된 것으로 보임). 관리자 권한에서는 무시 불가. 다른 복제본은 새벽에 정상 설치 → 다시 시도하면 될 수 있음 |
+
+### 도구 수정 (가상 머신 없이 확인한 범위를 구분해 적음)
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| 마킹 시점: 부하가 실제로 시작된 뒤 | **수정, 부분 검증** | `guest-case.ps1` 이 FaultLab 의 표식 줄(`LOAD_AT`, 누수는 `LOAD_READY_AT` = 점유 완료)을 기다린 뒤 `after_sec` 후 마킹. 호스트에서 FaultLab 을 돌려 "실행 중인 프로그램의 로그에서 표식 읽기"는 확인. 게스트 전체 흐름은 다음 세션에서 |
+| "성공" 조건 강화 | **수정, 미검증(게스트)** | 시나리오가 기대한 종류의 덤프(`expect_dump_kind`: crash·hang·manual)가 있어야 하고, FaultLab 종료 코드가 성공 값이어야 하며(`ok_exit`), 표식이 안 나오면 실패. 다른 트리거의 덤프(GPU 복제본의 `kernel-live`)는 세지 않고, 그 덤프 때문에 대기가 일찍 끝나지도 않는다. 안 켜진 배경 프로그램은 `warnings` 로 남고 `scenario.json` 의 `open` 에는 실제로 돈 것만 적는다 |
+| 느린 프로필 시간 늘리기 | **수정, 미검증(게스트)** | CPU 제한이나 IOPS 제한이 걸린 복제본은 대기·한도를 3배(`scenarios.json` `slow_factor`). 설치 한도도 3배, 한도에 걸린 뒤 4분(×3) 동안 다시 찾아보고, 설치 끝에 실패 항목을 한 번 더 확인(`[ok*]`) |
+| FaultHost 의 DLL 의존 | **수정, 부분 검증** | 이 PC 에 Windows SDK 가 없어(`windows.h` 없음 — 포맷 뒤 미설치) `/MT` 재빌드 불가. 대신 `payload.ps1` 이 Microsoft 서명이 유효한 x64 `vcruntime140.dll`(Visual Studio 설치 폴더, 14.51.36260.0)을 FaultHost 옆에 넣는다. 호스트에서 꾸러미의 `plugin` 모드 → `FAULTHOST_EXIT=0xc0000005` 확인. 재배포 패키지 없는 게스트(design1·dev1)에서의 확인은 다음 세션. `plugin/CMakeLists.txt` 는 정적 CRT 로 바꿔 둠(SDK 설치 후 재빌드하면 DLL 동봉이 필요 없어짐) |
+| FaultLab | **수정·검증됨(호스트)** | `plugin` 모드: FaultHost 가 `0xC0000005` 로 끝나지 않으면 종료 코드 2(실패 경로는 실제로 밟아 보지 못함 — 이 PC 에는 런타임이 있음). `leak`: `LOAD_READY_AT` 표식, 세 번째 인자 `간격ms`(느린 누수). 출력 UTF-8 고정(게스트 로그의 한글 깨짐) |
+| `scenario.json` 의 `profile` 이 전부 `standard` | **수정** | `case.ps1` 이 VM 객체 대신 이름을 넘기던 오류. 남긴 사례 13개의 값은 VM 메모에서 읽어 고쳐 씀(`profile_corrected` 표시). 이제 CPU 제한·IOPS 제한·`slow_factor`·`usable` 도 기록 |
+| 새 시나리오 | 추가(미실행) | `idle`(아무것도 안 켜고 5분 — GPU 복제본의 0x193 확인용), `cpu-hog-long`(13분, 11분째 마킹), `mem-leak-slow`(14초마다 50MB, 메모리의 60%까지) |
+| 다음 세션 계획 `plans\cases-2.json` | **실행 전** | 15개 작업, 약 4.5시간(추정): 고친 도구 확인 5개 → `idle` 3개 → 긴 시나리오 2개(office1) → office2 재설치(`bundle-office` 에서 이어서 `bundle-office-b` 로 저장)와 사례 4개. `-DryRun` 통과 |
+
+**미확인으로 남은 것:** GPU 분할 복제본에서 0x193 이 나는 원인(게스트 안 라이브 덤프 파일 `C:\WINDOWS\LiveKernelReports\WATCHDOG\*.dmp` 는 열어 보지 않음) · 0x193 을 사용자가 체감하는지 · GIMP 창이 늦는 이유 · Chrome 해시 불일치가 일시적인지 · WER 1001 의 다른 유형(CLR20r3, MoAppCrash 등)에서 P4 의 뜻 · 긴 시나리오에서 추세가 범인을 짚는지.
+
+## 11/12 밤 — 엔진 입력 보강(`resource_recent`), 디스크 신호, 새로 켜진 프로세스의 CPU (정태웅 결정: "추천대로 진행")
+
+결정 5건 중 진행한 것: ① 수집기 요약에 "마킹 직전 구간" 항목 추가 + 엔진이 읽게 함, ② 디스크 신호 추가, ④ Windows SDK 설치됨(정태웅) → 엔진·FaultHost 재빌드, ⑤ `injected` 확정(`docs/conflict-test-plan.md` 3.2). ③ 0x193 분류는 다음 세션의 `idle` 결과를 본 뒤.
+
+### 기준선 — 고치기 전 엔진이 오늘 사례를 어떻게 읽었나
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| 느려짐 6건(메모리 3·CPU 2·디스크 1) | **범인 0건** | 1순위가 `0x80040827`(아래) 또는 "최근 설치된 프로그램"·상주 필터 드라이버. FaultLab 은 후보에도 없음 |
+| `0x80040827` 이 1순위 "오류 모듈" | **수집기 오류** | Edge 업데이트의 `crashpad_log` 보고(WER 1001, 트리거 아님)에서 P4 = 오류 코드가 `faultingModule` 로 실려 엔진이 "크래시의 오류 모듈"로 읽었다. `F:\pca-vm\cases` 아래 모든 덤프의 1001 기록 53건(같은 기록이 여러 덤프에 겹쳐 들어간 것 포함): `crashpad_log` 30(P4 = 0x80040827), `LiveKernelEvent` 19(aaaaaaaaaaaaaaaa), `APPCRASH` 3(FaultPlugin.dll·KERNELBASE.dll — 모듈 맞음), `AppHangB1` 1(2cd5) |
+| 크래시·멈춤 3건 | 1순위 1건(서드파티 DLL), 3위 안 2건 | `crash-dotnet`·`hang` 은 FaultLab.exe 가 3위 안이지만 "최근 설치" 후보에 밀린다 — 프로그램 자체의 버그는 엔진이 찾는 "충돌 상대"가 아니어서다(이번에 손대지 않음) |
+
+### 스파이크 (읽기 전용, 호스트)
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| K — `PhysicalDisk` 카운터 (`collector/spikes/K-DiskCounters`) | **검증됨** | ko-KR 에서 영어 범주·카운터 이름 동작, 인스턴스 `"1 C:"` 형식 + `_Total`, 디스크 4개 읽기 1ms. `% Idle Time`·`Avg. Disk Queue Length`·`Avg. Disk sec/Transfer`·`Disk Transfers/sec`·`Disk Bytes/sec` 값이 1초 간격 두 번째 표본부터 나옴. `_Total` 은 디스크 평균이라 한 디스크만 바쁜 경우를 가린다 → 디스크별로 수집 |
+| L — 새로 켜진 프로세스의 CPU (`collector/spikes/L-NewProcessCpu`) | **검증됨** | `Process` 범주의 `% Processor Time` 원시값 = 시작 이후 누적 CPU 시간(100ns): 2스레드 약 3초 → 5.97 CPU초. `IO Data Bytes/sec` 원시값 = 누적 바이트: 64MB 쓰기 → 64MB. 직전 읽기에 그 PID 가 없으면 새 프로세스. `Elapsed Time` 은 한 표본으로 계산되지 않음(0) — 쓰지 않는다 |
+
+### 수집기 변경
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| `resources` 이벤트에 `disk` (디스크별 바쁨 %, 대기열, 응답 ms, IOPS, MB/s) | **검증됨(호스트)** / 게스트 미확인 | 10초마다, 첫 표본은 `warming`, 5분마다 디스크 다시 열거. 호스트 2.5분 실행에서 값 확인(유휴 0.6%). 실패 시 `{"status":"unavailable"}`. **포화된 디스크에서의 값과 가상 머신 IOPS 제한이 이 값에 나타나는지는 미확인**(다음 세션 `disk-hog`) |
+| 새로 켜진 프로세스가 첫 CPU 측정부터 잡힘 | **검증됨(호스트)** | 전에는 직전 읽기에도 있던 인스턴스만 차분해서, 방금 켠 프로세스는 다음 측정(30~60초 뒤)에야 나왔다 — video1 `cpu-hog`: PC 전체 88.9% 인데 상위 목록에 범인 없음. 이제 PID 로 짝을 맞추고 새 PID 는 누적값으로 계산. 호스트: 4스레드(16 중) 부하를 측정 15초 전에 켬 → 첫 측정 12.3%(기대 12.5%), 다음 24.8%(기대 25%). 끝난 프로세스의 마지막 구간은 여전히 못 잰다 |
+| `resources` 이벤트에 `cpuAt` | 추가 | CPU·상위 목록을 실제로 잰 시각(30초마다). 사이 표본은 같은 값을 다시 싣기 때문에 요약할 때 중복을 거르는 열쇠 |
+| `engine-snapshot.json` 에 `resource_recent` (`Core/RecentResources.cs`) | **검증됨(단위 테스트 + 실제 덤프 재생 + 호스트 실행)** | 덤프 창의 `resources`·`processes` 이벤트를 간추림: 커밋(마지막·최대)·사용 가능 메모리·페이지, CPU 합계, CPU 상위 5(평균·최대·횟수), 입출력 상위 3, 메모리 상위 5(창 안 증가량·창 안에서 켜졌는지), 디스크별 요약. 정렬·평균만 한다(판단 없음). `BlackBox --resource-recent <events.json>` 으로 예전 덤프에서 다시 계산 가능 |
+| WER 1001 의 P4 는 크래시 계열에서만 모듈 | **수정·검증됨** | `WerP4IsModule` 을 크래시 접두(APPCRASH·CLR20r3·BEX·MoAppCrash·MoBEX)만 참으로. 비크래시 보고·응답 없음·라이브 덤프·미분류 유형은 모듈 없음. CLR20r3·MoAppCrash 의 P4 뜻은 여전히 미확인(기존 동작 유지) |
+| 콘솔 입력의 BOM | 확인·보강 | 입력 인코딩이 UTF-8 인 부모(이 PC 의 개발 셸)는 프로세스를 시작하는 순간 BOM 을 파이프로 보낸다 → 첫 명령 `m slow` 가 안 읽힘. 게스트는 한글 코드 페이지라 우연히 괜찮았다. `guest-case.ps1` 은 빈 줄을 먼저 보내고 ASCII 로 쓴다. 수집기는 U+FEFF 를 떼어 낸다(이쪽 코드 페이지가 다르면 못 고침) |
+| 단위 테스트 | **104개 통과** | `RecentResourcesTests` 10개, `WerP4IsModule` 10개 |
+
+### 엔진 변경 (`engine/` — 송민석 영역, 커밋 시 저자 확인 필요)
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| 새 도구로 빌드 | **검증됨** | Visual Studio 18 + Windows SDK 10.0.26100 + CMake 4.3.1. `engine\build` 를 다시 구성(전 캐시는 VS 2022 용), 기존 테스트 통과 |
+| `resource_recent` 읽기 + 규칙 3개(`addFromResourceRecent`) | **검증됨(테스트 + 재생)** / 기준값은 **잠정** | 짧은 CPU 점유(최대 ≥50%, 2회 이상, 평균 ≥15%) · 메모리 압박(커밋 ≥85% + 한 프로세스가 한도의 30% 이상) · 디스크 포화(가장 바쁜 디스크 평균 ≥80% + 입출력 1위). 근거와 약한 점은 `engine/docs/rules_rationale.md` 9절. 디스크 규칙은 **실측 근거가 없다** |
+| "근거 부족" 경고 | 수정 | 기여도 0 인 근거("센서 값을 읽을 수 없어 확인 불가")가 근거로 세어져 센서 없는 PC 에서 경고가 사라지던 것. 디스크가 계속 바빴으면 안내 문장 추가 |
+| 엔진 테스트 | **170개 통과** | s14(CPU)·s15(메모리)·s16(디스크) 추가, 값은 오늘 사례의 실측 |
+
+### 오늘 사례 13개 재생 (가상 머신 없이: 저장된 `events.json` → 새 요약 → 새 엔진)
+
+| 사례 | 전 | 후 | 비고 |
+|---|---|---|---|
+| `mem-pressure` office1·design1·video1 | 없음 | **1순위**(12~13%, 다음 후보 5~6%) | "커밋 96.3% 상태에서 이 프로세스가 7104.1MB(한도의 63.8%)" |
+| `cpu-hog` office1 | 없음 | **1순위**(7%, 2위와 같은 7%) | 간신히 — `other_sw` 사전 가중치가 낮다 |
+| `cpu-hog` video1 | 없음 | 없음 | 덤프 창 안에 범인이 든 측정이 1번뿐(위 "새 프로세스" 문제). 수집기를 고쳤으므로 새 덤프에서는 2번 든다 — **다음 세션에서 확인** |
+| `disk-hog` office1 | 없음 | 없음 | 예전 덤프에는 디스크 신호가 없다 — **다음 세션에서 확인** |
+| `crash-plugin` office1 | 1순위 | 1순위 | 변화 없음 |
+| `crash-dotnet`, `hang` | 3위 안 | 3위 안 | 변화 없음 |
+| GPU 복제본의 `kernel-live` 덤프 8개(남긴 사례 기준) | — | — | 넣은 문제가 아니라 채점 대상 아님. `faulting_modules` 에서 `aaaaaaaaaaaaaaaa` 가 빠짐 |
+
+이 재생은 "수집기가 오늘 밤 코드였다면 썼을 요약"을 예전 원시 기록에서 다시 만든 것이다. 실제로 새 수집기가 게스트에서 만든 덤프로 확인한 것이 아니다.
+
+### 실험 도구
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| FaultHost·FaultPlugin 정적 빌드 | **검증됨** | SDK 설치 뒤 `/MT` 로 재빌드, `dumpbin /dependents` = `KERNEL32.dll` 만. 꾸러미에 런타임 DLL 을 넣는 우회는 자동으로 꺼진다(`payload.json`: `static`). 게스트(design1·dev1)에서의 실행은 다음 세션 |
+| 다음 세션 계획 `plans\cases-2.json` | **실행 전** | 17개 작업, 약 5시간(추정). 디스크 신호 확인(dev1 `disk-hog`)·새 프로세스 CPU 확인(design1 `cpu-hog`) 추가 |
+
+### 같은 밤 추가 — 평가 준비 (정태웅 결정 7건: `docs/evaluation-design-v3.md`)
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| API 키 | **검증됨** | 사용자 범위 환경 변수 `ANTHROPIC_API_KEY`. 모델 목록 조회(요금 없음) 성공 — Opus 5.5·Sonnet 5.5·Haiku 5.5·Fable 5.2 사용 가능. 키는 어디에도 적지 않는다 |
+| 실험 환경 `eval/` | **검증됨** | uv 가상 환경(Python 3.12.16, `anthropic` 2.8.0). 시스템 설치 없음. `.venv`·`runs/` 는 커밋 제외 |
+| 덤프의 토큰 수 (`eval/count_tokens.py`) | **검증됨(실측)** | 사례 13개: 원본(`events.json`+`snapshot.json`) 27만~47만, 중앙값 **354,721** · 당시 요약 중앙값 2,993 · 마킹 직전 구간을 넣은 요약 중앙값 **5,247** → 원본이 31~105배. 세 모델의 토큰 수는 같다. 원본은 이미 공백 없는 JSON(공백 제거 시 99%). 원본 바이트의 약 70%는 `processes`(10초마다 전체 프로세스 목록), 약 20%는 ETW |
+| 정답이 이름에 드러나는 문제 | **수정, 호스트 검증** / 게스트 미확인 | 첫 세션의 범인은 전부 `FaultLab.exe`·`FaultPlugin.dll` 이고 `test-artifact` 표시가 붙었다 → AI 가 증거 없이 맞힐 수 있다. `lab/vm/aliases.json`(지어낸 이름 12개)로 같은 프로그램을 다른 이름·버전 정보로 빌드(`payload.ps1`, 별칭당 67MB), `Program Files` 아래 설치, **명령줄 인자 없이** 실행(할 일은 옆의 `task.cfg`). 호스트: 프로세스 이름 `DocSyncAgent.exe`, 명령줄에 인자 없음, 회사 `Dalmaru Soft`, 파일 이름에 fault 0개, 플러그인 크래시도 별칭 이름(`DocSyncRender.exe` / `dsfilter64.dll`)으로 재현. 예외 문구·임시 파일 이름·창 제목에서도 시험용 낱말 제거 |
+| 곁에 있는 정상 프로그램(decoy) | 추가(미실행) | FaultLab `idle` 모드: 5초마다 40ms 일하고 24MB 를 쥔다. `case.ps1 -Decoys <n>` — "모르는 작은 프로그램 = 범인"이 통하지 않게 |
+| `case.ps1 -Alias <id\|auto>` · 세션 작업의 `alias`·`decoys` | 추가(미실행) | 별칭 실행은 `<복제본>-<시나리오>+alias` 폴더에 따로. 정답(`scenario.json`)에는 그 사례에서 보이는 이름을 적는다. `plans\cases-2.json` 에 별칭 작업 4개 추가(21개 작업, `-DryRun` 통과). 기존 작업의 동작은 바꾸지 않았다 |
+
+**미확인으로 남은 것:** 포화된 디스크에서 새 신호가 어떤 값을 내는지, 80% 기준이 맞는지 · 별칭 실행의 게스트 전체 흐름(수집기가 별칭 프로세스를 어떻게 기록하는지 — 유의성 점수 포함) · 게스트에서 새 수집기 전체 흐름 · 0x193 분류 · 대상 프로그램을 지정하지 않은 "느림" 마킹에서 사용자가 일부러 돌린 무거운 작업이 범인으로 지목되는 문제 · CPU 점유 후보의 낮은 순위 여유.
+
+## 11/13 — 두 번째 사례 세션 검토 (`plans\cases-2.json`, 03:11~07:15, 21개 작업 = 19 완료 · 1 설치 실패 포함 완료 · 1 실패)
+
+검토 도구를 저장소에 남겼다: `eval/review_cases.py <사례 폴더> [--since 날짜] [--write]`. 사례마다 (1) 넣은 문제가 시나리오가 말하는 피해를 실제로 냈는지 (2) 별칭 실행의 덤프에 정답을 알려 주는 글자가 있는지 (3) 읽는 사람이 알아야 할 표시(복제본이 스스로 남긴 이벤트, 문제 없이도 포화된 디스크)를 덤프만 보고 판정해 `review.json` 으로 남긴다. `eval/cases.py` 는 피해가 재현되지 않은 실행을 사례로 읽지 않는다.
+
+### 어젯밤 "미확인"으로 남겼던 것
+
+| 항목 | 상태 | 근거 (게스트 실측) |
+|---|---|---|
+| 표시(LOAD_AT 등)를 기다렸다가 마킹 | **검증됨** | 느려짐 사례 9개 전부 `alive_at_mark=true`, 표시→마킹 20~45초(office2 는 32초·45초). 첫 세션의 "문제 없는 덤프" 0건 |
+| 기대한 종류의 덤프만 인정 | **검증됨** | GPU 복제본의 `kernel-live` 덤프가 먼저 생겨도 `crash-1000`·`hang-1001`·`manual` 을 기다렸다(design1 3건, video1 1건) |
+| 정적 빌드 FaultHost (VC++ 런타임 없는 게스트) | **검증됨** | design1·dev1 `crash-plugin`: 종료 코드 0, 1000 이벤트의 오류 모듈 = `FaultPlugin.dll` |
+| 새 프로세스의 첫 CPU 측정 (누적값 계산) | **검증됨** | design1 `cpu-hog`: 켠 지 수 초 뒤의 첫 측정에 28.4% 로 잡힘(kernel-live 덤프, 측정 1회). 수동 덤프에서는 3회, 최대 99.2% |
+| 디스크 신호 (`resources.disk`, `resource_recent.disks`) | **검증됨** | 모든 덤프에 `0 C:` 한 줄. 유휴 0.4~1%, 프로그램 여는 중 최대 12~47%, dev1 `disk-hog` 평균 22.6%·최대 56.1%(774 IOPS, 327MB/s), office2(디스크 제한) 97.5~100%·응답 219~803ms |
+| 별칭 실행 (다른 이름·decoy) | **검증됨** | 4건 전부 ok. 수집기는 별칭 이름으로 기록(`updatenotifier`, `FontPreviewHost`, `InvoiceExport.exe`, `NsTwainHost.exe`/`nsdeskew64.dll`), decoy 는 프로세스 목록에 있음. 덤프 4개 파일에서 `faultlab`·`faulthost`·`faultplugin`·`task.cfg`·`C:\lab\`·표시 문자열 검색 결과 0건 (`fault` 로 찾으면 `default`·`WerFault`·`Faulting` 만 나온다) |
+| 느린 프로필(office2)의 늘린 대기 | **검증됨 / 일부 실패** | `mem-pressure`·`cpu-hog`·`baseline` 완료(24~49분). `disk-hog` 는 5분 만에 원격 세션이 끊겨 실패(두 번째. 원인 **미확인**), Chrome 은 winget 해시 불일치로 다시 설치 실패 |
+| 긴 시나리오에서 60분 추세가 범인을 가리키는가 | **검증됨** | `cpu-hog-long`: `top_cpu_60` 에 FaultLab 평균 80.9%(표본 11). `mem-leak-slow`: `top_memory_growers` 1위 FaultLab 분당 214MB(R² 1.0) |
+
+### 새로 나온 것
+
+| 항목 | 상태 | 내용 |
+|---|---|---|
+| dev1 `disk-hog` — 문제는 있었지만 피해가 없었다 | **사례에서 제외** | 빠른 디스크라 327MB/s 를 써도 디스크는 평균 22.6% 만 바빴고 응답은 0.73ms. "느리다"는 마킹은 시나리오가 한 것이지 PC 가 느려진 것이 아니다. 엔진이 후보를 올리지 않은 것이 맞다(엔진 시험 s16 의 "한가한 디스크의 큰 복사는 원인이 아니다"와 같은 상황). `review.json` `effect_ok=false` |
+| 피해 확인 기준 (`review_cases.py`) | 추가 | CPU: PC 전체 최대 90% 이상 + 범인이 `top_cpu` 에 있음 · 메모리: 커밋 최대 85% 이상 + 범인이 `top_memory` 에 있음 · 디스크: 가장 바쁜 디스크 최대 80% 이상 + 범인이 `top_io` 에 있음 · 크래시/멈춤: 덤프의 대상·오류 모듈이 범인. 기준값은 엔진 규칙과 같은 눈금이라 **독립적인 확인이 아니다** — 사람이 화면으로 느린 것을 본 것이 아니라는 뜻 |
+| office2 는 문제 없이도 디스크가 포화 | **프로필 수정** | `baseline`(문제 없음)에서 디스크 평균 97.5% 바쁨, 응답 평균 803ms·최대 12초, 초당 100회·3.5MB. Hyper-V 의 IOPS 는 8KB 단위라 500 = 약 4MB/s 였다. 이 상태에서는 디스크 점유를 유휴와 구별할 수 없고 설치에 26분이 걸린다. `vm.json` `office-old` 를 3000(약 24MB/s)으로 바꿨다. 이미 만든 office2 사례 3개는 `scenario.json` 에 500 으로 적혀 있고 그대로 "디스크가 매우 느린 PC" 사례다. 체크포인트가 예전 제한을 되살리므로 `case.ps1` 이 복원 뒤 다시 건다 — **게스트 미확인** |
+| office2 `baseline` 의 정답 | **결정 필요** | 범인 프로그램은 없지만 PC 는 실제로 느리다(디스크). 엔진은 Defender 를 6.9% 로 1순위에 올렸다(포화된 디스크의 입출력 1위). "문제 없음"도 "Defender 가 범인"도 맞는 답이 아니고 "디스크가 한계"가 맞다 → 정답 종류에 `hardware_limit` 를 두고 따로 센다(제안) |
+| `LiveKernelEvent 0x193` | **미확인(범위는 좁혀짐)** | 두 세션 통틀어 GPU 분할 복제본(design1·video1)의 남긴 실행 11/11 에서 수집기 시작 111~115초 뒤에 발생(video1 유휴는 165초에 한 번 더), 프로그램을 하나도 켜지 않은 유휴 실행에서도 발생. GPU 분할이 없는 복제본(dev1·office1·office2) 실행 0/21. 보고서 경로는 `LiveKernelReports\WATCHDOG`. 넣은 문제와 무관한 것은 확정. **수집기(센서 조회)가 일으키는지, 복제본이 로그온 뒤 일정 시간에 스스로 내는지는 구분 못 함** — 수집기 시작 시각이 부팅 기준으로 늘 같았다. 다음 세션에 `idle-late`(수집기를 3분 늦게 시작) 2건으로 가른다. 수집기 탓이면 "읽기 전용·저부하" 원칙에 걸리는 문제다 |
+| 수집기의 `kernel-live` 덤프 증상 분류 | 관찰 | 0x193 덤프의 증상이 `freeze`, 유의성 90(major)으로 기록된다. 화면이 멈춘 적은 없다. 위 구분이 끝난 뒤 다룬다 |
+
+### 엔진 (세션 덤프 그대로 실행)
+
+| 시나리오 | 결과 | 비고 |
+|---|---|---|
+| 넣은 문제 14건(피해 재현된 것) | 범인 1순위 **13/14 → 규칙 수정 뒤 14/14** | 같은 사례로 규칙을 맞춘 것이므로 **개발용 수치**다. 정확도 주장에 쓰지 않는다 |
+| `cpu-hog-long` office1 | 2순위 → 1순위 | 범인이 평균 65% 를 쓰는 동안 Defender 가 23% 를 썼는데 두 CPU 근거의 세기가 같아, 사전 가중치와 "실시간 감시 켜짐" 근거로 Defender 가 1순위였다 |
+| `cpu-hog` office2 | 1순위(간신히) | 마킹 45초 전에 켜진 프로그램은 5분 창 평균이 15.9% — 기준 15% 를 겨우 넘었다 |
+| 문제 없는 실행 5건 | 4건은 특정 후보 없음(전부 5% 안팎), office2 는 Defender 6.9% | 위 "결정 필요" |
+
+규칙 E2 를 고쳤다(`engine/src/candidates.cpp`, 시험 s17 추가, 172 통과): 평균은 창 전체가 아니라 **그 프로세스가 측정에 잡힌 동안**의 평균(25% 이상), 근거의 세기는 **가장 많이 쓴 프로세스 대비 비율**. 여전히 잠정값이다. 1순위와 2순위의 차이는 CPU·멈춤 사례에서 6~7% 대 5% 로 작다.
+
+### 실험 도구 · 다음 세션
+
+| 항목 | 상태 | 내용 |
+|---|---|---|
+| `scenarios.json` `idle-late` · `guest-case.ps1` `pre_collector_sec`, 결과의 `boot_at`·`live_kernel_events` | 추가(**미실행**) | 구문 검사만 통과 |
+| `session.ps1` 작업의 `id` | 추가(**미실행**) | 같은 복제본·시나리오를 여러 번 넣을 수 있게. 끝난 작업은 `cases\_done\<id>.txt` |
+| `plans\cases-3.json` | **실행 전** | 25개 작업, 약 4시간(추정): `idle-late` 2 · 별칭 사례 17(시나리오 7종 × 복제본 4, decoy 1~2) · decoy 만 있고 문제 없는 실행 2 · office2 새 디스크 제한 4. `-DryRun` 통과 |
+
+### 같은 날 — 시범 실행 (`eval/sets/pilot-1.txt` 10건, 지시문 p1, 지출 5.66달러 / 시범 한도 15)
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| 한 번 호출 방식 4종(A0·A2·A3·A4) × 모델 3종의 전체 흐름 | **검증됨** | 답 139개, 거절·잘림·형식 깨짐·API 오류 0건. 24만~41만 토큰 요청(A2)도 5~20초에 처리 |
+| 답 1개 요금(실측) | **검증됨** | A4: Haiku 0.0015 · Sonnet 0.025 · Opus 0.054달러. A2: Haiku 0.17 · Sonnet 0.54 · Opus 1.01달러 → 원본 전체는 요약+엔진의 약 115배 · 22배 · 19배 |
+| 같은 사례 3번 반복의 일치(A4) | 측정 | Haiku 8/10, Sonnet 8/10. "멈춤" 사례에서 지목과 판단 보류가 갈린다 |
+| 인용한 증거 번호 | **검증됨** | 요약 방식의 모든 답에서 실제로 준 번호만 인용 |
+| 정확도 | **주장하지 않음** | 문제 사례가 4개이고 전부 개발용이다. 틀린 답은 전부 판단 보류였고, 엉뚱한 프로그램·decoy 를 지목한 답은 요약 방식에서 0건이었다는 것까지만 적는다 |
+| 집계 도구 `eval/summarize.py`, 사례 목록 파일 `--set` | 추가 | 실행 폴더들을 방식·모델별 한 줄로. 복제본 표시가 붙은 문제 없는 실행은 따로 센다 |
+
+본 실험 전에 고칠 것 3건(답 형식, 요약의 CPU 평균, 정답 종류 `hardware_limit`)과 실측으로 다시 계산한 예산은 `docs/evaluation-design-v3.md` 2절 "시범 결과", 8절.
+
+**미확인으로 남은 것:** 0x193 이 수집기 탓인지(`idle-late`) · 디스크 제한 3000 IOPS 에서 office2 가 어떻게 도는지, 그 디스크 점유 사례 · office2 `disk-hog` 원격 세션 끊김의 원인 · `guest-case.ps1`·`session.ps1`·`case.ps1` 의 오늘 수정(구문 검사와 모의 실행만 통과) · decoy 만 있고 문제 없는 실행 · 긴 시나리오의 별칭 실행 · Chrome winget 해시 불일치(office2).
+
+## 11/14 — 세 번째 사례 세션 검토 (`plans\cases-3.json`, 02:29~05:42, 25개 작업 모두 완료)
+
+검토 도구: `eval\review_cases.py F:\pca-vm\cases --since 20261114 --write`. 실행 25개 중 **사례로 쓸 수 있는 것 24개**(문제 넣음 19, 문제 없음 5). 01:37 에 시작했다가 26초 만에 멈춘 세션의 빈 폴더(`design1-idle-late\20261114-013714`)가 하나 있다 — 결과 파일이 없어 도구가 건너뛴다.
+
+### 게스트에서 확인된 것
+
+| 항목 | 상태 | 근거 |
+|---|---|---|
+| 11/13 에 고친 실험실 스크립트(`pre_collector_sec`, 결과의 `boot_at`·`live_kernel_events`, 작업 `id` 와 `_done` 표시, 저장 지점 복원 뒤 디스크 제한 다시 걸기) | **검증됨** | 25개 작업이 모두 끝났고 `_done` 에 25개, office2 작업 로그 4개에 "disk limit … set to 3000 IOPS (the checkpoint had 500)" |
+| **0x193 은 수집기 탓이 아니다** | **검증됨** | GPU 복제본 실행 9개 모두에서 보고가 **부팅 후 180~184초**에 찍혔다. 수집기를 부팅 후 85~93초에 켠 7개와 251~252초에 켠 2개(`idle-late`)가 같다 — 수집기가 꺼져 있던 때에 이미 났다. GPU 없는 복제본 16개 실행에서는 0건. 부팅 후 4~5초에도 매번 1건(저장 지점에 남아 있던 보고가 부팅 때 접수된 것으로 보이나 **미확인**), 일부 실행은 5~9분에 1건 더(3/9) |
+| 디스크 제한 3000 IOPS 의 office2 | **검증됨** | 아무것도 안 넣은 5분: 디스크 평균 7.6% 바쁨, 90% 이상 표본 1개(11/13 의 500 IOPS 에서는 평균 97.5%). 실행 1개에 7.6~9.5분(11/13 에는 24~49분). 원격 세션 끊김은 다시 나오지 않았다(4/4 완료) — 500 IOPS 의 포화가 원인이었을 가능성이 크지만 확인한 것은 아니다 |
+| office2 `disk-hog` | **검증됨(첫 사례)** | 마킹 45초 전에 켜진 프로그램이 디스크를 채움: 표본 24개 중 9개가 93~100%, 응답 평균 293ms·최대 6.3초, 입출력 1위가 범인(잡힌 동안 평균 10.3MB/s) |
+| 별칭 사례 묶음 | **검증됨** | 문제 넣은 실행 19개(시나리오 9종 × 복제본 5) 모두 기대한 덤프가 있고 피해가 덤프에 있다. 덤프에서 시험 프로그램 이름·실험실 경로 검색 0건 |
+| decoy 만 있고 문제 없는 실행 | **검증됨** | office1·dev1: decoy 2개가 프로세스 목록에 있고(`DocSyncAgent`·`MediaIndexer`, `ScanBridge`·`DocSyncAgent`) 엔진은 아무도 지목하지 않음 |
+| 긴 시나리오의 별칭 실행(`cpu-hog-long`, `mem-leak-slow`) | **검증됨** | 둘 다 완료(17.5분·17.8분), 엔진 1순위 = 범인 |
+| 빠른 디스크의 `disk-hog` | **미재현(세 번째)** | office1: 376MB/s 를 써도 디스크 최대 77%, 응답 0.5ms — 피해가 없어 사례에서 제외. `disk-hog` 는 느린 디스크 프로필에서만 사례가 된다 |
+
+### 엔진 (개발용 숫자 — 규칙을 이 사례들에 맞췄다)
+
+| 항목 | 값 |
+|---|---|
+| 이번 세션 문제 사례 19건의 엔진 1순위 | 고치기 전 18/19 → **19/19** |
+| 놓친 1건 | office2 `disk-hog`: 규칙 D2 가 창 평균 80% 를 요구하는데, 마지막 1분만 포화라 창 평균이 44.1% 였다(11/13 의 CPU 규칙 E2 와 같은 종류의 묽어짐) |
+| 고친 것 | D2 에 (나) 추가: 90% 이상 바빴던 표본이 3개 이상이고 입출력 1위 프로세스가 2회 이상 측정에 잡힘. 시험 `[s18]`, 엔진 시험 176개 통과. `engine/docs/rules_rationale.md` D2 행 |
+| 문제 없는 실행 5건 | 5건 모두 지목 없음 |
+| 첫 세션(11/12) 덤프에서 순위가 낮은 4건 | 그날 확인한 수집기 오류(`0x80040827`·`2cd5` 가 오류 모듈로 실림)가 덤프에 남아 있는 것 — 새 문제가 아니고, 이름이 드러난 사례라 평가에 쓰지 않는다 |
+
+### 수집기 요약(`resource_recent`)에 추가 — 이미 모은 값을 세고 평균할 뿐, 판단 없음
+
+| 항목 | 상태 | 내용 |
+|---|---|---|
+| `top_cpu[].cpu_avg_active`, `top_io[].io_mbps_avg_active` | **검증됨(단위 시험 + 덤프 82개 재계산)** | 그 프로세스가 상위 목록에 잡힌 측정만의 평균. 창 평균(`cpu_avg`)은 그대로 둔다 |
+| `top_cpu[].cpu_last`, `top_io[].io_mbps_last` | **검증됨(〃)** | 창의 마지막 측정(마킹 무렵)의 값. 그때 상위 목록에 없었으면 null |
+| `disks[].busy_ge90_samples` | **검증됨(〃)** | 90% 이상 바빴던 10초 표본 수 |
+| `disks[].busy_pct_recent`·`latency_ms_recent`·`mbps_recent` | **검증됨(〃)** | 마지막 표본 6개(약 1분)의 평균 |
+| 예전 덤프의 요약 다시 계산 `eval\replay.py` | 추가 | `BlackBox --resource-recent` 로 덤프마다 요약을 다시 만들어 `cases\_replay\` 에 둔다. `eval\cases.py`·`review_cases.py` 는 그 파일이 있으면 그것을 읽는다 — 게스트에서 돈 수집기 판이 달라도 모든 사례가 같은 항목을 갖는다 |
+| 게스트용 꾸러미 | 다시 빌드 | `lab\vm\payload.ps1`(호스트에서 빌드만). 다음 세션부터 게스트의 수집기가 새 항목을 직접 쓴다 — **게스트 미실행** |
+
+수집기 단위 시험 106개 통과(2개 추가). 호스트에는 .NET 8 런타임이 없어 `DOTNET_ROLL_FORWARD=Major` 로 돌린다.
+
+### 같은 날 — 개발용 사례 36개로 지시문 고치기 (`eval/sets/dev-1.txt`, 시범 항목 누적 10.40달러 / 한도 15)
+
+개발용 묶음: 평범한 이름으로 넣은 문제 23 + 문제 없음 6 + GPU 복제본의 문제 없음 6(0x193 표시) + 디스크가 늘 포화인 PC 1. **아래 숫자는 정확도 결과가 아니다** — 지시문 p3 는 같은 사례에서 p2 의 실패를 보고 고친 것이다.
+
+| 방식·모델 | 지시문 | 문제 사례 1순위 | 틀린 지목 | 문제 없음 6건(명시/보류/지목) | 채점 제외 | 답 1개 요금 |
+|---|---|---|---|---|---|---|
+| 요약+엔진(A4) · Haiku ×3 | p2 | 63/69 | 5 | 7/10/**1** | 0 | 0.0017 |
+| 요약+엔진(A4) · Haiku ×3 | p3 | **69/69** | 0 | 6/12/0 | 0 | 0.0018 |
+| 요약+엔진(A4) · Sonnet | p2 | 22/23 | 1 | 3/3/0 | 0 | 0.029 |
+| 요약+엔진(A4) · Sonnet | p3 | **21/21** | 0 | 2/4/0 | **2(잘림)** | 0.037 |
+| 요약만(A3) · Haiku ×3 | p3 | **69/69** | 0 | 6/12/0 | 0 | 0.0017 |
+| 요약만(A3) · Sonnet | p2 | 21/23 | 2 | 3/3/0 | 0 | 0.025 |
+| 요약만(A3) · Sonnet | p3 | **23/23** | 0 | 2/4/0 | 0 | 0.026 |
+
+| 항목 | 상태 | 내용 |
+|---|---|---|
+| "멈춤" 사례의 판단 보류(p1) | **고쳐짐** | p2 부터 4건 모두 지목(Haiku 12/12, Sonnet 4/4). 지시문에 "밖에서 끼어든 흔적이 없으면 멈춘 프로그램 자신이 후보"를 넣음 |
+| 요약의 묽은 CPU 평균(p1 에서 Sonnet 이 요약만 받으면 보류) | **고쳐짐** | `cpu_avg_active` 를 넣은 뒤 요약만 받은 Sonnet 도 CPU 사례 6/6 |
+| p2 의 부작용 ① | 발견 → p3 | "하드웨어가 원인이면 프로그램을 범인으로 만들지 말라"는 문장 때문에 느린 PC(office2)에서 프로그램이 원인인 사례까지 "디스크"라고 답했다(Sonnet 3건: 요약만 2·요약+엔진 1, Haiku 6건 중 5건은 단정) |
+| p2 의 부작용 ② | 발견 → p3 | 증상이 없는 실행에서 배경의 Edge 업데이트 오류 보고를 "꺼진 프로그램 자신"으로 지목(Haiku 3회 중 1회). p3: 사용자 증상과 이어지지 않는 기록은 후보가 아니다 |
+| 디스크가 늘 포화인 PC(정답: 하드웨어 한계) | **미해결** | p3 에서는 모든 답이 Defender 를 1순위(확신 중간)로, 디스크를 2순위로 적었다(Haiku 6/6, Sonnet 2/2). 권고는 "검사가 끝나기를 기다린다, 백신은 끄지 않는다" 수준. 덤프 하나로는 "평소에도 이런가"를 알 수 없다 — 평소 상태와 비교할 자료가 있어야 가를 수 있다 |
+| 답이 길이 한도에서 잘림 | **새로 관찰** | Sonnet 요약+엔진 36개 중 2개: JSON 문자열 안에서 같은 글자(`}}</br>`)를 반복하다 16,000 토큰에서 멈춤(73초, 한 개에 약 0.16달러). 잘리기 전의 1순위는 맞았다. 다른 답 570여 개에서는 0건. `run_single.py` 가 잘린 답을 한 번 다시 묻게 했다(두 번 다 요금에 넣고 `attempts` 에 기록) — **다시 묻는 경로는 실제 호출로 확인하지 않았다** |
+| 개발용 묶음의 쓸모 | 한계 | p3 에서 요약만(A3)과 요약+엔진(A4)이 모두 만점이라 **이 묶음으로는 방식 차이를 가를 수 없다**. 엔진 판단이 더해 주는 것이 있는지는 변형 시나리오가 든 시험용에서만 볼 수 있다 |
+| 반복 일치(Haiku 3회) | 측정 | p3: 35/36 (요약만·요약+엔진 모두) |
+
+### 다음 세션 — 시험용 사례 생산 (`lab\vm\plans\test-1.json`, **실행 전**)
+
+| 항목 | 상태 | 내용 |
+|---|---|---|
+| 계획 | 모의 실행 통과 | 52개 작업(문제 넣음 42, 문제 없음 10), 약 7시간(추정) → `-Hours 9`. 작업마다 `id` 가 있어 끊기면 다음 날 이어서 돌릴 수 있다 |
+| 변형 시나리오 7종(`scenarios.json`) | 추가(**게스트 미실행**) | `cpu-hog-early`(25초 만에 마킹), `cpu-hog-late`, `mem-leak-mid`, `hang-late`, `crash-start`, `crash-failfast`, `disk-hog-long`. FaultLab 의 기존 방식에 인자만 다르게 준 것. `crash-failfast` 는 Windows 가 이벤트 1000 을 남기는지 **미확인** — 안 남기면 그 실행 2개는 실패로 끝난다 |
+| 시험용을 따로 두는 절차 | 도구 추가(**미실행**) | 세션 뒤 `eval\split_test.py … --move` 로 실행 폴더를 `F:\pca-vm\cases-test` 로 옮기고, `eval\replay.py` → `eval\review_cases.py --no-engine --write` 로 사례 자격만 본다. 동결(11/23) 뒤 한 번 쓰기 전에는 엔진·모델을 돌리지 않는다 |
+| 계획에 없는 것 | 미지원 | "사용자가 일부러 돌린 무거운 작업"(헷갈리는 정상)과 실제 프로그램의 알려진 버그 사례는 이 계획에 없다 — 시나리오 종류를 새로 만들어야 한다 |
+
+**미확인으로 남은 것:** GPU 복제본의 부팅 직후(4~5초) 0x193 보고와 5~9분 뒤의 세 번째 보고의 정체 · 수집기가 `kernel-live` 덤프를 증상 `freeze`·유의성 90 으로 분류하는 것이 맞는지 · 500 IOPS 에서의 원격 세션 끊김 원인 · Chrome winget 해시 불일치(office2) · 새 꾸러미의 수집기와 변형 시나리오의 게스트 동작 · 잘린 답 다시 묻기 · 늘 포화인 디스크를 "하드웨어 한계"로 가르는 방법.
+
+## 11/14 저녁 — 수집기 자체의 부담: 게스트 덤프에서 다시 계산 (새 실행 없음)
+
+지금까지 만든 덤프 82개(`F:\pca-vm\cases`, 복제본 5종)의 `events.json` 에서 수집기 프로세스(`BlackBox`, 콘솔판, 비관리자) 자신의 줄만 뽑았다. 프로세스 목록은 10초마다, CPU 상위 10 은 30초마다 찍힌다.
+
+| 항목 | 분류 | 값 |
+|---|---|---|
+| 메모리(Private) — 마킹 시점 | 검증됨(짧은 실행) | 중앙값 48.5MB, 범위 37.9~79.5MB. 복제본별 중앙값 45~59MB(office2 가 가장 큼) |
+| 메모리(Working Set) 최대 | 검증됨(짧은 실행) | 중앙값 76MB |
+| 덤프 창 안에서의 증가 | 검증됨 — **누수로 읽으면 안 됨** | 약 12MB 에서 시작해 창 끝까지 +32~36MB. 창이 수집기 시작 직후를 포함하기 때문(실행 5~10분). 그 뒤 평탄한지는 이 자료로 알 수 없다 |
+| CPU | 검증됨(간접) | CPU 측정 1,556회에서 수집기가 상위 10위에 든 적 0회. 정확한 %는 이 자료로 알 수 없다(상위 10 밖은 기록되지 않음) |
+| 호스트 값과의 차이 | 참고 | 호스트(10월, 센서 동작, 30분): Private 94~114MB, Working Set 186~267MB. 게스트는 센서 값이 없고 실행이 짧다 |
+| 1시간 이상 켜 둔 메모리 | **미확인** | 게스트·호스트 모두 기록 없음(호스트는 30분까지) |
+| 2코어·4GB 프로필에서 작업 시간에 주는 영향 | **미확인** | 수집기 유무로 같은 작업을 재는 실행이 없다 |
+| 메모리가 어디에 쓰이는지 | **미확인** | 링버퍼는 약 2MB(10월 실측)뿐이다. 나머지의 내역(런타임, ETW, 센서 라이브러리, 성능 카운터)은 재지 않았다 — 줄이기 전에 스파이크로 분해한다 |
+
+계산 스크립트는 저장소 밖(작업 임시 폴더)에 있다. 다음에 쓸 일이 생기면 `eval/` 로 옮긴다.
+
+## 11/14 오후 — 어려운 사례를 만드는 틀: 실제 프로그램 실행 (`kind: recipe`, **게스트 미실행**)
+
+넣은 문제(FaultLab)만으로는 엔진 단독으로도 1순위가 만점이라 방식 차이가 나오지 않는다(개발용 23/23). 그래서 실험실에 "실제 프로그램을 그대로 실행하는" 시나리오 종류를 더했다. 수집기 코드는 바꾸지 않았다.
+
+| 항목 | 분류 | 내용 |
+|---|---|---|
+| 꾸러미(`lab/vm/packages.json`, `packages.ps1`) | 검증됨(호스트) | 공식 보관소에서 받은 옛 버전을 `<root>\payload\packages\<id>.zip` 으로 묶는다. 게스트에서는 `C:\Tools\…`(프로그램)와 `C:\Work\…`(사용자 파일)에 풀린다. 5종 빌드: AutoHotkey 2.0.29, Godot 4.3, Notepad++ 8.6.7, CPython 3.13.5, Git for Windows 2.47.0(MinGit, 릴리스 노트의 SHA-256 과 일치 확인) |
+| 시나리오 종류 `recipe`(`scenarios.json`, `case.ps1`, `guest-case.ps1`) | 검증됨(호스트 일부) | 실행 파일+인자, 설치된 프로그램의 다른 실행 파일(`app`+`exe_name`), 키 입력 스크립트(`driver`) 세 가지로 실행. 새 함수(`Join-Args`·`Start-RunSpec`·`Stop-Tree`)는 호스트에서 무해한 명령으로 11개 검사 통과(종료 코드 유지, 공백·세미콜론 인자, 자식까지 종료). 기존 종류(fault·idle·launch)에 대해서는 게스트에 주는 작업 정의에 빈 항목 2개만 늘어남을 확인 |
+| CPython 3.13.5 `setlocale` 크래시 | 검증됨(호스트 스파이크) | 종료 코드 0xC0000409, 이벤트 1000(프로그램 python.exe, 오류 모듈 ucrtbase.dll). 오류 모듈이 Windows DLL 인데 원인은 프로그램인 사례 |
+| AutoHotkey·Godot·Notepad++ | 검증됨(11/10 호스트) | 3/3 씩 재현했던 것. 게스트에서는 처음 |
+| Git 2.47.0 `git maintenance start` | **미확인** | 릴리스 노트와 수정 PR 만 근거. 호스트에서는 예약 작업을 등록하므로 돌리지 않았다 — 첫 실행이 게스트다. 정상 종료하면 사례가 아니다 |
+| 사용자가 돌린 무거운 작업(`work-7zip`, `work-blender`) | **미확인** | 범인이 없는 사례. 게스트에서 7z.exe·blender.exe 를 찾는지, 마킹 때까지 돌고 있는지 모른다 |
+| Windows 자체 작업(`sys-defender-scan`) | **미확인** | `Start-MpScan -ScanType FullScan`. 게스트에서 전체 검사가 시작되는지 모른다 |
+| 두 가지가 동시에(`busy-*`) | **미확인** | 7-Zip 작업 중에 넣은 문제. 4GB 게스트에서 7-Zip + 메모리 85% 점유가 시간 안에 끝나는지 모른다 |
+| 검토·채점 도구 | 검증됨(회귀) | `review_cases.py`: 사용자 작업·Windows 작업의 피해 규칙, 표시 `user_workload:`·`busy:`. `grade.py`: 정답의 다른 이름(`truth.also` — MsMpEng.exe = Microsoft Defender). `summarize.py`: 사용자 작업 사례를 따로 센다. 기존 54건 자체 검사 0 실패, 개발용 요약 숫자 그대로 |
+
+오늘 고친 `case.ps1`·`guest-case.ps1` 은 오늘 밤 시험용 세션(`test-1.json`)도 지나간다. 추가한 줄은 새 종류에서만 동작하지만 **게스트에서 돌려 본 적은 없다.**
+
+같은 날 추가 — Blender 5.1.0(`real-blender-bgscene`): 공식 보관본을 받아 SHA-256 을 확인하고 꾸러미로 만들었다(6번째, 388MB). **호스트에서 실행해 보는 확인은 하지 못했다**(도구의 권한 검사에서 막힘 — 우회하지 않았다). 그래서 명령 줄 렌더(`-b`)에서도 크래시가 나는지, Windows 가 이벤트 1000 을 남기는지는 **미확인**이고 첫 게스트 실행이 그 확인이다. Windows 기록이 없을 경우를 위해 이 시나리오는 끝에 사용자 마킹("crash")을 보내고, 검토 도구는 종료 코드로 사례 자격을 정한 뒤 `silent_crash` 로 표시한다. `real-1.json` 은 23개 작업이 됐다.
+
+같은 날 추가 — 낮 시간 세션(정태웅 동의)을 위한 장치와 Steam 시나리오. 수집기 코드는 그대로다.
+
+| 항목 | 분류 | 내용 |
+|---|---|---|
+| 게임 실행 중 대기(`session.ps1`, `vm.json` `host_wait_processes`) | 검증됨(호스트) | 목록의 프로세스가 호스트에서 도는 동안 새 작업을 시작하지 않는다. 와일드카드 이름 일치·기한에서 끝남·빈 목록은 기다리지 않음을 확인. 작업 도중에 켜진 게임은 알아채지 못한다 |
+| 세션 중복 방지(`<root>\session.lock`) | 검증됨(호스트) | 살아 있는 세션의 잠금만 인정한다(프로세스 번호와 시작 시각). 죽은 프로세스·재사용된 번호의 잠금은 무시 |
+| 호스트 부하 기록(`case.ps1` → `shots\host-load.csv`, `scenario.json` `host_load`) | 검증됨(호스트) | 30초마다 호스트 자신의 CPU %, 전체 논리 프로세서 CPU %(게스트 포함), 남은 메모리. 두 WMI 클래스가 일반 권한에서 값을 준다(첫 호출 약 5.7초). 검토 도구가 `host_busy` 로 표시(호스트 평균 50% 이상 또는 전체 85% 이상 — 근거 없는 임시 기준) |
+| `bg-steam-update`(SteamCMD 익명 로그인) | **미확인** | 공식 파일의 서명만 확인(Valid, Valve). 첫 실행의 자체 업데이트에 걸리는 시간과 익명 내려받기가 게스트에서 되는지 모른다. `real-1.json` 은 25개 작업 |
+| 여러 대 동시 실행 | 미지원 | 세션이 끝날 때 모든 복제본을 끄기 때문에 지금은 한 번에 하나만 돈다 |
