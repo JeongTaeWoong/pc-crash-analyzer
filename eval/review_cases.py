@@ -82,9 +82,14 @@ def effect(category: str, rr: dict | None, es: dict, names: list[str]) -> tuple[
         # have been busy with it
         d = (rr.get("disks") or [{}])[0]
         rc, ri = rank(rr.get("top_cpu"), names), rank(rr.get("top_io"), names)
-        busy = (rr.get("cpu_total_pct_max") or 0) >= 90 or (d.get("busy_ge90_samples") or 0) >= 3 or (d.get("busy_pct_avg") or 0) >= 80
-        ok = busy and (rc is not None or ri is not None)
-        return ok, f"PC CPU max {rr.get('cpu_total_pct_max')}%, disk samples >= 90%: {d.get('busy_ge90_samples')}, the job #{rc} in top_cpu, #{ri} in top_io"
+        rm = rank(rr.get("top_memory"), names) or rank(rr.get("top_memory_growth"), names)
+        # busy = a processor, the disk or the memory was nearly used up (7-Zip at its highest level took 2.7 GB of a
+        # 4 GB guest on 2026-11-14: commit 92 %, CPU only 84 %)
+        busy = ((rr.get("cpu_total_pct_max") or 0) >= 90 or (d.get("busy_ge90_samples") or 0) >= 3 or (d.get("busy_pct_avg") or 0) >= 80
+                or (rr.get("commit_pct_max") or 0) >= 85)
+        ok = busy and (rc is not None or ri is not None or rm is not None)
+        return ok, (f"PC CPU max {rr.get('cpu_total_pct_max')}%, disk samples >= 90%: {d.get('busy_ge90_samples')}, commit max {rr.get('commit_pct_max')}%, "
+                    f"the job #{rc} in top_cpu, #{ri} in top_io, #{rm} in memory")
     return None, f"no effect rule for '{category}'"
 
 
@@ -109,7 +114,8 @@ def review_run(case_dir: Path, run: Path, verbose: bool, with_engine: bool = Tru
         names += ["FaultLab.exe", "FaultHost.exe", "FaultPlugin.dll"]
     # the user's own heavy job (truth.workload): no culprit, but the effect check looks for the program doing the job
     job_name = truth.get("workload")
-    effect_names = [job_name] if truth.get("cause_category") == "user_workload" and job_name else names
+    # truth.workload_also = other processes that may carry the user's job (sfc.exe starts TiWorker.exe)
+    effect_names = [job_name] + list(truth.get("workload_also") or []) if truth.get("cause_category") == "user_workload" and job_name else names
     want = (SCENARIOS.get(scn["scenario"]) or {}).get("expect_dump_kind") or "manual"
     dumps = sorted(d for d in (run / "dumps").iterdir() if d.is_dir()) if (run / "dumps").exists() else []
     prefer = (SCENARIOS.get(scn["scenario"]) or {}).get("prefer_dump_kind")
@@ -118,16 +124,54 @@ def review_run(case_dir: Path, run: Path, verbose: bool, with_engine: bool = Tru
     out = {"schema": 1, "reviewed_at": time.strftime("%Y-%m-%dT%H:%M:%S"), "case": label, "dump": pick.name if pick else None,
            "effect_ok": None, "effect": "", "flags": [], "leak_hits": [], "engine_rank": None, "engine_top": None}
     head = f"== {label}  ok={res.get('ok')} profile={scn.get('profile')} gpu={scn.get('gpu_partition')} culprit={culprit} decoys={scn.get('decoys') or []}"
-    if not res.get("ok") or pick is None:
+    # A crash that came within the collector's 10 s cooldown after another automatic trigger gets no dump of its own:
+    # it is merged into that trigger's dump (2026-11-14: a GPU clone's own LiveKernelEvent 2-6 s before the crash). The
+    # guest then reports "no 'crash' dump". If that is the only problem and a dump lists the culprit's crash among its
+    # merged triggers, that dump is the case - a hard one, because its symptom is the earlier event's.
+    merged_into = None
+    if pick is None and culprit and all(str(p).startswith("no '") for p in res.get("problems") or ["x"]):
+        for d in dumps:
+            try:
+                trig = load(d / "meta.json").get("trigger") or {}
+            except (OSError, ValueError):
+                continue
+            rows = trig.get("mergedWithinCooldown") if isinstance(trig, dict) else None
+            if any(same(m.get("ProcessName"), n) or same(m.get("FaultingModule"), n) for m in rows or [] for n in names):
+                pick, merged_into = d, d.name.split("-", 2)[-1]
+                break
+    if merged_into:
+        out["override_ok"], out["dump"] = True, pick.name
+        out["flags"].append("merged_trigger:" + merged_into)
+    if (not res.get("ok") and not merged_into) or pick is None:
         print(head + f"\n   NOT A CASE: result ok={res.get('ok')}, dump of kind '{want}': {pick is not None}, problems {res.get('problems')}")
         out["effect_ok"], out["effect"] = False, "run not ok or no dump of the expected kind"
         return out
     snap = snapshot_path(case_dir, pick)
     es = load(snap)
     rr = es.get("resource_recent")
-    out["effect_ok"], out["effect"] = effect(truth.get("cause_category"), rr, es, effect_names)
+    category = truth.get("cause_category")
+    # A program bug whose harm is a slow PC, not a crash (a type check or a render that eats CPU and memory): the harm
+    # is checked like any other busy program - the PC really busy and that program among the top users.
+    if category == "app_bug" and truth.get("symptom") == "slow":
+        category = "system_work"
+    out["effect_ok"], out["effect"] = effect(category, rr, es, effect_names)
+    # truth.effect_top = n: two programs are busy and the answer key names one of them (a copy job and the antivirus
+    # scanning it). Fixed before the run: the case counts only when that one is among the first n CPU users.
+    if truth.get("effect_top") and out["effect_ok"] and rr:
+        r = rank(rr.get("top_cpu"), effect_names)
+        if r is None or r > int(truth["effect_top"]):
+            out["effect_ok"], out["effect"] = False, f"the named program is #{r} in top_cpu, needed within the first {truth['effect_top']} ({out['effect']})"
+    if merged_into:
+        # the dump's own symptom is the earlier event's; the crash is in its merged triggers (checked above)
+        out["effect_ok"], out["effect"] = True, f"the culprit's crash is among the triggers merged into this '{merged_into}' dump"
     rec = res.get("recipe") or {}
-    if kind == "recipe" and truth.get("cause_category") == "app_bug" and not out["effect_ok"] and rec.get("exit_code") not in (None, 0) and not rec.get("timed_out"):
+    # Only for a bug whose harm is the program ending (a crash). A bug whose harm is a slow PC is judged by the busy rule
+    # alone: there a non-zero exit code is an ordinary error exit (tsc ends with 2 when it reports type errors), not the
+    # harm. (2026-11-16: without this condition a test-set run of real-tsc-lodash on a PC that was not busy - CPU max
+    # 33 % - was let through as a 'silent crash'. Found in the review output of that run; the rule was wrong for this
+    # kind of scenario from the start, the answer key and the busy thresholds were not touched.)
+    if (kind == "recipe" and truth.get("cause_category") == "app_bug" and truth.get("symptom") != "slow" and not out["effect_ok"]
+            and rec.get("exit_code") not in (None, 0) and not rec.get("timed_out")):
         # The program ended badly but no Windows crash event names it (a program that handles its own crash just ends).
         # Still a case - the evidence is weaker, so it carries a flag and can be counted apart.
         out["effect_ok"], out["effect"] = True, f"ended with exit code {rec.get('exit_code')}; no Windows crash event names it ({out['effect']})"
@@ -197,10 +241,21 @@ def main() -> int:
         args.remove(since)
     write, verbose, with_engine = "--write" in sys.argv, "-v" in sys.argv, "--no-engine" not in sys.argv
     rows = []
+    # Runs made during a test-set session are not looked at here while they sit in the development folder - not even
+    # without the engine: they are moved first (eval/split_test.py --auto --move) and reviewed there with --no-engine.
+    from cases import is_test_run, test_session_windows
+    windows = test_session_windows(root)
+    held = 0
     for case_dir in sorted(p for p in root.iterdir() if p.is_dir() and not p.name.startswith("_")):
         for run in sorted(p for p in case_dir.iterdir() if p.is_dir()):
             if since and run.name < since:
                 continue
+            if is_test_run(root, run.name, windows):
+                held += 1
+                continue
+            if root.name.lower() == "cases-test" and with_engine:
+                print("cases-test is the test set: run this with --no-engine until the set is frozen and used once")
+                return 2
             r = review_run(case_dir, run, verbose, with_engine)
             if r is None:
                 rows.append((f"{case_dir.name}/{run.name}", "unfinished", "", ""))
@@ -213,6 +268,8 @@ def main() -> int:
     for row in rows:
         print("  {:46} {:11} {:12} {}".format(*row))
     print(f"{sum(1 for r in rows if r[1] == 'case')} usable of {len(rows)}" + ("  (review.json written)" if write else "  (nothing written; add --write)"))
+    if held:
+        print(f"{held} run(s) of a test-set session were NOT looked at - move them first: eval\\split_test.py {root} {root.parent / 'cases-test'} --auto --move")
     return 0
 
 

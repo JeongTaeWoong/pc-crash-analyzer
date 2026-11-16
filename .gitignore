@@ -44,3 +44,7 @@ apikey.local.*
 eval/.venv/
 eval/runs/
 eval/uv.lock
+# 채점 모델의 출력(eval/runs 와 같은 종류)과 사람 가림 채점 묶음. 어느 답이 어느 모델 것인지 적힌 열쇠와 채점자의 채점 결과는
+# 다른 채점자가 같은 문항을 채점하는 동안 공유 저장소에 올리지 않는다(2026-11-16).
+eval/judgements/
+eval/human/

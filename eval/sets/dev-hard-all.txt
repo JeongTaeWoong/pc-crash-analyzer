@@ -1,0 +1,27 @@
+# The 25 hard development cases together: dev-hard-1 (17, plan real-1) and dev-hard-2 (8, plans real-1 and real-2).
+# Used for the advice judge (eval/judge.py) and for prompt p4. For development only - never a reported number.
+office1-real-ahk-alttab+alias/20261114-153518
+design1-real-ahk-alttab/20261114-160249
+office1-real-godot-svg+alias/20261114-160719
+video1-real-godot-svg/20261114-161210
+design1-real-npp-column/20261114-161632
+dev1-real-npp-column/20261114-162717
+office1-real-python-setlocale/20261114-172240
+video1-real-python-setlocale+alias/20261114-172710
+office1-real-git-maintenance/20261114-173756
+office1-sys-defender-scan/20261114-174151
+office1-work-7zip/20261114-163151
+dev1-work-7zip+alias/20261114-163826
+office2-work-7zip/20261114-164447
+office1-busy-mem-pressure+alias/20261114-165848
+dev1-busy-hang+alias/20261114-170512
+design1-busy-crash-plugin+alias/20261114-171018
+office2-busy-hang+alias/20261114-171501
+office1-real-blender-bgscene/20261115-064319
+video1-real-blender-bgscene/20261115-064841
+design1-work-blender/20261115-061847
+office2-sys-defender-scan/20261115-070333
+video1-real-npp-column/20261115-065354
+design1-real-git-maintenance/20261115-065854
+design1-real-git-maintenance/20261114-173138
+video1-real-npp-column/20261114-162106
