@@ -1,0 +1,23 @@
+{
+  "note": "TEST SET session 2 - the HARD cases, written 2026-11-15. test-1 holds injected faults only; this plan adds real programs and Windows' own work. Rule (docs/evaluation-design-v3.md, change log 11/15 evening): nothing here was used in development - every scenario is a bug, a program or a kind of work that no development run has shown. So the first run of each scenario IS its test run, and none of them has been run anywhere yet (the host included). After the session: eval\\split_test.py F:\\pca-vm\\cases F:\\pca-vm\\cases-test --auto --move, then eval\\replay.py and eval\\review_cases.py --no-engine --write on the test folder. When a run fails, only the lab records (result.json, recipe.log) and the output of that review are read to repair the scenario; the dumps are not opened and neither the collector, the engine nor the prompt is changed because of them. The answer key of every scenario was written before the run. Scenarios: Node.js 23.3.0 fs.rmSync and 22.6.0 fs.cpSync on non-ASCII names (expected to end with no Windows crash record - not confirmed), TypeScript 5.1.3 type check that eats CPU and memory, Godot 4.3 OBJ import crash, Blender 5.1.0 Complex Solidify crash, Blender 5.0.1 compositor Denoise memory leak (the two longest jobs, about 14 minutes each, are last), Windows Search indexing 30,000 new documents, Defender real-time protection while a large folder is copied, the user's own System File Checker run. 18 jobs, about 3 hours (5-14 minutes each; the search and copy jobs on the slow clone may take longer) - run it with -Hours 4. A job that finished is skipped when the plan is run again.",
+  "jobs": [
+    { "id": "t2-01", "name": "dev1",    "from": "bundle-dev",      "case": "real-node-rmsync",      "open": [ "vscode" ] },
+    { "id": "t2-02", "name": "office1", "from": "bundle-office",   "case": "sys-search-index",      "open": [ "libreoffice" ] },
+    { "id": "t2-03", "name": "design1", "from": "bundle-design",   "case": "real-godot-obj",        "open": [ "gimp" ] },
+    { "id": "t2-04", "name": "dev1",    "from": "bundle-dev",      "case": "real-tsc-lodash",       "open": [ "vscode", "notepadpp" ] },
+    { "id": "t2-05", "name": "office1", "from": "bundle-office",   "case": "work-sfc-verify",       "open": [ "firefox" ] },
+    { "id": "t2-06", "name": "video1",  "from": "bundle-video",    "case": "real-blender-solidify", "open": [ "vlc" ] },
+    { "id": "t2-07", "name": "dev1",    "from": "bundle-dev",      "case": "sys-defender-copy",     "open": [ "vscode" ] },
+    { "id": "t2-08", "name": "office1", "from": "bundle-office",   "case": "real-node-cpsync",      "open": [ "chrome" ] },
+    { "id": "t2-09", "name": "office2", "from": "bundle-office-b", "case": "sys-search-index",      "open": [ "firefox" ] },
+    { "id": "t2-10", "name": "design1", "from": "bundle-design",   "case": "real-blender-solidify", "open": [ "krita" ] },
+    { "id": "t2-11", "name": "office1", "from": "bundle-office",   "case": "real-tsc-lodash",       "open": [ "libreoffice" ] },
+    { "id": "t2-12", "name": "video1",  "from": "bundle-video",    "case": "real-node-rmsync" },
+    { "id": "t2-13", "name": "office2", "from": "bundle-office-b", "case": "work-sfc-verify",       "open": [ "libreoffice" ] },
+    { "id": "t2-14", "name": "dev1",    "from": "bundle-dev",      "case": "real-godot-obj",        "open": [ "notepadpp" ] },
+    { "id": "t2-15", "name": "office1", "from": "bundle-office",   "case": "sys-defender-copy",     "open": [ "libreoffice" ] },
+    { "id": "t2-16", "name": "dev1",    "from": "bundle-dev",      "case": "real-node-cpsync",      "open": [ "vscode" ] },
+    { "id": "t2-17", "name": "dev1",    "from": "bundle-dev",      "case": "real-blender-denoise-leak", "open": [ "notepadpp" ] },
+    { "id": "t2-18", "name": "design1", "from": "bundle-design",   "case": "real-blender-denoise-leak", "open": [ "inkscape" ] }
+  ]
+}

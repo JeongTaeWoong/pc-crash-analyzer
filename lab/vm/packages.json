@@ -61,13 +61,209 @@
       "product": "SteamCMD", "version": "bootstrap (updates itself on the first run)",
       "official_url": "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip",
       "note": "No checksum is published; the Authenticode signature of steamcmd.exe was checked on the host (Valid, signer Valve) on 2026-11-14.",
-      "copy": [ { "src": "steamcmd", "dest": "Tools/SteamCMD" } ]
+      "copy": [ { "src": "steamcmd", "dest": "Tools/SteamCMD" } ],
+      "files": [ { "dest": "lab/case/drivers/steam-update.ps1", "from_repo": "lab/vm/drivers/steam-update.ps1" } ]
+    },
+    "drivers-syswork": {
+      "product": "lab driver scripts (no program)", "version": "2026-11-15",
+      "note": "Only scripts: they do an ordinary user job (write documents, copy a folder) whose side effect is Windows' own work. Not part of the evidence.",
+      "files": [ { "dest": "lab/case/drivers/docs-unpack.ps1", "from_repo": "lab/vm/drivers/docs-unpack.ps1" },
+                 { "dest": "lab/case/drivers/folder-backup.ps1", "from_repo": "lab/vm/drivers/folder-backup.ps1" } ]
     },
     "npp-8.6.7": {
       "product": "Notepad++", "version": "8.6.7",
       "official_url": "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/tag/v8.6.7",
       "copy": [ { "src": "npp-8.6.7", "dest": "Tools/Notepad++" } ],
       "files": [ { "dest": "lab/case/drivers/npp-column.ps1", "from_repo": "collector/experiments/repro/gui-npp-column.ps1" } ]
+    },
+    "node-23.3.0": {
+      "product": "Node.js", "version": "23.3.0",
+      "official_url": "https://nodejs.org/dist/v23.3.0/node-v23.3.0-win-x64.zip",
+      "sha256_archive": "868cd7af6f0c042944c38b1bc1212d608177478da2a141bd404f9366d8fbd2dd",
+      "sample_url": "https://github.com/nodejs/node/issues/56049",
+      "note": "SHA-256 equals the line in https://nodejs.org/dist/v23.3.0/SHASUMS256.txt (checked 2026-11-15). The script holds one non-ASCII character (U+901F, written here as a JSON escape) and is written as UTF-8 without BOM; it makes the file it later removes, so nothing with a non-ASCII name has to travel in the package zip.",
+      "copy": [ { "src": "node-23.3.0", "dest": "Tools/Node23" } ],
+      "files": [
+        { "dest": "Work/site-tools/build-index.js", "lines": [
+          "// build-index.js - quick rebuild of the page index, without the full site build",
+          "const fs = require('fs');",
+          "const path = require('path');",
+          "",
+          "process.chdir(__dirname);",
+          "console.log('quick build in ' + process.cwd() + ', node ' + process.version);",
+          "",
+          "// marker file: while it is here the watcher leaves the out folder alone",
+          "fs.writeFileSync('\u901f', new Date().toISOString() + '\\n');",
+          "",
+          "const pages = fs.readdirSync('pages').filter((name) => name.endsWith('.md'));",
+          "const index = pages.map((name) => {",
+          "  const text = fs.readFileSync(path.join('pages', name), 'utf8');",
+          "  const title = (/^# +(.+)$/m.exec(text) || [null, name])[1].trim();",
+          "  return '- [' + title + '](' + name.replace(/\\.md$/, '.html') + ')';",
+          "});",
+          "if (!fs.existsSync('out')) fs.mkdirSync('out');",
+          "fs.writeFileSync(path.join('out', 'index.md'), '# Pages\\n\\n' + index.join('\\n') + '\\n');",
+          "console.log('indexed ' + pages.length + ' pages');",
+          "",
+          "// finished: take the marker away again",
+          "console.log('removing the marker file');",
+          "fs.rmSync('\u901f');",
+          "console.log('quick build finished');"
+        ] },
+        { "dest": "Work/site-tools/pages/about.md", "lines": [ "# About", "", "A small shop site. The pages in this folder are plain markdown." ] },
+        { "dest": "Work/site-tools/pages/hours.md", "lines": [ "# Opening hours", "", "Weekdays 10-18, Saturday 10-14." ] },
+        { "dest": "Work/site-tools/pages/news.md", "lines": [ "# News", "", "- new opening hours from next month" ] }
+      ]
+    },
+    "node-22.6.0": {
+      "product": "Node.js", "version": "22.6.0",
+      "official_url": "https://nodejs.org/dist/v22.6.0/node-v22.6.0-win-x64.zip",
+      "sha256_archive": "1fdb0b8e59c98157ba927d51ef7eb050f9459beddc64ebc5a8897b90fd1f46f6",
+      "sample_url": "https://github.com/nodejs/node/issues/54476",
+      "note": "SHA-256 equals the line in https://nodejs.org/dist/v22.6.0/SHASUMS256.txt (checked 2026-11-15). The script holds the folder name of the issue (U+65B0 U+5EFA U+6587 U+4EF6 U+5939, written here as JSON escapes) and is written as UTF-8 without BOM; it makes that folder on C: itself, so nothing with a non-ASCII name has to travel in the package zip.",
+      "copy": [ { "src": "node-22.6.0", "dest": "Tools/Node22" } ],
+      "files": [
+        { "dest": "Work/model-tools/copy-model.js", "lines": [
+          "// copy-model.js - hand the current model files over to the viewer, which loads them from C:/model",
+          "const fs = require('fs');",
+          "const path = require('path');",
+          "",
+          "console.log('copy-model, node ' + process.version);",
+          "",
+          "// the files are gathered in one folder first, then the whole folder is copied",
+          "if (!fs.existsSync('C:/\u65b0\u5efa\u6587\u4ef6\u5939')) fs.mkdirSync('C:/\u65b0\u5efa\u6587\u4ef6\u5939');",
+          "const source = path.join(__dirname, 'model');",
+          "for (const name of fs.readdirSync(source)) {",
+          "  fs.copyFileSync(path.join(source, name), 'C:/\u65b0\u5efa\u6587\u4ef6\u5939/' + name);",
+          "}",
+          "console.log('gathered ' + fs.readdirSync('C:/\u65b0\u5efa\u6587\u4ef6\u5939').length + ' files, copying to C:/model');",
+          "",
+          "fs.cpSync('C:/\u65b0\u5efa\u6587\u4ef6\u5939', 'C:/model', { recursive: true });",
+          "",
+          "console.log('C:/model now holds: ' + fs.readdirSync('C:/model').join(', '));"
+        ] },
+        { "dest": "Work/model-tools/model/model.json", "lines": [
+          "{",
+          "  \"name\": \"surface-check\",",
+          "  \"version\": 3,",
+          "  \"input\": [ 224, 224, 3 ],",
+          "  \"classes\": \"labels.txt\"",
+          "}"
+        ] },
+        { "dest": "Work/model-tools/model/labels.txt", "lines": [ "ok", "scratch", "dent" ] },
+        { "dest": "Work/model-tools/model/notes.txt", "lines": [ "surface-check v3", "trained on the October photo set, 3 classes" ] }
+      ]
+    },
+    "ts-5.1.3-project": {
+      "product": "TypeScript", "version": "5.1.3",
+      "official_url": "https://registry.npmjs.org/typescript/-/typescript-5.1.3.tgz",
+      "sha256_archive": "e23048b17a796af96db4ea0c1a5e4e6928673fb1d42a3c0af6d48a7da861e6bd",
+      "sample_url": "https://github.com/microsoft/TypeScript/issues/54542",
+      "note": "A project folder, not a program; node.exe comes from package node-22.6.0. node_modules holds three npm registry tarballs, unpacked the way npm does (first path component dropped) with tar - npm, node and tsc were never run on the host. Each tarball matched the registry's dist.shasum (sha1) and dist.integrity (sha512) on 2026-11-15: typescript-5.1.3.tgz sha1 8d84219244a6b40b6fb2b33cc1c062f715b9e826, sha512-XH627E9vkeqhlZFQuL+UsyAXEnibT0kWR2FWONlr4sTjvxyJYnyefgrkyECLzM5NenmKzRAy2rR/OlYLA1HkZw== | https://registry.npmjs.org/lodash/-/lodash-4.17.21.tgz sha1 679591c564c3bffaae8454cf0b3df370c3d6911c, sha512-v2kDEe57lecTulaDIuNTPy3Ry4gLGJ6Z1O3vE1krgXZNrsQ+LFTGHVxVjcXPs17LhbZVGedAJv8XZ1tvj5FvSg==, sha256 6a087ac9e5702a0c9d60fbcd48696012646ec8df1491dea472b150e79fcaf804 | https://registry.npmjs.org/@types/lodash/-/lodash-4.14.195.tgz sha1 bafc975b252eb6cea78882ce8a7b6bf22a6de632, sha512-Hwx9EUgdwf2GLarOjQp5ZH8ZmblzcbTBC2wtQWNKARBSxM9ezRIAUpeDTgoQRAFB0+8CNWXVA9+MaSOzOF3nPg==, sha256 a1822350520b0055fce3d304a190f617b0e261cd77af64313eb5b1c36f491c9c. Written by hand, not from an archive: package.json (the three exact versions), tsconfig.json (strict false and skipLibCheck false - the bug needs both; target and lib es2021, module commonjs, include src) and src/index.ts (one line: import \"lodash\";). 1867 files, 42.4 MB.",
+      "copy": [ { "src": "ts-5.1.3-project", "dest": "Work/web-app" } ]
+    },
+    "godot-4.3-obj": {
+      "product": "Godot Engine", "version": "4.3-stable",
+      "official_url": "https://godotengine.org/download/archive/4.3-stable/",
+      "sample_url": "https://github.com/godotengine/godot/issues/97152",
+      "sample_attachment": "https://github.com/user-attachments/files/17048201/OBJ_Import_Crash.zip",
+      "sha256_sample": "05f29fe5c1947f7bd4d89ae3359fd6f37137337d2d3d001e034e5221e5fe4f8b",
+      "copy": [
+        { "src": "godot-4.3", "dest": "Tools/Godot" },
+        { "src": "godot-sample-obj", "dest": "Work/level-project", "exclude": [ ".godot" ] }
+      ]
+    },
+    "blender-5.1.0-solidify": {
+      "product": "Blender", "version": "5.1.0",
+      "official_url": "https://download.blender.org/release/Blender5.1/blender-5.1.0-windows-x64.zip",
+      "sha256_archive": "bc184226962904e3f26c5809ba7ec86bbeb670060825b046930b0c02a30a4eee",
+      "sample_url": "https://projects.blender.org/blender/blender/issues/155792",
+      "sample_attachment": "https://projects.blender.org/attachments/4b6cc805-0e3a-412b-99f4-daed6184d3ba",
+      "sha256_sample": "6b1deca13a7b246df7c9e930eeb989aec3a4a525ff57bfddc3fcc9c26fee3c59",
+      "copy": [
+        { "src": "blender-5.1.0", "dest": "Tools/Blender51", "exclude": [ "blender.pdb" ] },
+        { "src": "blender-scene-solidify", "dest": "Work/models" }
+      ]
+    },
+    "blender-5.0.1-denoise": {
+      "product": "Blender",
+      "version": "5.0.1",
+      "official_url": "https://download.blender.org/release/Blender5.0/blender-5.0.1-windows-x64.zip",
+      "sha256_archive": "921d77f6c505a35b2c2f6e67d4ad1c10b72418338ba0e0d3ea7f582a5e5fe46e",
+      "sample_url": "https://projects.blender.org/blender/blender/issues/151940",
+      "sample_attachment": "https://projects.blender.org/attachments/c680d018-ad5f-4a6f-a5b1-e9ec34d911c5",
+      "sha256_sample": "d713bbbf0461981f967a6ec1b2047b154d680a994fb741f11bdd8400befdae93",
+      "sample_attachment_2": "https://projects.blender.org/attachments/2f8ce951-a688-4a10-ad8d-51341c9081f0",
+      "sha256_sample_2": "0143ec673c8067fea3858d63f67a6d5b6416e7f59951090829f598d1c2033a11",
+      "note": "SHA-256 of the zip equals the line in https://download.blender.org/release/Blender5.0/blender-5.0.1.sha256 (checked 2026-11-15; 5978 files, blender.exe signed by Blender Foundation, signature Valid). 5.0.1 is the last 5.0 release. Samples = the issue's two attachments, bytes unchanged, renamed: sample_attachment 'Memory leak with denoise node compositor.blend' -> product-turntable.blend (the comp), sample_attachment_2 'EXR Generator.blend' -> turntable-plates.blend (the Cycles scene that writes the EXR plates the comp reads from //EXRs, so both must sit in one folder). Both were saved by Blender 4.5 (file header v405) and hold no absolute path. The script is ASCII and uses only calls found in the 5.0 Python API reference (docs.blender.org/api/5.0).",
+      "copy": [
+        {
+          "src": "blender-5.0.1",
+          "dest": "Tools/Blender50",
+          "exclude": [
+            "blender.pdb"
+          ]
+        },
+        {
+          "src": "blender-scene-denoise",
+          "dest": "Work/turntable"
+        }
+      ],
+      "files": [
+        {
+          "dest": "Work/turntable/turntable_job.py",
+          "lines": [
+            "# turntable_job.py - render the turntable plates, then set up the comp that denoises them.",
+            "# Used as:  blender -b turntable-plates.blend --python turntable_job.py -o <frame path> -a",
+            "import os",
+            "import time",
+            "",
+            "import bpy",
+            "",
+            "PLATES = 4          # plates to render: frames 1..PLATES of turntable-plates.blend -> EXRs\\0001.exr ...",
+            "LAST_FRAME = 2000   # the comp loops over the plates up to this frame",
+            "START = time.time()",
+            "",
+            "",
+            "def say(text):",
+            "    print(\"turntable %6.1f s: %s\" % (time.time() - START, text), flush=True)",
+            "",
+            "",
+            "folder = os.path.dirname(bpy.data.filepath)",
+            "",
+            "# 1. the plates, with the file's own settings (Cycles, 1920x1080, 4 samples, multilayer EXR with denoising data)",
+            "scene = bpy.context.scene",
+            "scene.frame_start = 1",
+            "scene.frame_end = PLATES",
+            "scene.render.use_compositing = False",
+            "say(\"rendering %d plates\" % PLATES)",
+            "bpy.ops.render.render(animation=True)",
+            "plates = [os.path.join(folder, \"EXRs\", \"%04d.exr\" % n) for n in range(1, PLATES + 1)]",
+            "missing = [p for p in plates if not os.path.isfile(p)]",
+            "if missing:",
+            "    say(\"plates not written: \" + \", \".join(missing))",
+            "    raise RuntimeError(\"plates not written\")",
+            "say(\"plates done\")",
+            "",
+            "# 2. the comp: Image node (the EXR sequence) -> Denoise (albedo + normal, prefilter Accurate) -> output",
+            "bpy.ops.wm.open_mainfile(filepath=os.path.join(folder, \"product-turntable.blend\"))",
+            "scene = bpy.context.scene",
+            "scene.frame_start = 1",
+            "scene.frame_end = LAST_FRAME",
+            "scene.render.compositor_device = 'CPU'",
+            "scene.render.compositor_denoise_device = 'CPU'",
+            "scene.render.compositor_denoise_final_quality = 'FAST'",
+            "image_nodes = [n for n in scene.compositing_node_group.nodes if n.bl_idname == 'CompositorNodeImage']",
+            "for node in image_nodes:",
+            "    node.frame_duration = PLATES",
+            "    node.use_cyclic = True",
+            "if len(image_nodes) != 1:",
+            "    say(\"expected one image node in the comp, found %d\" % len(image_nodes))",
+            "    raise RuntimeError(\"comp not as expected\")",
+            "say(\"comp ready: frames 1-%d over %d plates, the animation render comes next\" % (LAST_FRAME, PLATES))"
+          ]
+        }
+      ]
     }
   }
 }

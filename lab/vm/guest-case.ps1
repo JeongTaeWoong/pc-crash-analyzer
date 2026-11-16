@@ -241,6 +241,13 @@ function Stop-Tree($p) {
     if (-not $p) { return }
     try { if (-not $p.HasExited) { & "$env:SystemRoot\System32\taskkill.exe" /PID $p.Id /T /F 2>&1 | Out-Null } } catch { }
 }
+# A GPU clone writes a LiveKernelEvent of its own about 184 s after boot (0x193, in every run). A crash that comes
+# within a few seconds of it is merged into that event's dump and gets no dump of its own (2 of 9 crash runs on GPU
+# clones, 2026-11-14). So on such a clone the scenario starts only when that moment is over (job.min_boot_sec).
+if ($job.min_boot_sec -and $bootAt) {
+    $needs = [int]$job.min_boot_sec - [int]((Get-Date) - $bootAt).TotalSeconds
+    if ($needs -gt 0) { Note 'boot_wait' "$needs s more: the scenario starts $($job.min_boot_sec) s after boot"; Start-Sleep -Seconds $needs }
+}
 $workload = $null
 if ($job.workload) {
     $workload = Start-RunSpec $job.workload 'workload.log'

@@ -192,6 +192,8 @@ try {
     }
     $job.recipe = Get-RunSpec $def.recipe
     $job.workload = Get-RunSpec $def.workload
+    # GPU clones: keep the scenario clear of the clone's own LiveKernelEvent about 184 s after boot (guest-case.ps1)
+    $job.min_boot_sec = $(if (Test-LabVmGpu $vmName) { 215 } else { $null })
     $jobJson = ConvertTo-Json -InputObject $job -Depth 6
     Invoke-Command -Session $session -ArgumentList $jobJson -ScriptBlock { param($j) [IO.File]::WriteAllText('C:\lab\case\job.json', $j, (New-Object Text.UTF8Encoding($false))) }
     # how long the guest may take: every wait the guest stretches (slow_factor) is stretched here too
@@ -201,6 +203,7 @@ try {
     else { $budget += $slow * [int]$def.fault.timeout_sec * $(if ($def.mark -and $def.mark.wait_for) { 2 } else { 1 }) + $(if ($def.mark) { [int]$def.mark.after_sec } else { 0 }) }
     if ($def.kind -eq 'recipe') { $budget += $slow * ([int]$def.recipe.timeout_sec + 60) }
     if ($def.workload) { $budget += $slow * (60 + [int]$def.workload.lead_sec) }
+    if ($job.min_boot_sec) { $budget += 150 }
     if ($def.pre_collector_sec) { $budget += [int]$def.pre_collector_sec }
     $budget = [int][math]::Ceiling($budget)
 

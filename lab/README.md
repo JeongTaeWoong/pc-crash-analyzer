@@ -172,7 +172,10 @@ powershell -ExecutionPolicy Bypass -File lab\vm\session.ps1 -Plan lab\vm\plans\c
 powershell -ExecutionPolicy Bypass -File lab\vm\session.ps1 -Plan lab\vm\plans\cases-3.json -Hours 7     # 11/14 새벽에 실행함: 별칭 사례 17 + idle-late 2 + office2 다시
 powershell -ExecutionPolicy Bypass -File lab\vm\session.ps1 -Plan lab\vm\plans\test-1.json -Hours 9      # 다음 차례(11/14 작성): 시험용 사례 52개. 끝난 작업은 다시 돌릴 때 건너뛴다
 powershell -ExecutionPolicy Bypass -File lab\vm\packages.ps1                                    # 실제 프로그램 꾸러미(packages.json: 알려진 버그가 있는 옛 버전)를 <root>\payload\packages 에 만든다. -List 로 상태 확인
-powershell -ExecutionPolicy Bypass -File lab\vm\session.ps1 -Plan lab\vm\plans\real-1.json -Hours 4      # 어려운 사례 첫 시도(11/14 작성, 25개 작업, 게스트 미실행): 실제 프로그램 버그 6종·사용자가 돌린 무거운 작업·Windows 와 런처의 자체 작업·두 가지가 동시에
+powershell -ExecutionPolicy Bypass -File lab\vm\session.ps1 -Plan lab\vm\plans\real-1.json -Hours 4      # 어려운 사례 첫 시도(11/14, 25개 작업 — 11/14 낮에 돌림: 사례 19): 실제 프로그램 버그 6종·사용자가 돌린 무거운 작업·Windows 와 런처의 자체 작업·두 가지가 동시에
+powershell -ExecutionPolicy Bypass -File lab\vm\session.ps1 -Plan lab\vm\plans\real-2.json -Hours 2      # 위에서 실패한 8개를 고쳐 다시(11/15 새벽에 돌림: 사례 6, SteamCMD 2개 실패)
+powershell -ExecutionPolicy Bypass -File lab\vm\session.ps1 -Plan lab\vm\plans\real-3.json -Hours 1      # 4개 작업(11/15 저녁에 돌림: 사례 3): SteamCMD(드라이버 스크립트 lab\vm\drivers\steam-update.ps1) 2개 + 새 수집기(process_exits)를 게스트에서 확인한 Blender 2개
+powershell -ExecutionPolicy Bypass -File lab\vm\session.ps1 -Plan lab\vm\plans\test-2.json -Hours 4      # 시험용, 어려운 사례 쪽(11/15 작성, 18개 작업, 약 3시간, 게스트 미실행): 개발에 쓰지 않은 버그 6종·Windows 자체 작업 2종·사용자 작업 1종. 끝난 뒤 절차는 test-1 과 같다(split_test.py --auto --move → 시험용 폴더에서 엔진 없이 검토)
 # 세션은 낮에 PC 를 쓰는 동안 돌려도 된다(11/14 결정). 게임·안티치트(vm.json host_wait_processes)가 도는 동안에는 새 작업을 시작하지 않고 기다리고,
 # 사례마다 호스트 부하를 scenario.json 의 host_load 에 적는다. 세션은 한 번에 하나만(<root>\session.lock) — 두 번째는 시작을 거부한다
 ```
