@@ -1,0 +1,544 @@
+{
+ "schema_version": "1.1",
+ "snapshot_id": "20261114-163710-manual",
+ "marked_at": "2026-11-14T16:37:10.488825+09:00",
+ "trigger": {
+  "kind": "hotkey"
+ },
+ "host": {
+  "os": "Windows 10.0.26300.0",
+  "sensor_support": false
+ },
+ "symptom": {
+  "type": "slow",
+  "target_process": "",
+  "scope": "unknown",
+  "started_at": "2026-11-14T16:37:10.488825+09:00",
+  "faulting_modules": []
+ },
+ "resource_trends": {
+  "window_minutes": 60,
+  "samples": 3,
+  "cpu_samples": 3,
+  "commit_slope_pct_per_hour": 1224.17,
+  "commit_pct_now": 88.1,
+  "avail_mb_slope_per_min": -476.97,
+  "gpu_dedicated_mb_slope_per_min": 0,
+  "gpu_temp_max": null,
+  "gpu_clock_min": null,
+  "gpu_clock_max": null,
+  "gpu_name": null,
+  "gpu_mem_total_mb": null,
+  "gpu_mem_used_mb_max": null,
+  "gpu_mem_pct_max": null,
+  "focus_process": null,
+  "focus_process_last15": null,
+  "top_memory_growers": [],
+  "top_cpu_60": []
+ },
+ "resource_recent": {
+  "window_seconds": 242,
+  "samples": 25,
+  "commit_pct_last": 92.3,
+  "commit_pct_min": 47.1,
+  "commit_pct_max": 92.5,
+  "commit_limit_mb": 6442,
+  "avail_mb_last": 161,
+  "avail_mb_min": 68,
+  "pages_per_sec_avg": 29099.8,
+  "pages_per_sec_max": 86006.1,
+  "cpu_measurements": 8,
+  "cpu_total_pct_avg": 51,
+  "cpu_total_pct_max": 83.8,
+  "top_cpu": [
+   {
+    "pid": 4812,
+    "name": "7z",
+    "cpu_avg": 15.3,
+    "cpu_avg_active": 24.5,
+    "cpu_max": 44.7,
+    "cpu_last": 20.2,
+    "measurements": 5,
+    "priv_mb_last": 2747
+   },
+   {
+    "pid": 2344,
+    "name": "memory compression",
+    "cpu_avg": 11.8,
+    "cpu_avg_active": 15.8,
+    "cpu_max": 28.8,
+    "cpu_last": 25.9,
+    "measurements": 6,
+    "priv_mb_last": 2.4
+   },
+   {
+    "pid": 4,
+    "name": "system",
+    "cpu_avg": 5.3,
+    "cpu_avg_active": 5.3,
+    "cpu_max": 9.2,
+    "cpu_last": 9.1,
+    "measurements": 8,
+    "priv_mb_last": 0
+   },
+   {
+    "pid": 3592,
+    "name": "msmpeng",
+    "cpu_avg": 5.2,
+    "cpu_avg_active": 5.2,
+    "cpu_max": 11.6,
+    "cpu_last": 7.5,
+    "measurements": 8,
+    "priv_mb_last": 294
+   },
+   {
+    "pid": 8868,
+    "name": "svchost",
+    "cpu_avg": 1.1,
+    "cpu_avg_active": 8.9,
+    "cpu_max": 8.9,
+    "cpu_last": null,
+    "measurements": 1,
+    "priv_mb_last": 3.8
+   }
+  ],
+  "top_io": [
+   {
+    "pid": 6512,
+    "name": "svchost",
+    "io_mbps_avg": 4.68,
+    "io_mbps_avg_active": 18.73,
+    "io_mbps_max": 37.45,
+    "io_mbps_last": null,
+    "measurements": 2
+   },
+   {
+    "pid": 3592,
+    "name": "msmpeng",
+    "io_mbps_avg": 4.44,
+    "io_mbps_avg_active": 4.44,
+    "io_mbps_max": 34.3,
+    "io_mbps_last": 0.3,
+    "measurements": 8
+   },
+   {
+    "pid": 3340,
+    "name": "svchost",
+    "io_mbps_avg": 1.63,
+    "io_mbps_avg_active": 6.52,
+    "io_mbps_max": 11.15,
+    "io_mbps_last": null,
+    "measurements": 2
+   }
+  ],
+  "top_memory": [
+   {
+    "pid": 4812,
+    "name": "7z",
+    "priv_mb_last": 2747,
+    "priv_mb_first": 1.1,
+    "priv_mb_delta": 2745.9,
+    "seconds": 130,
+    "samples": 14,
+    "started_in_window": true
+   },
+   {
+    "pid": 3592,
+    "name": "MsMpEng",
+    "priv_mb_last": 294.1,
+    "priv_mb_first": 306.4,
+    "priv_mb_delta": -12.3,
+    "seconds": 250,
+    "samples": 26,
+    "started_in_window": false
+   },
+   {
+    "pid": 4304,
+    "name": "KakaoTalk",
+    "priv_mb_last": 126,
+    "priv_mb_first": 119,
+    "priv_mb_delta": 7,
+    "seconds": 250,
+    "samples": 26,
+    "started_in_window": false
+   },
+   {
+    "pid": 10248,
+    "name": "msedgewebview2",
+    "priv_mb_last": 107.5,
+    "priv_mb_first": 110.4,
+    "priv_mb_delta": -2.9,
+    "seconds": 17,
+    "samples": 3,
+    "started_in_window": true
+   },
+   {
+    "pid": 4284,
+    "name": "powershell",
+    "priv_mb_last": 97.6,
+    "priv_mb_first": 126.6,
+    "priv_mb_delta": -29,
+    "seconds": 250,
+    "samples": 26,
+    "started_in_window": false
+   }
+  ],
+  "top_memory_growth": [
+   {
+    "pid": 4812,
+    "name": "7z",
+    "priv_mb_last": 2747,
+    "priv_mb_first": 1.1,
+    "priv_mb_delta": 2745.9,
+    "seconds": 130,
+    "samples": 14,
+    "started_in_window": true
+   }
+  ],
+  "disks": [
+   {
+    "name": "0 C:",
+    "samples": 24,
+    "busy_pct_avg": 35.9,
+    "busy_pct_max": 98,
+    "busy_ge90_samples": 2,
+    "busy_pct_recent": 75.6,
+    "latency_ms_recent": 0.84,
+    "mbps_recent": 192.63,
+    "queue_avg": 1.26,
+    "queue_max": 5.45,
+    "latency_ms_avg": 0.87,
+    "latency_ms_max": 6.81,
+    "iops_avg": 1491.5,
+    "mbps_avg": 99.97
+   }
+  ]
+ },
+ "processes": [
+  "Idle",
+  "System",
+  "Registry",
+  "smss",
+  "csrss",
+  "wininit",
+  "csrss",
+  "winlogon",
+  "services",
+  "lsass",
+  "fontdrvhost",
+  "fontdrvhost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "dwm",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "VSSVC",
+  "svchost",
+  "svchost",
+  "svchost",
+  "Memory Compression",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "spoolsv",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "MpDefenderCoreService",
+  "svchost",
+  "svchost",
+  "MsMpEng",
+  "wlms",
+  "svchost",
+  "svchost",
+  "AggregatorHost",
+  "svchost",
+  "svchost",
+  "sihost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "taskhostw",
+  "explorer",
+  "svchost",
+  "ShellHost",
+  "smartscreen",
+  "svchost",
+  "svchost",
+  "CrossDeviceResume",
+  "NisSrv",
+  "svchost",
+  "svchost",
+  "svchost",
+  "StartMenuExperienceHost",
+  "SearchHost",
+  "RuntimeBroker",
+  "svchost",
+  "Widgets",
+  "msedgewebview2",
+  "msedgewebview2",
+  "msedgewebview2",
+  "msedgewebview2",
+  "WidgetService",
+  "msedgewebview2",
+  "msedgewebview2",
+  "svchost",
+  "ctfmon",
+  "SecurityHealthSystray",
+  "SecurityHealthService",
+  "svchost",
+  "SearchIndexer",
+  "svchost",
+  "TextInputHost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "msedge",
+  "msedge",
+  "msedge",
+  "msedge",
+  "msedge",
+  "svchost",
+  "KakaoTalk",
+  "OneDrive",
+  "powershell",
+  "conhost",
+  "OneDrive.Sync.Service",
+  "taskhostw",
+  "powershell",
+  "conhost",
+  "cmd",
+  "conhost",
+  "BlackBox",
+  "WmiPrvSE",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "chrome",
+  "chrome",
+  "chrome",
+  "chrome",
+  "chrome",
+  "chrome",
+  "svchost",
+  "chrome",
+  "soffice",
+  "soffice.bin",
+  "7z",
+  "conhost",
+  "WMIADAP",
+  "WmiPrvSE",
+  "msedgewebview2",
+  "msedgewebview2",
+  "msedgewebview2",
+  "msedgewebview2",
+  "RuntimeBroker",
+  "msedgewebview2",
+  "msedgewebview2",
+  "chrome",
+  "updater",
+  "updater",
+  "updater",
+  "updater",
+  "updater",
+  "updater"
+ ],
+ "drivers": [
+  {
+   "name": "CDD"
+  },
+  {
+   "name": "bindflt",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "UCPD",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "WdFilter",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "applockerfltr",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "storqosflt",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "wcifs",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "CldFlt",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "bfs",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "FileCrypt",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "luafv",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "UnionFS",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "npsvctrig",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "Wof",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "FileInfo",
+   "type": "kernel_filter"
+  }
+ ],
+ "device_filters": {
+  "keyboard_upper": [
+   "kbdclass"
+  ],
+  "mouse_upper": [
+   "mouclass"
+  ]
+ },
+ "security": {
+  "realtime_av": [
+   "Windows Defender"
+  ]
+ },
+ "change_history": [
+  {
+   "time": "2026-11-14T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Google Chrome",
+   "version": "157.0.8103.78"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Microsoft Visual C++ 2022 X64 Additional Runtime - 14.52.37029",
+   "version": "14.52.37029"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "LibreOffice 26.8.2.2",
+   "version": "26.8.2.2"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.52.37029",
+   "version": "14.52.37029"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Microsoft Edge",
+   "version": "157.0.4341.46"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Microsoft Edge WebView2 런타임",
+   "version": "157.0.4341.46"
+  }
+ ],
+ "process_exits": {
+  "window_stops": 157,
+  "nonzero_stops": 19,
+  "rows": [
+   {
+    "name": "backgroundTaskHost.exe",
+    "exit_code": 1,
+    "exit_hex": "0x00000001",
+    "count": 13,
+    "last_at": "2026-11-14T16:37:13.871685+09:00",
+    "sec_before_mark": -3.4,
+    "lived_sec": 0
+   },
+   {
+    "name": "BackgroundTransferHost.exe",
+    "exit_code": 1,
+    "exit_hex": "0x00000001",
+    "count": 4,
+    "last_at": "2026-11-14T16:35:15.4295858+09:00",
+    "sec_before_mark": 115.1,
+    "lived_sec": 0
+   },
+   {
+    "name": "soffice.bin",
+    "exit_code": 81,
+    "exit_hex": "0x00000051",
+    "count": 1,
+    "last_at": "2026-11-14T16:35:10.3792716+09:00",
+    "sec_before_mark": 120.1,
+    "lived_sec": 5
+   },
+   {
+    "name": "chrmstp.exe",
+    "exit_code": 73,
+    "exit_hex": "0x00000049",
+    "count": 1,
+    "last_at": "2026-11-14T16:35:03.310955+09:00",
+    "sec_before_mark": 127.2,
+    "lived_sec": 0
+   }
+  ]
+ }
+}

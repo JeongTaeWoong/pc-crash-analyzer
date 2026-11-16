@@ -195,6 +195,18 @@ public partial class MainWindow : Window
     /// <summary>--open 인자용: 창이 뜬 직후 스냅샷 자동 진단.</summary>
     public void OpenSnapshotOnStartup(string path) => LoadSnapshot(path);
 
+    /// <summary>AI 설명 창 (2026-11-16). 화면은 열기만 한다 — 무엇을 보내고 어떻게 묻는지는 CrashAnalyzer.Ai 의 몫.</summary>
+    private void OnAiExplain(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrEmpty(_snapshotPath) || !System.IO.File.Exists(_snapshotPath))
+        {
+            MessageBox.Show(this, "먼저 기록을 열어 주세요. [최근 기록 열기] 또는 [파일 열기…]", "AI 설명", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        try { new AiWindow(_snapshotPath) { Owner = this }.Show(); }
+        catch (Exception ex) { MessageBox.Show(this, "이 기록을 읽지 못했습니다: " + ex.Message, "AI 설명", MessageBoxButton.OK, MessageBoxImage.Warning); }
+    }
+
     /// <summary>
     /// --rehearse 인자용: 수집기 기동 → (외부에서 크래시 유발) → 새 덤프 자동 진단까지의
     /// 녹화 시나리오 전체를 오프스크린으로 검증하고 결과를 파일로 남긴다.

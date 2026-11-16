@@ -1,0 +1,106 @@
+<Window x:Class="CrashAnalyzer.UI.AiWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AI 설명 — 내 API 키로" Width="860" Height="820" MinWidth="640" MinHeight="520"
+        WindowStartupLocation="CenterOwner" FontSize="13" Background="{StaticResource Surface}"
+        FontFamily="Segoe UI Variable Text, Segoe UI, Malgun Gothic">
+    <DockPanel Margin="14">
+
+        <!-- 키와 모델 -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource CardBox}" Padding="14,10">
+            <DockPanel>
+                <Button x:Name="btnKeyDelete" DockPanel.Dock="Right" Content="키 지우기" Style="{StaticResource BtnLink}" Margin="8,0,0,0" VerticalAlignment="Center" Click="OnKeyDelete"/>
+                <Button x:Name="btnKey" DockPanel.Dock="Right" Content="키 등록…" Style="{StaticResource BtnSecondary}" Padding="10,4" Margin="10,0,0,0" VerticalAlignment="Center" Click="OnKeySet"/>
+                <ComboBox x:Name="cboModel" DockPanel.Dock="Right" Width="210" Margin="10,0,0,0" VerticalAlignment="Center" SelectionChanged="OnModelChanged"/>
+                <StackPanel>
+                    <TextBlock Text="AI 설명" Style="{StaticResource SectionTitle}"/>
+                    <TextBlock x:Name="txtKey" Style="{StaticResource Dim}" TextWrapping="Wrap"
+                               Text="이 프로그램에는 API 키가 들어 있지 않습니다. 자기 키를 등록하면 그 키로 AI 에 묻습니다."/>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- 보내기 전 확인 -->
+        <Border DockPanel.Dock="Top" Style="{StaticResource CardBox}" Padding="14,10" Margin="0,10,0,0">
+            <StackPanel>
+                <DockPanel>
+                    <Button x:Name="btnAsk" DockPanel.Dock="Right" Content="AI 에게 묻기" Style="{StaticResource BtnPrimary}" Padding="16,6" Margin="10,0,0,0"
+                            VerticalAlignment="Center" Click="OnAsk"/>
+                    <StackPanel>
+                        <TextBlock Text="보내기 전 확인" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock x:Name="txtSend" Style="{StaticResource Dim}" TextWrapping="Wrap"/>
+                        <TextBlock x:Name="txtCost" Style="{StaticResource Dim}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </DockPanel>
+                <Expander Header="보낼 내용 전부 보기" Margin="0,6,0,0" FontSize="12" Foreground="{StaticResource TextDim}">
+                    <TextBox x:Name="txtBundle" IsReadOnly="True" Height="220" Margin="0,6,0,0" FontFamily="Consolas, Malgun Gothic" FontSize="11.5"
+                             VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextWrapping="NoWrap"
+                             Background="{StaticResource Soft}" BorderBrush="{StaticResource Line}"/>
+                </Expander>
+            </StackPanel>
+        </Border>
+
+        <!-- 사용량 -->
+        <TextBlock x:Name="txtUsage" DockPanel.Dock="Bottom" Style="{StaticResource Faint}" Margin="4,8,0,0" TextWrapping="Wrap"/>
+
+        <!-- 답 -->
+        <Border Style="{StaticResource CardBox}" Padding="14,10" Margin="0,10,0,0">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <TextBlock x:Name="txtStatus" Style="{StaticResource Dim}" TextWrapping="Wrap"
+                               Text="[AI 에게 묻기]를 누르면 위의 내용을 보내고 답을 받습니다. 누르기 전에는 아무것도 보내지 않습니다."/>
+                    <StackPanel x:Name="pnlAnswer" Visibility="Collapsed">
+                        <TextBlock x:Name="txtVerdict" FontSize="17" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}" Margin="0,2,0,6" TextWrapping="Wrap"/>
+                        <Border Background="{StaticResource AccentSoft}" CornerRadius="8" Padding="12,9" Margin="0,0,0,12">
+                            <TextBlock x:Name="txtExplain" TextWrapping="Wrap" LineHeight="21" Foreground="{StaticResource TextStrong}"/>
+                        </Border>
+
+                        <TextBlock Text="원인 후보" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock x:Name="txtNoCand" Style="{StaticResource Dim}" Text="지목한 후보가 없습니다." Visibility="Collapsed" Margin="0,2,0,0"/>
+                        <ItemsControl x:Name="icCands" Margin="0,2,0,10">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource LineSoft}" BorderThickness="0,0,0,1" Padding="0,7">
+                                        <StackPanel>
+                                            <DockPanel>
+                                                <TextBlock DockPanel.Dock="Right" Text="{Binding Confidence}" Style="{StaticResource Dim}" FontSize="12"/>
+                                                <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}" TextWrapping="Wrap"/>
+                                            </DockPanel>
+                                            <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" Margin="0,3,0,0" Foreground="{StaticResource TextDim}"/>
+                                            <TextBlock Text="{Binding Evidence}" Style="{StaticResource Faint}" FontSize="11.5" TextWrapping="Wrap" Margin="0,3,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="권하는 조치 (가벼운 것부터)" Style="{StaticResource SectionTitle}"/>
+                        <TextBlock x:Name="txtNoAct" Style="{StaticResource Dim}" Text="권하는 조치가 없습니다." Visibility="Collapsed" Margin="0,2,0,0"/>
+                        <ItemsControl x:Name="icActs" Margin="0,2,0,4">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource LineSoft}" BorderThickness="0,0,0,1" Padding="0,7">
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Left" Background="{Binding LevelBg}" CornerRadius="10" Padding="8,2" Margin="0,1,10,0" VerticalAlignment="Top">
+                                                <TextBlock Text="{Binding LevelText}" Foreground="{Binding LevelFg}" FontSize="11.5" FontWeight="SemiBold"/>
+                                            </Border>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Action}" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Target}" Style="{StaticResource Faint}" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                                <TextBlock Text="{Binding Why}" TextWrapping="Wrap" Margin="0,2,0,0" Foreground="{StaticResource TextDim}"/>
+                                                <Border Background="{StaticResource AmberSoft}" CornerRadius="6" Padding="8,5" Margin="0,5,0,0" Visibility="{Binding WarnVisibility}">
+                                                    <TextBlock Text="{Binding Warn}" Foreground="{StaticResource Amber}" FontSize="12" TextWrapping="Wrap"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock x:Name="txtCheck" Style="{StaticResource Faint}" FontSize="11.5" TextWrapping="Wrap" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </DockPanel>
+</Window>

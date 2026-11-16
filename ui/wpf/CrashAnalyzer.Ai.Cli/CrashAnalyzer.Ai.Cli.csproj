@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Command-line front of the AI library: for checking the library without the window, and as a fallback at a demo. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>ce-ai</AssemblyName>
+    <RootNamespace>CrashAnalyzer.Ai.Cli</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\CrashAnalyzer.Ai\CrashAnalyzer.Ai.csproj" />
+  </ItemGroup>
+</Project>

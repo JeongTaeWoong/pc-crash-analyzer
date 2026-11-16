@@ -1,0 +1,66 @@
+## 사건
+[sym] {"marked_at":"2026-11-15T07:10:15.148541+09:00","trigger":{"kind":"hotkey"},"symptom":"slow","scope":"unknown","target_process":null,"faulting_modules":[]}
+[host] {"os":"Windows 10.0.26300.0","sensor_support":false}
+
+## 덤프 구간에서 끝난 프로세스 (종료 코드가 0 이 아닌 것, 이름·코드별 묶음)
+읽는 법: window_stops = 구간에서 끝난 프로세스 전체 수, nonzero_stops = 그중 종료 코드가 0 이 아닌 수. 행 하나 = 같은 이름·같은 코드의 종료 묶음(count = 횟수, last_at = 마지막 종료가 기록된 시각, sec_before_mark = 마킹 몇 초 전인지 — 기록이 1초쯤 늦게 도착하므로 0 근처 음수는 마킹 직전을 뜻한다, lived_sec = 마지막으로 끝난 것이 켜져 있던 시간, 없으면 구간 이전에 켜졌다). is_target = 사용자가 마킹할 때 지목한 프로그램. 0 이 아닌 코드가 곧 오류는 아니다: 평소에도 0 이 아닌 코드로 끝나는 프로그램이 있다.
+[exits] {"window_stops":91,"nonzero_stops":25}
+[exit1] {"name":"firefox.exe","exit_code":2,"exit_hex":"0x00000002","count":1,"last_at":"2026-11-15T07:10:36.8268609+09:00","sec_before_mark":-21.7,"lived_sec":17.2}
+[exit2] {"name":"backgroundTaskHost.exe","exit_code":1,"exit_hex":"0x00000001","count":21,"last_at":"2026-11-15T07:10:34.8032837+09:00","sec_before_mark":-19.7,"lived_sec":1}
+[exit3] {"name":"OneDriveStandaloneUpdater.exe","exit_code":2147806724,"exit_hex":"0x8004EE04","count":1,"last_at":"2026-11-15T07:10:13.5346532+09:00","sec_before_mark":1.6,"lived_sec":79.3}
+[exit4] {"name":"soffice.bin","exit_code":81,"exit_hex":"0x00000051","count":1,"last_at":"2026-11-15T07:07:30.4958+09:00","sec_before_mark":164.7,"lived_sec":32.2}
+[exit5] {"name":"identity_helper.exe","exit_code":3221226029,"exit_hex":"0xC000022D","count":1,"last_at":"2026-11-15T07:05:37.9406425+09:00","sec_before_mark":277.2,"lived_sec":0}
+
+## 마킹 직전 구간의 자원 사용 (10초 표본, CPU 는 30초마다 측정)
+읽는 법: measurements = 그 프로세스가 상위 목록에 잡힌 측정 횟수(전체 측정 횟수는 cpu_measurements). cpu_avg·io_mbps_avg = 구간 전체 평균(잡히지 않은 측정은 0 으로 셈 — 구간 끝에 켜진 프로그램은 낮게 나온다). cpu_avg_active·io_mbps_avg_active = 잡힌 측정만의 평균. cpu_last·io_mbps_last = 마지막 측정(마킹 무렵)의 값, null 이면 그때 상위 목록에 없었다. busy_ge90_samples = 디스크가 90% 이상 바빴던 표본 수(표본 1개 = 10초). busy_pct_recent·latency_ms_recent·mbps_recent = 마지막 표본 6개(약 1분, 마킹 무렵)의 평균.
+[res] {"window_seconds":300,"samples":31,"commit_pct_last":56.9,"commit_pct_min":41.6,"commit_pct_max":56.9,"commit_limit_mb":5503,"avail_mb_last":1091,"avail_mb_min":998,"pages_per_sec_avg":3734.8,"pages_per_sec_max":9711.6,"cpu_measurements":10,"cpu_total_pct_avg":37.5,"cpu_total_pct_max":83.3}
+[cpu1] {"list":"top_cpu","pid":7256,"name":"powershell","cpu_avg":10.2,"cpu_avg_active":20.4,"cpu_max":21.7,"cpu_last":20.6,"measurements":5,"priv_mb_last":111.7}
+[cpu2] {"list":"top_cpu","pid":6352,"name":"conhost","cpu_avg":9.5,"cpu_avg_active":18.9,"cpu_max":20.8,"cpu_last":20.8,"measurements":5,"priv_mb_last":1.7}
+[cpu3] {"list":"top_cpu","pid":3356,"name":"msmpeng","cpu_avg":7.4,"cpu_avg_active":7.4,"cpu_max":29.9,"cpu_last":7.9,"measurements":10,"priv_mb_last":349.1}
+[cpu4] {"list":"top_cpu","pid":4,"name":"system","cpu_avg":1,"cpu_avg_active":1.1,"cpu_max":2.2,"cpu_last":2.2,"measurements":9,"priv_mb_last":0}
+[cpu5] {"list":"top_cpu","pid":856,"name":"lsass","cpu_avg":0.8,"cpu_avg_active":1.5,"cpu_max":4.1,"cpu_last":0.3,"measurements":5,"priv_mb_last":8.9}
+[io1] {"list":"top_io","pid":3356,"name":"msmpeng","io_mbps_avg":10.95,"io_mbps_avg_active":10.95,"io_mbps_max":43.59,"io_mbps_last":43.59,"measurements":10}
+[io2] {"list":"top_io","pid":1248,"name":"taskhostw","io_mbps_avg":0.19,"io_mbps_avg_active":0.93,"io_mbps_max":1.05,"io_mbps_last":null,"measurements":2}
+[io3] {"list":"top_io","pid":2544,"name":"backgroundtaskhost","io_mbps_avg":0.16,"io_mbps_avg_active":1.62,"io_mbps_max":1.62,"io_mbps_last":null,"measurements":1}
+[mem1] {"list":"top_memory","pid":3356,"name":"MsMpEng","priv_mb_last":347,"priv_mb_first":312.7,"priv_mb_delta":34.3,"seconds":300,"samples":31,"started_in_window":false}
+[mem2] {"list":"top_memory","pid":9896,"name":"msedgewebview2","priv_mb_last":133.6,"priv_mb_first":0.7,"priv_mb_delta":132.9,"seconds":60,"samples":7,"started_in_window":true}
+[mem3] {"list":"top_memory","pid":1276,"name":"powershell","priv_mb_last":126.9,"priv_mb_first":126.8,"priv_mb_delta":0.1,"seconds":300,"samples":31,"started_in_window":false}
+[mem4] {"list":"top_memory","pid":3152,"name":"KakaoTalk","priv_mb_last":126.8,"priv_mb_first":118.2,"priv_mb_delta":8.6,"seconds":300,"samples":31,"started_in_window":false}
+[mem5] {"list":"top_memory","pid":7256,"name":"powershell","priv_mb_last":111.7,"priv_mb_first":96.5,"priv_mb_delta":15.2,"seconds":140,"samples":15,"started_in_window":true}
+[grow1] {"list":"top_memory_growth","pid":9896,"name":"msedgewebview2","priv_mb_last":133.6,"priv_mb_first":0.7,"priv_mb_delta":132.9,"seconds":60,"samples":7,"started_in_window":true}
+[disk1] {"list":"disks","name":"0 C:","samples":29,"busy_pct_avg":49.6,"busy_pct_max":100,"busy_ge90_samples":12,"busy_pct_recent":99.8,"latency_ms_recent":132.65,"mbps_recent":22.41,"queue_avg":14.84,"queue_max":203.66,"latency_ms_avg":75.11,"latency_ms_max":1063.42,"iops_avg":293.4,"mbps_avg":13.79}
+
+## 최근 60분 추세 (1분 표본, 프로세스가 10분 이상 있어야 행이 생긴다)
+[trend] {"window_minutes":60,"samples":4,"cpu_samples":4,"commit_slope_pct_per_hour":193.47,"commit_pct_now":54.17,"avail_mb_slope_per_min":-132.9,"gpu_dedicated_mb_slope_per_min":0,"focus_process_last15":{"privSlopeMBPerMin":0.4,"r2":0.75,"samples":3}}
+
+## 표준 경로 밖 커널 드라이버·파일 시스템 필터
+[drv1] {"name":"CDD"}
+[drv2] {"name":"bindflt","type":"kernel_filter"}
+[drv3] {"name":"UCPD","type":"kernel_filter"}
+[drv4] {"name":"WdFilter","type":"kernel_filter"}
+[drv5] {"name":"applockerfltr","type":"kernel_filter"}
+[drv6] {"name":"storqosflt","type":"kernel_filter"}
+[drv7] {"name":"wcifs","type":"kernel_filter"}
+[drv8] {"name":"CldFlt","type":"kernel_filter"}
+[drv9] {"name":"bfs","type":"kernel_filter"}
+[drv10] {"name":"FileCrypt","type":"kernel_filter"}
+[drv11] {"name":"luafv","type":"kernel_filter"}
+[drv12] {"name":"UnionFS","type":"kernel_filter"}
+[drv13] {"name":"npsvctrig","type":"kernel_filter"}
+[drv14] {"name":"Wof","type":"kernel_filter"}
+[drv15] {"name":"FileInfo","type":"kernel_filter"}
+[filt] {"keyboard_upper":["kbdclass"],"mouse_upper":["mouclass"]}
+
+## 보안 제품
+[sec] {"realtime_av":["Windows Defender"]}
+
+## 최근 설치·변경 (날짜만 알 수 있다)
+[chg1] {"time":"2026-11-12T00:00:00+09:00","kind":"install","subject":"Microsoft Visual C++ 2022 X64 Additional Runtime - 14.52.37029","version":"14.52.37029"}
+[chg2] {"time":"2026-11-12T00:00:00+09:00","kind":"install","subject":"VLC media player","version":"3.0.24.0"}
+[chg3] {"time":"2026-11-12T00:00:00+09:00","kind":"install","subject":"LibreOffice 26.8.2.2","version":"26.8.2.2"}
+[chg4] {"time":"2026-11-12T00:00:00+09:00","kind":"install","subject":"Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.52.37029","version":"14.52.37029"}
+[chg5] {"time":"2026-11-12T00:00:00+09:00","kind":"install","subject":"Microsoft Edge","version":"157.0.4341.46"}
+[chg6] {"time":"2026-11-12T00:00:00+09:00","kind":"install","subject":"Microsoft Edge WebView2 런타임","version":"157.0.4341.46"}
+
+## 마킹 시점에 실행 중이던 프로세스 (이름×개수)
+[proc] AggregatorHost, BlackBox, cmd, conhost×4, crashhelper, CrossDeviceResume, csrss×2, ctfmon, default-browser-agent, DefenderAiPlatformHost, DefenderSessionHelper, dwm, explorer, firefox×3, fontdrvhost×2, Idle, KakaoTalk, lsass, Memory Compression, MicrosoftEdgeUpdate, MpDefenderCoreService, msedge×5, msedgewebview2×12, MsMpEng, NisSrv, OneDrive, OneDrive.Sync.Service, OneDriveStandaloneUpdater, powershell×3, Registry, RuntimeBroker×3, SearchHost, SearchIndexer, SecurityHealthService, SecurityHealthSystray, services, ShellExperienceHost, ShellHost, sihost, smartscreen, smss, soffice, soffice.bin, spoolsv, StartMenuExperienceHost, svchost×85, System, taskhostw×2, TextInputHost, TiWorker, TrustedInstaller, VSSVC, Widgets, WidgetService, WindowsPackageManagerServer, wininit, winlogon, wlms, WmiPrvSE×3
