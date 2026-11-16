@@ -595,6 +595,76 @@ void testScenarios() {
     check(d2.top() && sameSubject(d2.top()->subject, "faultlab"), "(나) 마킹 직전에 켜져 창 평균이 묽어진 프로세스도 1순위", topLabel(d2));
   }
   {
+    // 2026-11-15 실험실 office1 의 값 그대로: Blender 5.1.0 이 켜진 지 5초 만에 종료 코드 11 로 꺼졌다. Windows 크래시
+    // 이벤트가 없어서 이 규칙 전에는 후보에 Blender 가 없었고, Windows 기본 필터 드라이버만 6% 씩 나열됐다.
+    std::cout << "[s19] 크래시 기록 없이 꺼진 프로그램 — process_exits (office1 real-blender-bgscene 실측값)\n";
+    json::Value v = loadJson("s19_silent_exit.json");
+    std::vector<std::string> warn;
+    const Snapshot s = parseSnapshot(v, &warn);
+    check(s.process_exits.size() == 4 && s.process_exits[0].is_target && s.process_exits[0].code == 11 &&
+              s.process_exits[0].lived_sec == 5,
+          "process_exits 를 읽음");
+    const Diagnosis d = diagnose(s, Rules::defaults(), EngineVersion::V1, guide, warn);
+    check(d.top() && sameSubject(d.top()->subject, "blender.exe"), "1순위 = 지목된 프로그램 자체", topLabel(d));
+    bool noise = false;
+    for (std::size_t i = 0; i < d.candidates.size(); i++) {
+      if (containsNoCase(d.candidates[i].subject, "backgroundTaskHost") || containsNoCase(d.candidates[i].subject, "soffice")) noise = true;
+    }
+    check(!noise, "평소에도 0 아닌 코드로 끝나는 다른 프로그램은 후보가 아님");
+
+    // 오류 모듈이 기록된 크래시에서는 끼어들지 않는다: 플러그인 DLL 이 원인일 때 본체가 DLL 과 경쟁하면 안 된다
+    json::Value sym = v["symptom"];
+    json::Value fm = json::Value::makeArray();
+    fm.push(json::Value("srnbarcode64.dll"));
+    sym.set("faulting_modules", fm);
+    v.set("symptom", sym);
+    const Snapshot s2 = parseSnapshot(v, &warn);
+    const Diagnosis d2 = diagnose(s2, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool self = false;
+    for (std::size_t i = 0; i < d2.candidates.size(); i++) {
+      if (sameSubject(d2.candidates[i].subject, "blender.exe")) self = true;
+    }
+    check(!self, "오류 모듈이 기록돼 있으면 종료 코드로 본체를 후보에 올리지 않음");
+
+    // 0 으로 끝났으면 근거가 아니다
+    sym.set("faulting_modules", json::Value::makeArray());
+    v.set("symptom", sym);
+    json::Value px = json::Value::makeObject();
+    json::Value rows = json::Value::makeArray();
+    json::Value row = json::Value::makeObject();
+    row.set("name", json::Value("blender.exe"));
+    row.set("exit_code", json::Value(0.0));
+    row.set("count", json::Value(1.0));
+    row.set("sec_before_mark", json::Value(2.0));
+    row.set("is_target", json::Value(true));
+    rows.push(row);
+    px.set("rows", rows);
+    v.set("process_exits", px);
+    const Snapshot s3 = parseSnapshot(v, &warn);
+    const Diagnosis d3 = diagnose(s3, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool zero = false;
+    for (std::size_t i = 0; i < d3.candidates.size(); i++) {
+      if (sameSubject(d3.candidates[i].subject, "blender.exe")) zero = true;
+    }
+    check(!zero, "종료 코드 0 은 근거가 아님");
+
+    // Windows 예외 코드로 끝난 경우(0xC0000005)는 근거 문구에 그 사실이 들어간다
+    row.set("exit_code", json::Value(3221225477.0));
+    json::Value rows2 = json::Value::makeArray();
+    rows2.push(row);
+    px.set("rows", rows2);
+    v.set("process_exits", px);
+    const Snapshot s4 = parseSnapshot(v, &warn);
+    const Diagnosis d4 = diagnose(s4, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool said = false;
+    if (d4.top()) {
+      for (std::size_t k = 0; k < d4.top()->evidence.size(); k++) {
+        if (d4.top()->evidence[k].detail.find("0xC0000005") != std::string::npos) said = true;
+      }
+    }
+    check(d4.top() && sameSubject(d4.top()->subject, "blender.exe") && said, "예외 코드로 끝난 프로그램이 1순위, 근거에 코드 표기", topLabel(d4));
+  }
+  {
     std::cout << "[s12b] 같은 스냅샷 + GPU 메모리 95% (B 메커니즘)\n";
     json::Value v = loadJson("s12_slow_app_memory.json");
     json::Value rt = v["resource_trends"];

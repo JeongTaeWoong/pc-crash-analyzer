@@ -404,6 +404,23 @@ Snapshot parseSnapshot(const json::Value& v, std::vector<std::string>* warn) {
     }
   }
 
+  // 수집기 확장(2026-11-15): 덤프 창에서 끝난 프로세스의 종료 코드. 선택 필드 — 없으면 비어 있고 경고도 없다.
+  const json::Value& px = v["process_exits"];
+  if (px.isObject()) {
+    const json::Array& rows = px["rows"].asArray();
+    for (std::size_t i = 0; i < rows.size(); i++) {
+      ProcessExit e;
+      e.name = rows[i]["name"].asString("");
+      const double code = rows[i]["exit_code"].asNumber(0);
+      e.code = (code >= 0 && code <= 4294967295.0) ? static_cast<unsigned int>(code) : 0;
+      e.count = rows[i]["count"].asInt(1);
+      e.sec_before_mark = rows[i]["sec_before_mark"].asNumber(0);
+      e.lived_sec = rows[i]["lived_sec"].asNumber(-1);
+      e.is_target = rows[i]["is_target"].asBool(false);
+      if (!e.name.empty()) s.process_exits.push_back(e);
+    }
+  }
+
   const json::Value& bd = v["baseline_diff"];
   if (!bd.isNull()) {
     s.baseline.available = true;

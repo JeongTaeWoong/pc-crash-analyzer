@@ -1,0 +1,215 @@
+{
+  "schema_version": "1.1",
+  "snapshot_id": "s19-silent-exit",
+  "marked_at": "2026-11-15T06:47:42.9236123+09:00",
+  "trigger": {
+    "kind": "hotkey"
+  },
+  "host": {
+    "os": "Windows 10.0.26300.0",
+    "sensor_support": false
+  },
+  "symptom": {
+    "type": "app_crash",
+    "target_process": "blender.exe",
+    "scope": "single_app",
+    "started_at": "2026-11-15T06:47:42.9236123+09:00",
+    "faulting_modules": []
+  },
+  "processes": [
+    "AggregatorHost",
+    "backgroundTaskHost",
+    "BlackBox",
+    "cmd",
+    "conhost",
+    "CrossDeviceResume",
+    "csrss",
+    "ctfmon",
+    "dwm",
+    "explorer",
+    "fontdrvhost",
+    "Idle",
+    "KakaoTalk",
+    "lsass",
+    "Memory Compression",
+    "MoUsoCoreWorker",
+    "MpDefenderCoreService",
+    "msedge",
+    "msedgewebview2",
+    "MsMpEng",
+    "NisSrv",
+    "OneDrive",
+    "OneDrive.Sync.Service",
+    "powershell",
+    "Registry",
+    "RuntimeBroker",
+    "SearchHost",
+    "SearchIndexer",
+    "SearchProtocolHost",
+    "SecurityHealthService",
+    "SecurityHealthSystray",
+    "services",
+    "ShellHost",
+    "sihost",
+    "smartscreen",
+    "smss",
+    "soffice",
+    "soffice.bin",
+    "spoolsv",
+    "StartMenuExperienceHost",
+    "StoreDesktopExtension",
+    "svchost",
+    "System",
+    "taskhostw",
+    "TextInputHost",
+    "VSSVC",
+    "Widgets",
+    "WidgetService",
+    "wininit",
+    "winlogon",
+    "wlms",
+    "WmiPrvSE"
+  ],
+  "drivers": [
+    {
+      "name": "CDD"
+    },
+    {
+      "name": "bindflt",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "UCPD",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "WdFilter",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "applockerfltr",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "storqosflt",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "wcifs",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "CldFlt",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "bfs",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "FileCrypt",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "luafv",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "UnionFS",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "npsvctrig",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "Wof",
+      "type": "kernel_filter"
+    },
+    {
+      "name": "FileInfo",
+      "type": "kernel_filter"
+    }
+  ],
+  "device_filters": {
+    "keyboard_upper": [
+      "kbdclass"
+    ],
+    "mouse_upper": [
+      "mouclass"
+    ]
+  },
+  "security": {
+    "realtime_av": [
+      "Windows Defender"
+    ]
+  },
+  "change_history": [
+    {
+      "time": "2026-11-15T00:00:00+09:00",
+      "kind": "install",
+      "subject": "Google Chrome",
+      "version": "157.0.8103.52"
+    },
+    {
+      "time": "2026-11-12T00:00:00+09:00",
+      "kind": "install",
+      "subject": "Microsoft Visual C++ 2022 X64 Additional Runtime - 14.52.37029",
+      "version": "14.52.37029"
+    },
+    {
+      "time": "2026-11-12T00:00:00+09:00",
+      "kind": "install",
+      "subject": "LibreOffice 26.8.2.2",
+      "version": "26.8.2.2"
+    }
+  ],
+  "process_exits": {
+    "window_stops": 41,
+    "nonzero_stops": 12,
+    "rows": [
+      {
+        "name": "blender.exe",
+        "exit_code": 11,
+        "exit_hex": "0x0000000B",
+        "count": 1,
+        "last_at": "2026-11-15T06:47:43.3172606+09:00",
+        "sec_before_mark": -0.4,
+        "lived_sec": 5,
+        "is_target": true
+      },
+      {
+        "name": "backgroundTaskHost.exe",
+        "exit_code": 1,
+        "exit_hex": "0x00000001",
+        "count": 6,
+        "last_at": "2026-11-15T06:47:52.3944978+09:00",
+        "sec_before_mark": -9.5,
+        "lived_sec": 1
+      },
+      {
+        "name": "soffice.bin",
+        "exit_code": 81,
+        "exit_hex": "0x00000051",
+        "count": 1,
+        "last_at": "2026-11-15T06:47:19.5546725+09:00",
+        "sec_before_mark": 23.4,
+        "lived_sec": 6
+      },
+      {
+        "name": "BackgroundTransferHost.exe",
+        "exit_code": 1,
+        "exit_hex": "0x00000001",
+        "count": 4,
+        "last_at": "2026-11-15T06:47:19.5546552+09:00",
+        "sec_before_mark": 23.4,
+        "lived_sec": 0
+      }
+    ]
+  },
+  "ground_truth": {
+    "layer": "software",
+    "category": "other_sw",
+    "subject": "blender"
+  }
+}
