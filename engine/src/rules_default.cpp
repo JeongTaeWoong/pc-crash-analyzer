@@ -65,17 +65,19 @@ const char* const kDefaultRulesParts[] = {
     "w_coexist": 1.0,
     "w_case": 0.6,
     "w_layer": 1.1,
+    "w_direct": 1.0,
+    "circumstantial_factor": 0.5,
     "time_window_minutes": 4320,
     "time_full_credit_minutes": 120
   },
 
   "priors": {
-    "app_crash":         {"anticheat": 0.22, "overlay": 0.22, "antivirus": 0.15, "fin_security": 0.08, "security_firewall": 0.03, "other_sw": 0.05, "gpu_driver": 0.12, "os_update": 0.05, "thermal": 0.06, "power": 0.05, "memory": 0.05},
+    "app_crash":         {"anticheat": 0.22, "overlay": 0.22, "antivirus": 0.15, "fin_security": 0.08, "security_firewall": 0.03, "other_sw": 0.05, "app_self": 0.05, "gpu_driver": 0.12, "os_update": 0.05, "thermal": 0.06, "power": 0.05, "memory": 0.05},
     "freeze":            {"antivirus": 0.18, "anticheat": 0.12, "fin_security": 0.10, "overlay": 0.08, "other_sw": 0.08, "app_memory": 0.05, "gpu_driver": 0.15, "thermal": 0.12, "power": 0.10, "storage": 0.13, "memory": 0.08},
     "fps_drop":          {"thermal": 0.30, "power": 0.15, "overlay": 0.15, "antivirus": 0.12, "gpu_driver": 0.13, "storage": 0.08, "other_sw": 0.05},
     "flicker":           {"gpu_driver": 0.30, "display_util": 0.30, "connection": 0.20, "peripheral_driver": 0.08, "power": 0.10, "overlay": 0.05},
     "input_loss":        {"input_util": 0.30, "antivirus": 0.18, "fin_security": 0.15, "connection": 0.15, "overlay": 0.08, "peripheral_driver": 0.10},
-    "launch_fail":       {"antivirus": 0.30, "anticheat": 0.20, "fin_security": 0.18, "security_firewall": 0.12, "other_sw": 0.12, "os_update": 0.05},
+    "launch_fail":       {"antivirus": 0.30, "anticheat": 0.20, "fin_security": 0.18, "security_firewall": 0.12, "other_sw": 0.12, "app_self": 0.12, "os_update": 0.05},
     "network_fail":      {"security_firewall": 0.33, "antivirus": 0.24, "fin_security": 0.20, "network_driver": 0.12, "connection": 0.08, "other_sw": 0.03},
     "unexpected_reboot": {"power": 0.35, "thermal": 0.25, "memory": 0.15, "storage": 0.10, "gpu_driver": 0.08, "other_driver": 0.04, "antivirus": 0.03},
     "slow":              {"app_memory": 0.20, "other_sw": 0.10, "antivirus": 0.15, "fin_security": 0.13, "thermal": 0.14, "storage": 0.09, "memory": 0.06, "overlay": 0.04, "anticheat": 0.03, "gpu_driver": 0.04, "power": 0.02}
@@ -167,9 +169,9 @@ const char* const kDefaultRulesParts[] = {
      "rollback": "되돌릴 것이 없습니다 (저장 후 재시작).", "reversible": true, "requires_reboot": false, "risk": "low",
      "automation": "", "auto_default": false},
 
-    {"id": "a_app_memory_hygiene", "label": "프로그램 메모리 위생 (캐시·실행 취소 이력·플러그인)", "kind": "toggle_setting",
 )JSON",
-    R"JSON(     "steps": ["작업을 저장합니다.", "프로그램의 캐시·미리보기 메모리를 비웁니다 (예: After Effects Edit > Purge > All Memory & Disk Cache, Premiere 미디어 캐시 정리, Blender 환경설정 > System > Undo Steps 축소).", "최근 추가한 플러그인·애드온을 하나씩 꺼 보며 메모리 증가가 멈추는지 확인합니다.", "GPU 메모리가 가득 찼다면 뷰포트·미리보기 해상도와 텍스처 크기를 낮추고, GPU 를 함께 쓰는 다른 프로그램(브라우저 하드웨어 가속·오버레이)을 닫습니다.", "장시간 작업은 1~2시간마다 저장 후 재시작하는 습관을 둡니다."],
+    R"JSON(    {"id": "a_app_memory_hygiene", "label": "프로그램 메모리 위생 (캐시·실행 취소 이력·플러그인)", "kind": "toggle_setting",
+     "steps": ["작업을 저장합니다.", "프로그램의 캐시·미리보기 메모리를 비웁니다 (예: After Effects Edit > Purge > All Memory & Disk Cache, Premiere 미디어 캐시 정리, Blender 환경설정 > System > Undo Steps 축소).", "최근 추가한 플러그인·애드온을 하나씩 꺼 보며 메모리 증가가 멈추는지 확인합니다.", "GPU 메모리가 가득 찼다면 뷰포트·미리보기 해상도와 텍스처 크기를 낮추고, GPU 를 함께 쓰는 다른 프로그램(브라우저 하드웨어 가속·오버레이)을 닫습니다.", "장시간 작업은 1~2시간마다 저장 후 재시작하는 습관을 둡니다."],
      "rollback": "바꾼 설정을 원래 값으로 되돌립니다.", "reversible": true, "requires_reboot": false, "risk": "low",
      "automation": "", "auto_default": false},
 
@@ -288,9 +290,9 @@ const char* const kDefaultRulesParts[] = {
      "rollback": "", "reversible": true, "requires_reboot": false, "risk": "low", "automation": "", "auto_default": false},
 
     {"id": "a_driver_update_block", "label": "이 드라이버의 자동 업데이트 일시 보류", "kind": "toggle_setting",
-     "steps": ["Windows 업데이트가 같은 드라이버를 다시 설치하지 않도록 'show or hide updates' 도구나 그룹 정책으로 이 드라이버 업데이트를 숨깁니다."],
 )JSON",
-    R"JSON(     "rollback": "숨긴 업데이트를 다시 표시합니다.", "reversible": true, "requires_reboot": false, "risk": "low",
+    R"JSON(     "steps": ["Windows 업데이트가 같은 드라이버를 다시 설치하지 않도록 'show or hide updates' 도구나 그룹 정책으로 이 드라이버 업데이트를 숨깁니다."],
+     "rollback": "숨긴 업데이트를 다시 표시합니다.", "reversible": true, "requires_reboot": false, "risk": "low",
      "automation": "wu_hide_driver:{subject}", "auto_default": false},
 
     {"id": "a_update_pause", "label": "Windows 업데이트 7일 일시 중지", "kind": "toggle_setting",
@@ -349,6 +351,8 @@ const char* const kDefaultRulesParts[] = {
      "advice": "보안 제품의 방화벽에서 해당 프로그램을 허용 목록에 추가하고 재현해 보세요."},
     {"id": "pause_other_sw", "label": "의심 프로그램 종료", "action": "a_stop_process", "cost_seconds": 60, "reliability": 0.8, "categories": ["other_sw"],
      "advice": "해당 프로그램을 종료한 상태로 재현해 보세요."},
+    {"id": "app_update_test", "label": "프로그램 업데이트 후 재현", "action": "a_program_update", "cost_seconds": 420, "reliability": 0.6, "categories": ["app_self"],
+     "advice": "꺼진 프로그램을 최신 버전으로 올린 뒤 같은 작업을 다시 해 보세요. 더 꺼지지 않으면 그 버전에서 고쳐진 프로그램 자체의 오류입니다. 이미 최신 버전이면 '할 수 없어요'를 고르세요."},
     {"id": "app_memory_restart_test", "label": "저장 후 프로그램 재시작", "action": "a_app_restart", "cost_seconds": 120, "reliability": 0.85, "categories": ["app_memory"], "symptoms": ["slow", "freeze"],
      "advice": "작업을 저장하고 프로그램을 완전히 종료한 뒤 다시 열어 보세요. 체감 속도가 바로 회복되면 프로그램 안에 쌓인 메모리(실행 취소 이력·캐시·플러그인)가 원인입니다."},
     {"id": "clean_boot", "label": "클린 부트(서드파티 전체 중지)", "action": "a_clean_boot", "cost_seconds": 480, "reliability": 0.92, "group": true, "categories": ["anticheat", "antivirus", "fin_security", "security_firewall", "overlay", "input_util", "other_sw"],
@@ -380,15 +384,15 @@ const char* const kDefaultRulesParts[] = {
     {"id": "gpu_power_limit_test", "label": "GPU 전력 제한 낮춰 재현", "action": "a_gpu_power_limit", "cost_seconds": 120, "reliability": 0.65, "categories": ["power"], "symptoms": ["unexpected_reboot", "freeze", "app_crash", "fps_drop", "slow"],
      "advice": "GPU 전력 제한을 90%로 낮추고 같은 작업을 해 보세요. 꺼지지 않으면 순간 전력 부족(파워) 문제일 가능성이 큽니다."},
     {"id": "xmp_off_test", "label": "메모리 XMP 끄고 재현", "action": "a_xmp_off", "cost_seconds": 600, "reliability": 0.75, "categories": ["memory"],
-     "advice": "BIOS에서 XMP를 끄고 같은 작업을 해 보세요. 메모리 테스트보다 빨리 메모리 쪽인지 가를 수 있습니다."},
+)JSON",
+    R"JSON(     "advice": "BIOS에서 XMP를 끄고 같은 작업을 해 보세요. 메모리 테스트보다 빨리 메모리 쪽인지 가를 수 있습니다."},
     {"id": "nic_power_saving_test", "label": "랜카드 절전 끄고 재현", "action": "a_nic_power_saving_off", "cost_seconds": 120, "reliability": 0.5, "categories": ["network_driver"], "symptoms": ["network_fail"],
      "advice": "네트워크 어댑터의 절전 기능을 끄고 연결이 계속 끊기는지 보세요."}
   ],
 
   "remedies": [
     {"id": "r_app_memory_hygiene", "label": "프로그램 메모리 위생: 캐시 비우기·실행 취소 한도·플러그인 점검", "categories": ["app_memory"], "symptoms": ["slow", "freeze"],
-)JSON",
-    R"JSON(     "description": "장시간 작업 중 프로그램 자체가 실행 취소 이력·미리보기 캐시·플러그인 누수로 메모리를 계속 쌓는 경우입니다. 다른 프로그램과의 충돌이 아니므로 종료할 상대가 없고, 캐시를 비우고 한도를 낮추는 것이 해결입니다 (Adobe·Blender 공식 매뉴얼의 1차 조치).",
+     "description": "장시간 작업 중 프로그램 자체가 실행 취소 이력·미리보기 캐시·플러그인 누수로 메모리를 계속 쌓는 경우입니다. 다른 프로그램과의 충돌이 아니므로 종료할 상대가 없고, 캐시를 비우고 한도를 낮추는 것이 해결입니다 (Adobe·Blender 공식 매뉴얼의 1차 조치).",
      "actions": ["a_app_memory_hygiene"], "success_seed": 0.6},
     {"id": "r_anticheat_autostart_off", "label": "안티치트를 해당 게임을 할 때만 켜기", "categories": ["anticheat"], "symptoms": ["app_crash", "freeze", "fps_drop", "slow"],
      "description": "다른 게임용 커널 안티치트가 상시 상주하면서 무관한 프로그램에 간섭하는 경우입니다. 상시 실행을 끄면 원래 게임은 그대로 쓰면서 충돌을 없앨 수 있습니다.",
@@ -443,6 +447,13 @@ const char* const kDefaultRulesParts[] = {
     {"id": "r_other_remove", "label": "해당 프로그램 제거", "categories": ["other_sw"],
      "description": "필요 없는 프로그램이면 제거합니다.", "actions": ["a_uninstall"], "success_seed": 0.6},
 
+    {"id": "r_app_update", "label": "프로그램을 고쳐진 버전으로 업데이트", "categories": ["app_self"],
+     "description": "오류가 그 프로그램 자체에서 났습니다. 다른 프로그램과의 충돌이 아니므로 끌 상대가 없고, 제작사가 고친 버전으로 올리는 것이 해결입니다. 제작사의 변경 기록이나 알려진 문제 목록에 같은 증상이 있는지도 확인해 보세요.",
+     "actions": ["a_program_update"], "success_seed": 0.6},
+    {"id": "r_app_reinstall", "label": "프로그램 복구·재설치", "categories": ["app_self"],
+     "description": "이미 최신 버전이거나 업데이트로 고쳐지지 않으면 설치 파일이 손상됐을 수 있습니다. 복구 기능이 있으면 먼저 쓰고, 없으면 다시 설치합니다.",
+     "actions": ["a_reinstall"], "success_seed": 0.4},
+
     {"id": "r_gpu_rollback", "label": "GPU 드라이버 이전 버전 유지", "categories": ["gpu_driver"],
      "description": "증상이 사라진 이전 버전을 유지하고, Windows 업데이트가 문제 버전을 다시 깔지 않도록 막아 둡니다. 다음 정식 버전에서 고쳐졌는지 확인합니다. 장치 관리자의 롤백 버튼이 꺼져 있으면 2번(클린 설치)으로 이전 버전을 설치합니다.", "actions": ["a_driver_rollback", "a_driver_update_block"], "success_seed": 0.6},
     {"id": "r_gpu_clean_install", "label": "GPU 드라이버 완전 삭제 후 클린 설치", "categories": ["gpu_driver"],
@@ -473,7 +484,8 @@ const char* const kDefaultRulesParts[] = {
      "description": "파일 시스템 오류만 있는 경우에는 검사로 해결되기도 합니다. SMART 경고가 있으면 교체가 우선입니다.", "actions": ["a_chkdsk_scan"], "success_seed": 0.3},
     {"id": "r_memory", "label": "불량 메모리 모듈 교체", "categories": ["memory"],
      "description": "진단에서 오류가 난 모듈을 빼거나 교체합니다.", "actions": ["a_memory_test"], "success_seed": 0.6},
-    {"id": "r_xmp_off", "label": "메모리 XMP 끄고 쓰기", "categories": ["memory"],
+)JSON",
+    R"JSON(    {"id": "r_xmp_off", "label": "메모리 XMP 끄고 쓰기", "categories": ["memory"],
      "description": "메모리 오버클럭(XMP)이 불안정한 경우입니다. 끄면 속도는 조금 줄지만 오류가 사라집니다.", "actions": ["a_xmp_off"], "success_seed": 0.6}
   ],
 
@@ -502,8 +514,7 @@ const char* const kDefaultRulesParts[] = {
     {"symptom": "input_loss",   "category": "input_util",        "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
     {"symptom": "network_fail", "category": "security_firewall", "subject": "",        "weight": 0.7,  "solved": 0, "rejected": 0},
     {"symptom": "launch_fail",  "category": "antivirus",         "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
-)JSON",
-    R"JSON(    {"symptom": "flicker",      "category": "display_util",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0},
+    {"symptom": "flicker",      "category": "display_util",      "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0},
     {"symptom": "fps_drop",     "category": "thermal",           "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
     {"symptom": "unexpected_reboot", "category": "power",        "subject": "",        "weight": 0.6,  "solved": 0, "rejected": 0},
     {"symptom": "slow",         "category": "app_memory",        "subject": "",        "weight": 0.55, "solved": 0, "rejected": 0},

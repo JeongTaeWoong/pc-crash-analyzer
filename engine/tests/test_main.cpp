@@ -620,11 +620,21 @@ void testScenarios() {
     v.set("symptom", sym);
     const Snapshot s2 = parseSnapshot(v, &warn);
     const Diagnosis d2 = diagnose(s2, Rules::defaults(), EngineVersion::V1, guide, warn);
-    bool self = false;
+    // (2026-11-17: 꺼진 프로그램 자신은 이제 항상 후보다 — 그래서 '후보에 없음'이 아니라 '종료 코드를 근거로 쓰지 않음'과
+    //  'DLL 이 본체보다 앞섬'을 본다)
+    bool exitUsed = false;
+    int selfAt = -1;
+    int dllAt = -1;
     for (std::size_t i = 0; i < d2.candidates.size(); i++) {
-      if (sameSubject(d2.candidates[i].subject, "blender.exe")) self = true;
+      if (sameSubject(d2.candidates[i].subject, "srnbarcode64.dll")) dllAt = static_cast<int>(i);
+      if (!sameSubject(d2.candidates[i].subject, "blender.exe")) continue;
+      selfAt = static_cast<int>(i);
+      for (std::size_t k = 0; k < d2.candidates[i].evidence.size(); k++) {
+        if (d2.candidates[i].evidence[k].detail.find("종료 코드") != std::string::npos) exitUsed = true;
+      }
     }
-    check(!self, "오류 모듈이 기록돼 있으면 종료 코드로 본체를 후보에 올리지 않음");
+    check(!exitUsed, "오류 모듈이 기록돼 있으면 종료 코드로 본체를 후보에 올리지 않음");
+    check(dllAt == 0 && selfAt > dllAt, "오류 모듈인 DLL 이 1순위이고 본체는 그 뒤", topLabel(d2));
 
     // 0 으로 끝났으면 근거가 아니다
     sym.set("faulting_modules", json::Value::makeArray());
@@ -644,7 +654,10 @@ void testScenarios() {
     const Diagnosis d3 = diagnose(s3, Rules::defaults(), EngineVersion::V1, guide, warn);
     bool zero = false;
     for (std::size_t i = 0; i < d3.candidates.size(); i++) {
-      if (sameSubject(d3.candidates[i].subject, "blender.exe")) zero = true;
+      if (!sameSubject(d3.candidates[i].subject, "blender.exe")) continue;
+      for (std::size_t k = 0; k < d3.candidates[i].evidence.size(); k++) {
+        if (d3.candidates[i].evidence[k].detail.find("종료 코드") != std::string::npos) zero = true;
+      }
     }
     check(!zero, "종료 코드 0 은 근거가 아님");
 
@@ -663,6 +676,141 @@ void testScenarios() {
       }
     }
     check(d4.top() && sameSubject(d4.top()->subject, "blender.exe") && said, "예외 코드로 끝난 프로그램이 1순위, 근거에 코드 표기", topLabel(d4));
+  }
+  {
+    // 2026-11-17: 꺼진 프로그램 자신을 먼저, Windows 에 들어 있는 드라이버는 상주만으로 후보가 아니게.
+    // 고치기 전 같은 기록: Godot 13%, 그 뒤로 applockerfltr·bfs·bindflt·CldFlt 가 5.7% 씩 (후보 22개).
+    std::cout << "[s20] 자기 코드 안에서 꺼진 프로그램 (office1 real-godot-svg 실측값)\n";
+    json::Value v = loadJson("s20_self_fault_crash.json");
+    std::vector<std::string> warn;
+    const Snapshot s = parseSnapshot(v, &warn);
+    const Diagnosis d = diagnose(s, Rules::defaults(), EngineVersion::V1, guide, warn);
+    check(d.top() && d.top()->category == "app_self" && sameSubject(d.top()->subject, "Godot_v4.3-stable_win64.exe"),
+          "1순위 = 꺼진 프로그램 자신 (app_self)", topLabel(d));
+    check(d.top() && d.top()->probability >= 0.5, "그 몫이 절반 이상",
+          d.top() ? std::to_string(d.top()->probability) : "");
+    bool inbox = false;
+    for (std::size_t i = 0; i < d.candidates.size(); i++) {
+      for (std::size_t k = 0; k < s.drivers.size(); k++) {
+        if (equalsNoCase(d.candidates[i].subject, s.drivers[k].name)) inbox = true;
+      }
+    }
+    check(!inbox, "Windows 에 들어 있는 드라이버 15개는 상주만으로 후보가 아님");
+    check(firstCheckTemplate(d) == "app_update_test", "첫 점검 = 프로그램 업데이트 후 재현 ('의심 프로그램 종료'가 아님)",
+          firstCheckTemplate(d));
+    bool selfNote = false;
+    for (std::size_t i = 0; i < d.notes.size(); i++) {
+      if (d.notes[i].find("프로그램 자체의 문제") != std::string::npos) selfNote = true;
+    }
+    check(selfNote, "안내: 끌 상대가 없고 업데이트·재설치가 해결");
+
+    // 실제 PC 의 모양: 다른 게임의 커널 안티치트가 상주하고, 오버레이 프로그램이 그날 설치됐다.
+    // 고치기 전에는 이런 PC 에서 정황뿐인 프로그램이 꺼진 프로그램을 앞섰다 (참여자 기록 56건 중 56건, 개발 PC 리허설).
+    json::Value drv = v["drivers"];
+    json::Value vgk = json::Value::makeObject();
+    vgk.set("name", json::Value("vgk"));
+    vgk.set("type", json::Value("kernel"));
+    drv.push(vgk);
+    v.set("drivers", drv);
+    json::Value ch = v["change_history"];
+    json::Value inst = json::Value::makeObject();
+    inst.set("time", json::Value("2026-11-14T07:00:00+09:00"));
+    inst.set("kind", json::Value("install"));
+    inst.set("subject", json::Value("MSI Afterburner"));
+    inst.set("version", json::Value("4.6.6"));
+    ch.push(inst);
+    v.set("change_history", ch);
+    const Snapshot s2 = parseSnapshot(v, &warn);
+    const Diagnosis d2 = diagnose(s2, Rules::defaults(), EngineVersion::V1, guide, warn);
+    check(d2.top() && d2.top()->category == "app_self", "안티치트 상주 + 오버레이 당일 설치가 있어도 1순위는 꺼진 프로그램", topLabel(d2));
+    bool damped = true;
+    bool sawOthers = false;
+    for (std::size_t i = 0; i < d2.candidates.size(); i++) {
+      const Candidate& c = d2.candidates[i];
+      if (c.category != "anticheat" && c.category != "overlay") continue;
+      sawOthers = true;
+      if (c.locality_gate >= 1.0) damped = false;
+    }
+    check(sawOthers && damped, "정황뿐인 안티치트·오버레이 후보는 남되 점수가 낮아짐");
+
+    // 크래시가 아닌 WER 1001 보고의 다른 칸이 '오류 모듈'로 섞여 와도 오류 모듈은 한 가지로 읽는다
+    json::Value v3 = loadJson("s20_self_fault_crash.json");
+    json::Value ev = v3["events"];
+    json::Value junk = json::Value::makeObject();
+    junk.set("time", json::Value("2026-11-14T16:11:16+09:00"));
+    junk.set("id", json::Value(1001.0));
+    junk.set("provider", json::Value("Windows Error Reporting"));
+    junk.set("subject", json::Value("c2"));
+    junk.set("faulting_module", json::Value("506d7054"));
+    ev.push(junk);
+    v3.set("events", ev);
+    const Snapshot s3 = parseSnapshot(v3, &warn);
+    check(signals::distinctFaultingModules(s3).size() == 1, "모듈 이름이 아닌 값은 오류 모듈로 세지 않음");
+    const Diagnosis d3 = diagnose(s3, Rules::defaults(), EngineVersion::V1, guide, warn);
+    check(d3.top() && d3.top()->category == "app_self" && d3.top()->s_direct > 0, "섞인 기록이 있어도 오류 모듈 근거가 살아 있음", topLabel(d3));
+
+    // Windows 구성요소 안에서 멈춘 크래시: 꺼진 프로그램이 1순위지만, 위치를 짚은 것은 아니므로 다른 후보를 낮추지 않는다
+    json::Value v4 = loadJson("s20_self_fault_crash.json");
+    json::Value sym = v4["symptom"];
+    json::Value fm = json::Value::makeArray();
+    fm.push(json::Value("ucrtbase.dll"));
+    sym.set("faulting_modules", fm);
+    v4.set("symptom", sym);
+    v4.set("events", json::Value::makeArray());
+    const Snapshot s4 = parseSnapshot(v4, &warn);
+    const Diagnosis d4 = diagnose(s4, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool anyDamped = false;
+    for (std::size_t i = 0; i < d4.candidates.size(); i++) {
+      if (d4.candidates[i].locality_gate < 1.0) anyDamped = true;
+    }
+    check(d4.top() && d4.top()->category == "app_self" && !anyDamped, "Windows 구성요소 안의 크래시: 본체 1순위, 다른 후보는 그대로", topLabel(d4));
+
+    // .NET 프로그램: 실행 파일과 이름이 같은 DLL 은 그 프로그램의 본체다 — '종료해 볼 다른 프로그램'으로 따로 나오지 않는다
+    // (2026-11-17 개발 PC 리허설의 모양: CrashDummy.exe 가 KERNELBASE.dll 에서 예외 코드 e0434352 로 꺼짐)
+    json::Value v6 = loadJson("s20_self_fault_crash.json");
+    json::Value sym6 = v6["symptom"];
+    sym6.set("target_process", json::Value("CrashDummy.exe"));
+    json::Value fm6 = json::Value::makeArray();
+    fm6.push(json::Value("KERNELBASE.dll"));
+    sym6.set("faulting_modules", fm6);
+    v6.set("symptom", sym6);
+    v6.set("events", json::Value::makeArray());
+    json::Value mods6 = json::Value::makeArray();
+    const char* names6[2] = {"CrashDummy.exe", "CrashDummy.dll"};
+    for (int i = 0; i < 2; i++) {
+      json::Value m = json::Value::makeObject();
+      m.set("process", json::Value("CrashDummy.exe"));
+      m.set("name", json::Value(names6[i]));
+      m.set("microsoft_signed", json::Value(false));
+      mods6.push(m);
+    }
+    v6.set("modules", mods6);
+    const Snapshot s6 = parseSnapshot(v6, &warn);
+    const Diagnosis d6 = diagnose(s6, Rules::defaults(), EngineVersion::V1, guide, warn);
+    int own = 0;
+    for (std::size_t i = 0; i < d6.candidates.size(); i++) {
+      if (sameSubject(d6.candidates[i].subject, "CrashDummy")) own++;
+    }
+    check(d6.top() && d6.top()->category == "app_self" && own == 1, "실행 파일과 이름이 같은 DLL 은 본체와 한 후보", topLabel(d6));
+
+    // Windows 드라이버라도 블루스크린의 원인으로 '기록'되면 후보다 (상주만으로는 아니라는 것뿐)
+    json::Value v5 = loadJson("s20_self_fault_crash.json");
+    json::Value dumps = json::Value::makeArray();
+    json::Value md = json::Value::makeObject();
+    md.set("time", json::Value("2026-11-14T16:00:00+09:00"));
+    md.set("kind", json::Value("kernel"));
+    md.set("process", json::Value("System"));
+    md.set("bugcheck", json::Value("0x50 PAGE_FAULT_IN_NONPAGED_AREA"));
+    md.set("faulting_module", json::Value("bindflt.sys"));
+    dumps.push(md);
+    v5.set("minidumps", dumps);
+    const Snapshot s5 = parseSnapshot(v5, &warn);
+    const Diagnosis d5 = diagnose(s5, Rules::defaults(), EngineVersion::V1, guide, warn);
+    bool recorded = false;
+    for (std::size_t i = 0; i < d5.candidates.size(); i++) {
+      if (sameSubject(d5.candidates[i].subject, "bindflt.sys") && d5.candidates[i].s_direct > 0) recorded = true;
+    }
+    check(recorded, "블루스크린 원인으로 기록된 Windows 드라이버는 후보에 남음");
   }
   {
     std::cout << "[s12b] 같은 스냅샷 + GPU 메모리 95% (B 메커니즘)\n";

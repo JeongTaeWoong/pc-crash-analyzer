@@ -335,7 +335,8 @@ if ($job.kind -eq 'launch') {
     }
 } elseif ($job.kind -eq 'recipe') {
     # A real program run as a person would run it. With "crash" the program is expected to end badly (a documented
-    # bug); with a mark it is the user's own heavy job and the user marks 'slow' while it runs.
+    # bug); with a mark it is the user's own heavy job and the user marks 'slow' while it runs; with "expect_ok" it
+    # is the fixed version doing the job that used to crash, and it has to end normally (checked at the end).
     $recipeRun = Start-RunSpec $job.recipe 'recipe.log'
     if (-not $recipeRun.started_at) { Note 'recipe_start' "FAILED: $($recipeRun.reason)" }
     else {
@@ -436,6 +437,21 @@ if ($job.kind -eq 'recipe') {
             if ($job.recipe.fail_exit) { $failExit = @($job.recipe.fail_exit | ForEach-Object { [int]$_ }) }
             if ($recipeRun.timed_out) { $problems += 'the program was still running at the time limit: the bug did not show' }
             elseif ($failExit -contains [int]$recipeRun.exit_code) { $problems += "the program ended with exit code $($recipeRun.exit_code): the bug did not show (see recipe.log)" }
+        }
+        if ($job.recipe.expect_ok) {
+            # The FIXED version of a program with a known bug, doing the same job (scenarios 'fixed-*', added 2026-11-17).
+            # The run is good when the program ends by itself with an ordinary exit code (recipe.ok_exit, default 0)
+            # and Windows records no crash of it. recipe.program = the process to watch when the recipe starts it
+            # through something else (cmd.exe, a driver script).
+            $okExit = @(0)
+            if ($job.recipe.ok_exit) { $okExit = @($job.recipe.ok_exit | ForEach-Object { [int]$_ }) }
+            if ($recipeRun.timed_out) { $problems += 'the program was still running at the time limit: it did not finish the job' }
+            elseif ($okExit -notcontains [int]$recipeRun.exit_code) { $problems += ("the program ended with exit code 0x{0:x}: with the fix it should end normally (see recipe.log)" -f [int]$recipeRun.exit_code) }
+            $watch = $(if ($job.recipe.program) { "$($job.recipe.program)" } else { Split-Path "$($recipeRun.exe)" -Leaf })
+            $own = @(Get-CrashEvents $t0 | Where-Object { "$($_.app)" -eq $watch })
+            if ($own.Count) { $problems += "Windows recorded a crash of ${watch} (event $(@($own | ForEach-Object { $_.id }) -join ', ')): the fix does not hold here" }
+            $bad = @($dumps | Where-Object { "$($_.kind)" -like 'crash*' -or "$($_.kind)" -like 'hang*' })
+            if ($bad.Count -and -not $own.Count) { $warnings += "a crash or hang dump was written during the check ($(@($bad | ForEach-Object { $_.name }) -join ', ')) although no crash of $watch was recorded: look at it by hand" }
         }
         if ($job.mark -and $recipeRun.alive_at_mark -eq $false) { $problems += 'the program had already ended when the mark was sent' }
     }

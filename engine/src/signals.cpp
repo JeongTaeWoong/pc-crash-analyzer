@@ -6,6 +6,7 @@
 #include "ce/signals.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
 
 namespace ce {
@@ -169,19 +170,113 @@ void addUnique(std::vector<std::string>* list, const std::string& value) {
 }
 }  // namespace
 
+bool looksLikeModuleName(const std::string& name) {
+  const std::size_t dot = name.rfind('.');
+  if (dot == std::string::npos || dot == 0) return false;
+  const std::size_t extLen = name.size() - dot - 1;
+  if (extLen < 2 || extLen > 5) return false;
+  bool hasLetter = false;
+  for (std::size_t i = dot + 1; i < name.size(); i++) {
+    const unsigned char c = static_cast<unsigned char>(name[i]);
+    if (!std::isalnum(c)) return false;
+    if (std::isalpha(c)) hasLetter = true;
+  }
+  return hasLetter;
+}
+
 std::vector<std::string> distinctFaultingModules(const Snapshot& s) {
+  // 2026-11-17: 모듈 이름처럼 생긴 값만 센다. 참여자 기록 56건 중 55건에서, 크래시가 아닌 WER 1001 보고의
+  // 다른 칸("506d7054")이 오류 모듈로 섞여 '오류 모듈이 매번 다르다'(하드웨어 근거)로 잘못 읽혔다.
   std::vector<std::string> out;
   for (std::size_t i = 0; i < s.faulting_modules.size(); i++) {
-    addUnique(&out, s.faulting_modules[i]);
+    if (looksLikeModuleName(s.faulting_modules[i])) addUnique(&out, s.faulting_modules[i]);
   }
   for (std::size_t i = 0; i < s.events.size(); i++) {
-    if (isAppCrashEvent(s.events[i])) addUnique(&out, s.events[i].faulting_module);
+    if (isAppCrashEvent(s.events[i]) && looksLikeModuleName(s.events[i].faulting_module)) {
+      addUnique(&out, s.events[i].faulting_module);
+    }
   }
   for (std::size_t i = 0; i < s.minidumps.size(); i++) {
-    addUnique(&out, s.minidumps[i].faulting_module);
+    if (looksLikeModuleName(s.minidumps[i].faulting_module)) addUnique(&out, s.minidumps[i].faulting_module);
   }
   std::sort(out.begin(), out.end());
   return out;
+}
+
+bool isTargetProgram(const Snapshot& s, const std::string& name) {
+  if (s.target_process.empty() || name.empty()) return false;
+  if (equalsNoCase(name, s.target_process)) return true;
+  // 확장자만 다른 표기는 같은 프로그램으로 본다: "godot" / "godot.exe", 그리고 "App.exe" 옆의 "App.dll"
+  // (.NET 프로그램의 본체는 실행 파일과 이름이 같은 DLL 이다 — 2026-11-17 리허설에서 CrashDummy.dll 이
+  // '종료해 볼 의심 프로그램'으로 따로 나왔다). 부분 일치는 쓰지 않는다: "app.exe" 와 "apphelper.dll" 은 다른 것.
+  if (isDriverModuleName(name)) return false;
+  const std::string a = normalizeName(name);
+  return !a.empty() && a == normalizeName(s.target_process);
+}
+
+std::string targetFaultModule(const Snapshot& s) {
+  std::vector<std::string> mods;
+  for (std::size_t i = 0; i < s.faulting_modules.size(); i++) {
+    if (looksLikeModuleName(s.faulting_modules[i])) addUnique(&mods, s.faulting_modules[i]);
+  }
+  if (!s.target_process.empty()) {
+    for (std::size_t i = 0; i < s.events.size(); i++) {
+      const EventItem& e = s.events[i];
+      if (!isAppCrashEvent(e) || !equalsNoCase(e.subject, s.target_process)) continue;
+      if (looksLikeModuleName(e.faulting_module)) addUnique(&mods, e.faulting_module);
+    }
+    for (std::size_t i = 0; i < s.minidumps.size(); i++) {
+      const MiniDumpInfo& d = s.minidumps[i];
+      if (isKernelDump(d) || !equalsNoCase(d.process, s.target_process)) continue;
+      if (looksLikeModuleName(d.faulting_module)) addUnique(&mods, d.faulting_module);
+    }
+  }
+  std::string only;
+  for (std::size_t i = 0; i < mods.size(); i++) {
+    if (isDriverModuleName(mods[i])) continue;
+    if (!only.empty()) return "";  // 두 가지 이상이면 한 모듈을 짚을 수 없다
+    only = mods[i];
+  }
+  return only;
+}
+
+bool targetHasCrashRecord(const Snapshot& s) {
+  if (s.target_process.empty()) return !distinctFaultingModules(s).empty();
+  for (std::size_t i = 0; i < s.faulting_modules.size(); i++) {
+    if (looksLikeModuleName(s.faulting_modules[i])) return true;
+  }
+  for (std::size_t i = 0; i < s.events.size(); i++) {
+    const EventItem& e = s.events[i];
+    if (isAppCrashEvent(e) && equalsNoCase(e.subject, s.target_process) && looksLikeModuleName(e.faulting_module)) {
+      return true;
+    }
+  }
+  for (std::size_t i = 0; i < s.minidumps.size(); i++) {
+    const MiniDumpInfo& d = s.minidumps[i];
+    if (!isKernelDump(d) && equalsNoCase(d.process, s.target_process) && looksLikeModuleName(d.faulting_module)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool isWindowsInboxDriver(const DriverInfo& d) {
+  if (containsNoCase(d.company, "microsoft")) return true;
+  // 이름 목록: 2026-11-17 Windows 11 (빌드 26300) 한 대에서 드라이버 파일의 서명자가 "Microsoft Windows"(운영체제
+  // 구성요소 서명)인 것을 하나씩 확인한 것만 넣었다 — 파일 시스템 필터로 등록된 서비스 전부와, 수집기가 '표준 경로 밖
+  // 드라이버'로 올리는 cdd. 다른 Windows 판에만 있는 기본 드라이버는 여기 없다: 수집기가 드라이버 제조사를 함께
+  // 보내면(위의 company) 목록 없이도 걸러진다. WdFilter 는 Defender 의 필터다: Defender 는 실시간 감시 목록
+  // (security.realtime_av)으로 후보가 되므로, 같은 사실을 드라이버 상주로 한 번 더 세지 않는다.
+  static const char* const kInbox[] = {
+      "applockerfltr", "appvstrm", "appvvemgr", "appvvfs",        "bfs",       "bindflt", "cdd",      "cldflt",
+      "filecrypt",     "fileinfo", "filetrace", "fltmgr",         "fsdepends", "luafv",   "mssecflt", "npsvctrig",
+      "peauth",        "storqosflt", "ucpd",    "uevagentdriver", "unionfs",   "wcifs",   "wdfilter", "wimmount",
+      "wof",           "wtd"};
+  const std::string n = normalizeName(d.name);
+  for (std::size_t i = 0; i < sizeof(kInbox) / sizeof(kInbox[0]); i++) {
+    if (n == kInbox[i]) return true;
+  }
+  return false;
 }
 
 double maxCpuTemp(const Snapshot& s) {

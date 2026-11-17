@@ -1,0 +1,17 @@
+{
+  "note": "FIX AND VERIFY, first trial (written 2026-11-17). DEVELOPMENT runs, about 2.5 hours. For the six real-program bugs of the development set the advice is 'update'; here the first release with the fix does the same job in the same clone, from the same checkpoint and with the same programs open as an existing bug run (r1-*, r2-*, r3-*). A job is good when the program ends normally, Windows records no crash of it and the collector writes the user's manual record (scenarios.json 'fixed-*', guest-case.ps1 recipe.expect_ok). The bug runs are not repeated: they are the cases already under <vm root>\\cases. None of the fixed versions was run by us before (packages.json): every job here is a first run. Godot comes first because the 11/20 demo needs a fixed Godot that has run in a guest; Blender comes last because nobody knows how long its render takes in a guest (limit 15 minutes a job). design1 is a GPU clone: its scenario starts 215 s after boot. The bugs that are only in the test set are not touched.",
+  "jobs": [
+    { "id": "f1-01", "name": "video1",  "from": "bundle-video",  "case": "fixed-godot-svg",        "open": [ "vlc" ] },
+    { "id": "f1-02", "name": "office1", "from": "bundle-office", "case": "fixed-godot-svg",        "open": [ "libreoffice" ] },
+    { "id": "f1-03", "name": "office1", "from": "bundle-office", "case": "fixed-python-setlocale", "open": [ "chrome" ] },
+    { "id": "f1-04", "name": "video1",  "from": "bundle-video",  "case": "fixed-python-setlocale", "open": [ "vlc" ] },
+    { "id": "f1-05", "name": "office1", "from": "bundle-office", "case": "fixed-git-maintenance" },
+    { "id": "f1-06", "name": "design1", "from": "bundle-design", "case": "fixed-git-maintenance",  "open": [ "inkscape" ] },
+    { "id": "f1-07", "name": "office1", "from": "bundle-office", "case": "fixed-ahk-alttab",       "open": [ "firefox" ] },
+    { "id": "f1-08", "name": "design1", "from": "bundle-design", "case": "fixed-ahk-alttab",       "open": [ "krita" ] },
+    { "id": "f1-09", "name": "dev1",    "from": "bundle-dev",    "case": "fixed-npp-column",       "open": [ "vscode" ] },
+    { "id": "f1-10", "name": "design1", "from": "bundle-design", "case": "fixed-npp-column",       "open": [ "gimp" ] },
+    { "id": "f1-11", "name": "dev1",    "from": "bundle-dev",    "case": "fixed-blender-bgscene",  "open": [ "vscode" ] },
+    { "id": "f1-12", "name": "office1", "from": "bundle-office", "case": "fixed-blender-bgscene",  "open": [ "libreoffice" ] }
+  ]
+}

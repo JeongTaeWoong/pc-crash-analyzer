@@ -97,6 +97,12 @@ struct Rules {
   double w_coexist = 1.0;                 // 공존 상관
   double w_case = 0.6;                    // 사례 DB 일치
   double w_layer = 1.1;                   // 층 판정 결과 반영
+  // 직접 근거(2026-11-17): 사고 기록이 그 대상을 짚은 경우 — 크래시의 오류 모듈, 덤프 스택, 블루스크린 원인
+  // 드라이버, 크래시 기록 없이 오류 코드로 끝남. 공존 합(상한 1.2)과 따로 더한다.
+  double w_direct = 1.0;
+  // 직접 근거를 가진 후보가 있을 때, '그 자리에 있었다 / 최근에 설치됐다'뿐인 후보의 점수에 곱하는 값.
+  // 기록이 위치를 짚었는데 정황만 있는 후보가 그보다 앞서지 않게 한다 (docs/rules_rationale.md 10절).
+  double circumstantial_factor = 0.5;
   double time_window_minutes = 4320;      // 변경-증상 시간 상관 창(기본 3일)
   double time_full_credit_minutes = 120;  // 이 안쪽은 만점
 

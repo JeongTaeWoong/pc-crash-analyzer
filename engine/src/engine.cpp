@@ -116,12 +116,25 @@ Diagnosis diagnose(const Snapshot& s, const Rules& r, EngineVersion version,
 
   // 지원 범위 안내 (1차 보안 → 2차 드라이버·시스템 → 3차 하드웨어)
   if (!r.scopes.empty() && d.top() != nullptr) {
-    if (d.top()->stage > 0) {
+    if (d.top()->category == "app_self") {
+      // 꺼진 프로그램 자신이 1순위: '범위 밖'이라는 말보다 무엇을 해야 하는지가 먼저다 (2026-11-17)
+      d.notes.push_back("1순위는 꺼진 프로그램 자체의 문제입니다. 다른 프로그램과의 충돌이 아니므로 끌 상대가 없고, "
+                        "고쳐진 버전으로 올리거나 다시 설치하는 것이 해결입니다.");
+    } else if (d.top()->stage > 0) {
       d.notes.push_back("1순위 후보는 " + std::to_string(d.top()->stage) + "차 지원 범위(" +
                         r.stageName(d.top()->stage) + ")입니다.");
     } else {
       d.notes.push_back("1순위 후보는 지원 범위 밖(일반 소프트웨어)입니다. 원인 판정은 그대로 제공하지만 "
                         "해결 안내는 일반 안내 수준입니다.");
+    }
+  }
+
+  // 기록이 오류 위치를 짚어, 정황뿐인 후보를 낮춘 경우 그 사실을 알린다 (점수가 왜 그런지 사용자가 볼 수 있게)
+  for (std::size_t i = 0; i < d.candidates.size(); i++) {
+    if (d.candidates[i].locality_gate < 1.0) {
+      d.notes.push_back("사고 기록이 오류 위치를 직접 짚었습니다. 그 자리에 있었거나 최근에 설치됐을 뿐인 후보는 "
+                        "점수를 낮춰 표시했습니다.");
+      break;
     }
   }
 
@@ -174,6 +187,15 @@ Diagnosis diagnose(const Snapshot& s, const Rules& r, EngineVersion version,
       d.notes.push_back("디스크 " + s.recent.disks[0].name + " 가 마킹 직전 구간 가운데 한동안 거의 쉬지 못했습니다(" + buf +
                         "). 그 동안에는 CPU·메모리에 여유가 있어도 PC 전체가 느려집니다.");
     }
+  }
+
+  // 1순위에도 이번 일을 가리키는 관측이 없으면 그 사실을 먼저 알린다 (2026-11-17).
+  // 후보의 확률은 '후보끼리 나눈 몫'이다. 관측된 근거가 하나도 없어도 합은 100% 이므로, 아무 문제가 없는 PC 에서도
+  // 켜져 있는 백신이나 최근에 설치한 프로그램이 수십 % 로 나온다 (개발용 사례 중 정답이 '문제 없음'인 29건: 1순위 몫 중앙값 34%).
+  // 느려짐에는 같은 뜻의 경고가 위에 따로 있다.
+  if (s.symptom != Symptom::Slow && d.top() != nullptr && !d.top()->observed) {
+    d.warnings.push_back("근거 부족: 1순위 후보에도 이번 일을 직접 가리키는 기록이 없습니다 — 켜져 있었다, 최근에 설치됐다는 "
+                         "정황뿐입니다. 아래 확률은 후보끼리 나눈 몫이어서, 아무 문제가 없는 PC 에서도 같은 후보가 같은 크기로 나옵니다.");
   }
 
   if (!s.available.sensors) {

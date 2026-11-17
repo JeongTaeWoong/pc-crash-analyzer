@@ -47,7 +47,28 @@ bool diskHasWarning(const DiskHealth& d);
 int causeSignalsSince(const Snapshot& s, const std::string& category, long long since);
 
 // 여러 크래시에서 모인 오류 모듈(소문자, 중복 제거). 매번 다르면 HW 가설의 근거가 된다.
+// 모듈 이름처럼 생기지 않은 값("0", "506d7054" 등 — 크래시가 아닌 WER 1001 보고의 다른 칸)은 세지 않는다.
 std::vector<std::string> distinctFaultingModules(const Snapshot& s);
+
+// 파일 이름처럼 생겼는가: 마지막 '.' 뒤에 글자가 든 2~5자 확장자가 있다 (foo.exe, python313.dll, x.node).
+bool looksLikeModuleName(const std::string& name);
+
+// '이번 일'의 오류 모듈(소문자). 지목된 프로그램 자신의 크래시 기록만 본다: 증상에 적힌 오류 모듈과, 대상 프로그램의
+// 크래시 이벤트·앱 덤프. 같은 시간대에 다른 프로그램이 남긴 기록은 섞지 않는다. 한 가지로 정해지지 않으면 "".
+// (.sys 는 제외 — 블루스크린 쪽에서 따로 다룬다)
+std::string targetFaultModule(const Snapshot& s);
+
+// 지목된 프로그램의 크래시가 오류 모듈과 함께 기록되어 있는가 (증상의 오류 모듈, 또는 그 프로그램의 크래시 이벤트).
+// 대상이 없으면 창 안의 아무 크래시 기록이나 센다.
+bool targetHasCrashRecord(const Snapshot& s);
+
+// 이름이 증상이 난 프로그램 자신인가: 실행 파일("Godot.exe" == target "godot.exe") 또는 그와 이름이 같은 DLL
+// (.NET 프로그램의 본체 "App.dll"). 대상이 없으면 false.
+bool isTargetProgram(const Snapshot& s, const std::string& name);
+
+// Windows 에 들어 있는 필터·기본 드라이버인가. 어느 PC 에나 있으므로 '상주 중'이라는 것만으로는 후보가 아니다.
+// 제조사가 Microsoft 로 온 드라이버, 또는 이름이 확인된 목록(signals.cpp)에 있는 드라이버.
+bool isWindowsInboxDriver(const DriverInfo& d);
 
 double maxCpuTemp(const Snapshot& s);  // 값이 없으면 -1
 double maxGpuTemp(const Snapshot& s);

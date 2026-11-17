@@ -1,0 +1,50 @@
+{
+  "_comment": "프로그램이 자기 코드 안에서 꺼진 크래시. 2026-11-14 실험실 가상 머신(office1)에서 Godot 4.3 이 JPEG 이 든 SVG 를 가져오다 꺼진 기록의 값 그대로다(godotengine/godot 이슈 98341, 4.5 에서 고쳐짐). 프로세스 목록과 자원 요약만 뺐다. 드라이버 15개는 모두 Windows 에 들어 있는 것이다.",
+  "schema_version": "1.1",
+  "snapshot_id": "s20-self-fault-crash",
+  "marked_at": "2026-11-14T16:11:15.2346829+09:00",
+  "trigger": {"kind": "auto_app_crash", "event_id": 1000},
+  "host": {"os": "Windows 10.0.26300.0", "sensor_support": false},
+  "symptom": {
+    "type": "app_crash",
+    "target_process": "Godot_v4.3-stable_win64.exe",
+    "scope": "single_app",
+    "started_at": "2026-11-14T16:11:14.0410265+09:00",
+    "faulting_modules": ["Godot_v4.3-stable_win64.exe"]
+  },
+  "modules": [
+    {"process": "Godot_v4.3-stable_win64.exe", "name": "Godot_v4.3-stable_win64.exe", "path": "C:\\Tools\\Godot\\Godot_v4.3-stable_win64.exe",
+     "company": "Godot Engine", "microsoft_signed": false, "version": "4.3"}
+  ],
+  "drivers": [
+    {"name": "CDD"},
+    {"name": "bindflt", "type": "kernel_filter"},
+    {"name": "UCPD", "type": "kernel_filter"},
+    {"name": "WdFilter", "type": "kernel_filter"},
+    {"name": "applockerfltr", "type": "kernel_filter"},
+    {"name": "storqosflt", "type": "kernel_filter"},
+    {"name": "wcifs", "type": "kernel_filter"},
+    {"name": "CldFlt", "type": "kernel_filter"},
+    {"name": "bfs", "type": "kernel_filter"},
+    {"name": "FileCrypt", "type": "kernel_filter"},
+    {"name": "luafv", "type": "kernel_filter"},
+    {"name": "UnionFS", "type": "kernel_filter"},
+    {"name": "npsvctrig", "type": "kernel_filter"},
+    {"name": "Wof", "type": "kernel_filter"},
+    {"name": "FileInfo", "type": "kernel_filter"}
+  ],
+  "device_filters": {"keyboard_upper": ["kbdclass"], "mouse_upper": ["mouclass"]},
+  "security": {"realtime_av": ["Windows Defender"]},
+  "change_history": [
+    {"time": "2026-11-12T00:00:00+09:00", "kind": "install", "subject": "Microsoft Visual C++ 2022 X64 Additional Runtime - 14.52.37029", "version": "14.52.37029"},
+    {"time": "2026-11-12T00:00:00+09:00", "kind": "install", "subject": "LibreOffice 26.8.2.2", "version": "26.8.2.2"},
+    {"time": "2026-11-12T00:00:00+09:00", "kind": "install", "subject": "Microsoft Visual C++ 2022 X64 Minimum Runtime - 14.52.37029", "version": "14.52.37029"},
+    {"time": "2026-11-12T00:00:00+09:00", "kind": "install", "subject": "Google Chrome", "version": "157.0.8103.51"},
+    {"time": "2026-11-12T00:00:00+09:00", "kind": "install", "subject": "Microsoft Edge", "version": "157.0.4341.46"},
+    {"time": "2026-11-12T00:00:00+09:00", "kind": "install", "subject": "Microsoft Edge WebView2 런타임", "version": "157.0.4341.46"}
+  ],
+  "events": [
+    {"time": "2026-11-14T16:11:15.2139276+09:00", "id": 1000, "provider": "Application Error", "subject": "Godot_v4.3-stable_win64.exe", "faulting_module": "Godot_v4.3-stable_win64.exe"},
+    {"time": "2026-11-14T16:11:17.6040928+09:00", "id": 1001, "provider": "Windows Error Reporting", "subject": "Godot_v4.3-stable_win64.exe", "faulting_module": "Godot_v4.3-stable_win64.exe"}
+  ]
+}

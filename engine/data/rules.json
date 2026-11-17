@@ -56,17 +56,19 @@
     "w_coexist": 1.0,
     "w_case": 0.6,
     "w_layer": 1.1,
+    "w_direct": 1.0,
+    "circumstantial_factor": 0.5,
     "time_window_minutes": 4320,
     "time_full_credit_minutes": 120
   },
 
   "priors": {
-    "app_crash":         {"anticheat": 0.22, "overlay": 0.22, "antivirus": 0.15, "fin_security": 0.08, "security_firewall": 0.03, "other_sw": 0.05, "gpu_driver": 0.12, "os_update": 0.05, "thermal": 0.06, "power": 0.05, "memory": 0.05},
+    "app_crash":         {"anticheat": 0.22, "overlay": 0.22, "antivirus": 0.15, "fin_security": 0.08, "security_firewall": 0.03, "other_sw": 0.05, "app_self": 0.05, "gpu_driver": 0.12, "os_update": 0.05, "thermal": 0.06, "power": 0.05, "memory": 0.05},
     "freeze":            {"antivirus": 0.18, "anticheat": 0.12, "fin_security": 0.10, "overlay": 0.08, "other_sw": 0.08, "app_memory": 0.05, "gpu_driver": 0.15, "thermal": 0.12, "power": 0.10, "storage": 0.13, "memory": 0.08},
     "fps_drop":          {"thermal": 0.30, "power": 0.15, "overlay": 0.15, "antivirus": 0.12, "gpu_driver": 0.13, "storage": 0.08, "other_sw": 0.05},
     "flicker":           {"gpu_driver": 0.30, "display_util": 0.30, "connection": 0.20, "peripheral_driver": 0.08, "power": 0.10, "overlay": 0.05},
     "input_loss":        {"input_util": 0.30, "antivirus": 0.18, "fin_security": 0.15, "connection": 0.15, "overlay": 0.08, "peripheral_driver": 0.10},
-    "launch_fail":       {"antivirus": 0.30, "anticheat": 0.20, "fin_security": 0.18, "security_firewall": 0.12, "other_sw": 0.12, "os_update": 0.05},
+    "launch_fail":       {"antivirus": 0.30, "anticheat": 0.20, "fin_security": 0.18, "security_firewall": 0.12, "other_sw": 0.12, "app_self": 0.12, "os_update": 0.05},
     "network_fail":      {"security_firewall": 0.33, "antivirus": 0.24, "fin_security": 0.20, "network_driver": 0.12, "connection": 0.08, "other_sw": 0.03},
     "unexpected_reboot": {"power": 0.35, "thermal": 0.25, "memory": 0.15, "storage": 0.10, "gpu_driver": 0.08, "other_driver": 0.04, "antivirus": 0.03},
     "slow":              {"app_memory": 0.20, "other_sw": 0.10, "antivirus": 0.15, "fin_security": 0.13, "thermal": 0.14, "storage": 0.09, "memory": 0.06, "overlay": 0.04, "anticheat": 0.03, "gpu_driver": 0.04, "power": 0.02}
@@ -338,6 +340,8 @@
      "advice": "보안 제품의 방화벽에서 해당 프로그램을 허용 목록에 추가하고 재현해 보세요."},
     {"id": "pause_other_sw", "label": "의심 프로그램 종료", "action": "a_stop_process", "cost_seconds": 60, "reliability": 0.8, "categories": ["other_sw"],
      "advice": "해당 프로그램을 종료한 상태로 재현해 보세요."},
+    {"id": "app_update_test", "label": "프로그램 업데이트 후 재현", "action": "a_program_update", "cost_seconds": 420, "reliability": 0.6, "categories": ["app_self"],
+     "advice": "꺼진 프로그램을 최신 버전으로 올린 뒤 같은 작업을 다시 해 보세요. 더 꺼지지 않으면 그 버전에서 고쳐진 프로그램 자체의 오류입니다. 이미 최신 버전이면 '할 수 없어요'를 고르세요."},
     {"id": "app_memory_restart_test", "label": "저장 후 프로그램 재시작", "action": "a_app_restart", "cost_seconds": 120, "reliability": 0.85, "categories": ["app_memory"], "symptoms": ["slow", "freeze"],
      "advice": "작업을 저장하고 프로그램을 완전히 종료한 뒤 다시 열어 보세요. 체감 속도가 바로 회복되면 프로그램 안에 쌓인 메모리(실행 취소 이력·캐시·플러그인)가 원인입니다."},
     {"id": "clean_boot", "label": "클린 부트(서드파티 전체 중지)", "action": "a_clean_boot", "cost_seconds": 480, "reliability": 0.92, "group": true, "categories": ["anticheat", "antivirus", "fin_security", "security_firewall", "overlay", "input_util", "other_sw"],
@@ -430,6 +434,13 @@
      "description": "최신 버전에서 호환 문제가 고쳐졌는지 확인합니다.", "actions": ["a_program_update"], "success_seed": 0.45},
     {"id": "r_other_remove", "label": "해당 프로그램 제거", "categories": ["other_sw"],
      "description": "필요 없는 프로그램이면 제거합니다.", "actions": ["a_uninstall"], "success_seed": 0.6},
+
+    {"id": "r_app_update", "label": "프로그램을 고쳐진 버전으로 업데이트", "categories": ["app_self"],
+     "description": "오류가 그 프로그램 자체에서 났습니다. 다른 프로그램과의 충돌이 아니므로 끌 상대가 없고, 제작사가 고친 버전으로 올리는 것이 해결입니다. 제작사의 변경 기록이나 알려진 문제 목록에 같은 증상이 있는지도 확인해 보세요.",
+     "actions": ["a_program_update"], "success_seed": 0.6},
+    {"id": "r_app_reinstall", "label": "프로그램 복구·재설치", "categories": ["app_self"],
+     "description": "이미 최신 버전이거나 업데이트로 고쳐지지 않으면 설치 파일이 손상됐을 수 있습니다. 복구 기능이 있으면 먼저 쓰고, 없으면 다시 설치합니다.",
+     "actions": ["a_reinstall"], "success_seed": 0.4},
 
     {"id": "r_gpu_rollback", "label": "GPU 드라이버 이전 버전 유지", "categories": ["gpu_driver"],
      "description": "증상이 사라진 이전 버전을 유지하고, Windows 업데이트가 문제 버전을 다시 깔지 않도록 막아 둡니다. 다음 정식 버전에서 고쳐졌는지 확인합니다. 장치 관리자의 롤백 버튼이 꺼져 있으면 2번(클린 설치)으로 이전 버전을 설치합니다.", "actions": ["a_driver_rollback", "a_driver_update_block"], "success_seed": 0.6},

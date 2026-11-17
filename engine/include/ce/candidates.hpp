@@ -22,7 +22,10 @@ struct Candidate {
   bool in_focus = true;  // stage > 0
 
   double s_prior = 0, s_time = 0, s_coexist = 0, s_case = 0;  // 성분별 원점수
+  double s_direct = 0;     // 직접 근거: 사고 기록이 이 대상을 짚었다 (근거 종류 "fault" 의 최댓값)
   double layer_gate = 1;   // 층 판정 보정 계수
+  double locality_gate = 1;  // 정황 보정: 직접 근거를 가진 후보가 따로 있고 이 후보는 정황뿐이면 1보다 작다
+  bool observed = false;     // 이번 일에서 관측된 근거가 있다 (사고 기록·이벤트·센서·탐지). false = 정황뿐인 후보
   double score = 0;        // 최종 점수
   double probability = 0;  // 후보들 사이에서 정규화한 확률
   double confidence = 0;   // 근거의 양과 수집 가용성으로 산출

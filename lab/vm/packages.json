@@ -264,6 +264,75 @@
           ]
         }
       ]
+    },
+    "godot-4.5": {
+      "product": "Godot Engine", "version": "4.5-stable",
+      "official_url": "https://github.com/godotengine/godot/releases/download/4.5-stable/Godot_v4.5-stable_win64.exe.zip",
+      "sha256_archive": "303206071cb8be502cfa5b1e2b37b848c280347c03f78dcc2eb8a630857f7d10",
+      "note": "FIXED versions for the 'fixed-*' scenarios (added 2026-11-17): the first release that has the fix, laid out at the same place as the version with the bug, with the same user files. Each archive was compared with the publisher's checksum and unpacked on the host on 2026-11-17; none was run on the host. This one: SHA-256 equals the asset digest GitHub gives for the release, SHA-512 equals the line in the release's SHA512-SUMS.txt; the exe is signed by Prehensile Tales B.V. (Valid), as 4.3 is. Same sample project as godot-4.3.",
+      "copy": [
+        { "src": "godot-4.5", "dest": "Tools/Godot" },
+        { "src": "godot-sample", "dest": "Work/game-project", "exclude": [ ".godot" ] }
+      ]
+    },
+    "python-3.13.6": {
+      "product": "Python", "version": "3.13.6",
+      "official_url": "https://www.python.org/ftp/python/3.13.6/python-3.13.6-embed-amd64.zip",
+      "md5_archive": "31019bd49a54b8d3bfa7eb1093d4b8e5",
+      "sha256_archive": "d6ab71980c0be5809f2a0edd991e28d999e7ac971dc3b6da676dc2f80eac41dd",
+      "note": "FIXED version for fixed-python-setlocale. python.org publishes only an MD5 for this file (release page python-3136); it matched. The SHA-256 here is our own, of the file that matched. python.exe is signed by Python Software Foundation (Valid).",
+      "copy": [ { "src": "python-3.13.6", "dest": "Tools/Python313" } ]
+    },
+    "git-2.47.0.2": {
+      "product": "Git for Windows", "version": "2.47.0(2)",
+      "official_url": "https://github.com/git-for-windows/git/releases/download/v2.47.0.windows.2/MinGit-2.47.0.2-64-bit.zip",
+      "sha256_archive": "c4a5d3a2adda98b25fe59349733fca56b3843360b962dba5535282a9d8120b31",
+      "note": "FIXED version for fixed-git-maintenance. SHA-256 equals the line in the release notes of v2.47.0.windows.2. cmd\\git.exe is signed by Johannes Schindelin (Valid), the Git for Windows maintainer.",
+      "copy": [ { "src": "git-2.47.0.2", "dest": "Tools/Git" } ],
+      "files": [ { "dest": "Work/notes-repo/README.md", "lines": [ "# notes", "", "meeting notes and drafts" ] } ]
+    },
+    "ahk-2.0.30": {
+      "product": "AutoHotkey", "version": "2.0.30",
+      "official_url": "https://www.autohotkey.com/download/2.0/AutoHotkey_2.0.30.zip",
+      "sha256_archive": "1e0ece7ecb2d5646e55758150472677996a57f9db5c83d2996d8b47b9e2f31a4",
+      "note": "FIXED version for fixed-ahk-alttab. SHA-256 equals AutoHotkey_2.0.30.zip.sha256 next to the archive. AutoHotkey64.exe carries no Authenticode signature (NotSigned) - the checksum is the only check. Same script as ahk-2.0.29.",
+      "copy": [ { "src": "ahk-2.0.30", "dest": "Tools/AutoHotkey" } ],
+      "files": [
+        { "dest": "Work/hotkeys/window-keys.ahk", "lines": [
+          "#Requires AutoHotkey v2.0",
+          "#NoTrayIcon",
+          "a & b::AltTabMenu",
+          "Sleep 15000",
+          "SendLevel 1",
+          "SendEvent \"{a down}\"",
+          "Sleep 200",
+          "SendEvent \"{b down}{b up}\"",
+          "Sleep 200",
+          "SendEvent \"{a up}\"",
+          "Sleep 6000",
+          "Send \"{Esc}\"",
+          "Sleep 500",
+          "ExitApp 0"
+        ] }
+      ]
+    },
+    "npp-8.6.8": {
+      "product": "Notepad++", "version": "8.6.8",
+      "official_url": "https://github.com/notepad-plus-plus/notepad-plus-plus/releases/download/v8.6.8/npp.8.6.8.portable.x64.zip",
+      "sha256_archive": "5ffda6b66e438e585bbc13f8b7e15801419efd76aedcafd6f221822198b85b32",
+      "note": "FIXED version for fixed-npp-column. SHA-256 equals the digest in the release notes of v8.6.8. notepad++.exe is signed by Notepad++ (Valid).",
+      "copy": [ { "src": "npp-8.6.8", "dest": "Tools/Notepad++" } ],
+      "files": [ { "dest": "lab/case/drivers/npp-column.ps1", "from_repo": "collector/experiments/repro/gui-npp-column.ps1" } ]
+    },
+    "blender-5.1.1": {
+      "product": "Blender", "version": "5.1.1",
+      "official_url": "https://download.blender.org/release/Blender5.1/blender-5.1.1-windows-x64.zip",
+      "sha256_archive": "307123caa3bad0c1d04ec373a2f22f622c403eecb34b9c646ede104906b04ced",
+      "note": "FIXED version for fixed-blender-bgscene. SHA-256 equals the line in blender-5.1.1.sha256 next to the archive; 6368 files, blender.exe signed by Blender Foundation (Valid). Put at the same folder as 5.1.0 (Tools/Blender51) so the recipe is the same command. Same scene as blender-5.1.0.",
+      "copy": [
+        { "src": "blender-5.1.1", "dest": "Tools/Blender51", "exclude": [ "blender.pdb" ] },
+        { "src": "blender-scene", "dest": "Work/shots" }
+      ]
     }
   }
 }

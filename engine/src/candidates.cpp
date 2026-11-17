@@ -20,13 +20,17 @@ namespace {
 //       같은 대상이 여러 곳에서 나오면 하나로 합친다. (vgk.sys 드라이버 + Riot Vanguard 설치 이력 = 한 후보)
 //   (2) buildCandidates() 에서 근거들을 합쳐 점수를 계산한다.
 //
-//       점수 = (사전 비중 + 시간 상관 + 공존 상관 + 사례 DB) × 층 보정
+//       점수 = (사전 비중 + 시간 상관 + 공존 상관 + 사례 DB + 직접 근거) × 층 보정 × 정황 보정
 //
 //       - 사전 비중 : 이 증상에서 이 종류가 원인인 경우가 원래 얼마나 많은가 (rules.json priors)
 //       - 시간 상관 : 증상이 시작되기 직전에 설치·변경되었는가 (가까울수록 1에 가까움)
-//       - 공존 상관 : 문제 순간에 그 자리에 있었는가 (대상 프로그램에 로드됨, 덤프 스택에 있음 등)
+//       - 공존 상관 : 문제 순간에 그 자리에 있었는가 (대상 프로그램에 로드됨, 실시간 감시 중 등)
 //       - 사례 DB   : 예전에 같은 증상에서 실제로 범인이었던 비율
+//       - 직접 근거 : 사고 기록이 이 대상을 짚었는가 (크래시의 오류 모듈, 덤프 스택, 블루스크린 원인 드라이버,
+//                     크래시 기록 없이 오류 코드로 끝남). 근거 종류 "fault". 공존 합과 따로 더한다.
 //       - 층 보정   : 1단계에서 확률이 낮은 층의 후보는 점수를 깎는다
+//       - 정황 보정 : 직접 근거를 가진 후보가 하나라도 있으면, '있었다 / 최근 설치됐다'뿐인 후보는 점수를 절반으로.
+//                     기록이 오류 위치를 짚었는데 정황뿐인 후보가 그보다 앞서지 않게 한다 (2026-11-17).
 //
 //   (3) 모든 후보 점수의 합으로 나누어 확률로 만들고, 높은 순으로 정렬한다.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -128,10 +132,51 @@ std::string hardwareLabel(const std::string& category) {
   return category;
 }
 
+// ── 증상이 난 프로그램 '자신' (app_self, 2026-11-17) ──────────────────────────────────────────────
+// 꺼진 프로그램은 충돌 '상대'가 아니다. 그 프로그램의 결함이라는 가설은 따로 둔다: 끌 상대가 없고, 처방은
+// 업데이트·재설치다. 그 전에는 꺼진 프로그램이 '대상 프로세스에 로드된 모듈'로 우연히 후보에 들어가(other_sw)
+// "의심 프로그램 종료"가 점검으로 나왔다. 지금은 앱 크래시(app_crash)에서만 만든다 — 응답 없음·느려짐은 그대로.
+// 대상 이름이 파일 이름이 아니면(WER 1001 보고의 다른 칸이 대상으로 들어온 기록: "3b", "80073CF8") 만들지 않는다.
+bool hasTargetCandidate(const Snapshot& s) {
+  return s.symptom == Symptom::AppCrash && !s.target_process.empty() &&
+         signals::looksLikeModuleName(s.target_process);
+}
+
+// 이름이 힌트 표에 걸리면(꺼진 것이 백신·안티치트 자신인 경우 등) 그 범주를 그대로 쓴다.
+int targetCandidate(const std::string& name, const Rules& r, CandidateBag& bag) {
+  std::string cat;
+  std::string label;
+  r.classifyName(name, name, "app_self", &cat, &label);
+  if (cat == "app_self") label = name + " (프로그램 자체의 문제)";
+  return bag.get(cat, name, label);
+}
+
+void addTargetItself(const Snapshot& s, const Rules& r, CandidateBag& bag) {
+  if (!hasTargetCandidate(s)) return;
+  const int idx = targetCandidate(s.target_process, r, bag);
+  bag.addEvidence(idx, "coexist", "꺼진 프로그램 자신입니다.", 0.6, 0);
+
+  const std::string mod = signals::targetFaultModule(s);
+  if (mod.empty()) return;
+  if (signals::isTargetProgram(s, mod)) {
+    // 오류 위치가 프로그램 자체 코드 안이다: 직접 근거
+    bag.addEvidence(idx, "fault",
+                    "크래시의 오류 모듈이 이 프로그램 자신입니다 (" + mod + ") — 오류가 프로그램 자체 코드 안에서 났습니다.",
+                    0.9, 0);
+  } else if (signals::isMicrosoftModule(s, mod)) {
+    // Windows 구성요소 안에서 멈춘 경우: 그 코드를 부른 쪽은 이 프로그램이지만, 같은 프로세스에 끼어든 다른 모듈이
+    // 원인일 수도 있어 위치를 짚은 것은 아니다. 근거로는 세되('event') 다른 후보를 낮추는 직접 근거로는 쓰지 않는다.
+    bag.addEvidence(idx, "event",
+                    "Windows 구성요소(" + mod + ") 안에서 멈췄습니다. 그 코드를 부른 쪽은 이 프로그램입니다.", 0.6, 0);
+  }
+}
+
 void addFromModules(const Snapshot& s, const Rules& r, CandidateBag& bag) {
+  const bool targetHandled = hasTargetCandidate(s);
   for (std::size_t i = 0; i < s.modules.size(); i++) {
     const ModuleInfo& m = s.modules[i];
     if (m.microsoft_signed) continue;
+    if (targetHandled && signals::isTargetProgram(s, m.name)) continue;  // 꺼진 프로그램 자신은 addTargetItself 가 다룬다
     std::string cat;
     std::string label;
     r.classifyName(m.name + " " + m.company, m.name, "other_sw", &cat, &label);
@@ -151,6 +196,11 @@ void addFromModules(const Snapshot& s, const Rules& r, CandidateBag& bag) {
 void addFromDrivers(const Snapshot& s, const Rules& r, CandidateBag& bag) {
   for (std::size_t i = 0; i < s.drivers.size(); i++) {
     const DriverInfo& d = s.drivers[i];
+    // Windows 에 들어 있는 드라이버는 어느 PC 에나 상주한다 — '상주 중'은 근거가 아니다 (2026-11-17).
+    // 그 전에는 bindflt·CldFlt·luafv 등 14개가 각각 후보가 되어 꺼진 프로그램의 몫을 13% 로 묽혔고, 아무 문제 없는
+    // PC 에서도 1순위로 나왔다. 이런 드라이버가 블루스크린의 원인으로 '기록'되면 그쪽 규칙(addFromCrashModules)이
+    // 다룬다. Defender 의 WdFilter 도 여기서 빠진다 — 실시간 감시 근거(addFromSecurity)와 같은 사실이다.
+    if (signals::isWindowsInboxDriver(d)) continue;
     std::string fallback = "other_sw";
     if (containsNoCase(d.type, "display")) {
       fallback = "gpu_driver";
@@ -247,7 +297,17 @@ void addFromChanges(const Snapshot& s, const Rules& r, CandidateBag& bag) {
     double corr = signals::timeCorrelation(ch.time, ref, r);
     if (corr <= 0.05) continue;
     // 대상 프로그램 자신의 업데이트는 충돌 '상대'가 아니다(엔진 노트로 따로 안내한다).
-    if (!s.target_process.empty() && sameSubject(ch.subject, s.target_process)) continue;
+    // 앱 크래시에서는 '프로그램 자체의 문제' 후보의 시간 근거가 된다: 바뀐 직후부터 꺼진다면 새 버전의 결함일 수 있다.
+    if (!s.target_process.empty() && sameSubject(ch.subject, s.target_process)) {
+      if (hasTargetCandidate(s)) {
+        const std::string when0 =
+            ch.time != 0 ? json::formatIso8601(ch.time, s.tz_offset_minutes) : "시각 미상";
+        std::string d0 = "이 프로그램 자신이 증상 직전에 설치·변경되었습니다 (" + when0;
+        if (!ch.version.empty()) d0 += ", " + ch.version;
+        bag.addEvidence(targetCandidate(s.target_process, r, bag), "time_corr", d0 + ").", corr, ch.time);
+      }
+      continue;
+    }
     // 브라우저·런처처럼 스스로 업데이트되는 프로그램의 '설치' 기록은 사용자 행동이 아닐 가능성이 커 가중을 1/4 로
     const bool autoNoise = r.isAutoUpdateNoise(ch.subject);
     if (autoNoise) corr *= 0.25;
@@ -299,18 +359,25 @@ std::string companyOfModule(const Snapshot& s, const std::string& name) {
 void addFromCrashModules(const Snapshot& s, const Rules& r, CandidateBag& bag) {
   // (1) 앱 크래시의 오류 모듈: 매번 다르면 특정 모듈을 지목할 수 없으므로 1종일 때만 후보로 올린다.
   //     .sys(커널 드라이버)는 아래 (3) 블루스크린 쪽에서 따로 다룬다.
-  const std::vector<std::string> all = signals::distinctFaultingModules(s);
-  std::vector<std::string> faulting;
-  for (std::size_t i = 0; i < all.size(); i++) {
-    if (!signals::isDriverModuleName(all[i])) faulting.push_back(all[i]);
+  //     지목된 프로그램이 있으면 '그 프로그램의' 크래시 기록만 본다 (2026-11-17). 그 전에는 같은 5분 창에 다른 기록이
+  //     하나만 섞여도 '1종이 아니다'가 되어, 오류 모듈이 분명한 크래시에서 이 근거가 통째로 빠졌다(참여자 기록 56건 중 55건).
+  //     오류 모듈이 꺼진 프로그램 자신이면 addTargetItself 가 다룬다.
+  std::string faultMod = signals::targetFaultModule(s);
+  if (s.target_process.empty()) {
+    const std::vector<std::string> all = signals::distinctFaultingModules(s);
+    std::vector<std::string> faulting;
+    for (std::size_t i = 0; i < all.size(); i++) {
+      if (!signals::isDriverModuleName(all[i])) faulting.push_back(all[i]);
+    }
+    faultMod = faulting.size() == 1 ? faulting[0] : "";
   }
-  if (faulting.size() == 1 && !signals::isMicrosoftModule(s, faulting[0])) {
+  if (!faultMod.empty() && !signals::isMicrosoftModule(s, faultMod) &&
+      !(hasTargetCandidate(s) && signals::isTargetProgram(s, faultMod))) {
     std::string cat;
     std::string label;
-    r.classifyName(faulting[0] + " " + companyOfModule(s, faulting[0]), faulting[0], "other_sw", &cat,
-                   &label);
-    const int idx = bag.get(cat, faulting[0], label);
-    bag.addEvidence(idx, "event", "크래시의 오류 모듈로 기록되었습니다.", 0.9, 0);
+    r.classifyName(faultMod + " " + companyOfModule(s, faultMod), faultMod, "other_sw", &cat, &label);
+    const int idx = bag.get(cat, faultMod, label);
+    bag.addEvidence(idx, "fault", "크래시의 오류 모듈로 기록되었습니다.", 0.9, 0);
   }
 
   // (2) 미니덤프 스택에 남은 서드파티 모듈. 오류 모듈이 ntdll 처럼 시스템 모듈이어도
@@ -324,7 +391,7 @@ void addFromCrashModules(const Snapshot& s, const Rules& r, CandidateBag& bag) {
       std::string label;
       r.classifyName(mod + " " + companyOfModule(s, mod), mod, "other_sw", &cat, &label);
       const int idx = bag.get(cat, mod, label);
-      bag.addEvidence(idx, "event", "크래시 덤프의 호출 스택에 이 모듈이 있습니다 (" + mod + ").",
+      bag.addEvidence(idx, "fault", "크래시 덤프의 호출 스택에 이 모듈이 있습니다 (" + mod + ").",
                       0.75, d.time);
     }
   }
@@ -347,7 +414,7 @@ void addFromCrashModules(const Snapshot& s, const Rules& r, CandidateBag& bag) {
     std::string label;
     r.classifyName(d.faulting_module + " " + display + " " + company, display, "other_driver", &cat, &label);
     const int idx = bag.get(cat, d.faulting_module, label);
-    bag.addEvidence(idx, "event", "블루스크린(" + d.bugcheck + ")의 원인 드라이버로 기록되었습니다.", 0.95,
+    bag.addEvidence(idx, "fault", "블루스크린(" + d.bugcheck + ")의 원인 드라이버로 기록되었습니다.", 0.95,
                     d.time);
   }
 }
@@ -594,7 +661,7 @@ int countEvents(const Snapshot& s, bool (*pred)(const EventItem&), long long* fi
 void addFromProcessExits(const Snapshot& s, const Rules& r, CandidateBag& bag) {
   if (s.target_process.empty() || s.process_exits.empty()) return;
   if (s.symptom != Symptom::AppCrash && s.symptom != Symptom::LaunchFail && s.symptom != Symptom::Unknown) return;
-  if (!signals::distinctFaultingModules(s).empty()) return;
+  if (signals::targetHasCrashRecord(s)) return;
 
   for (std::size_t i = 0; i < s.process_exits.size(); i++) {
     const ProcessExit& e = s.process_exits[i];
@@ -617,11 +684,17 @@ void addFromProcessExits(const Snapshot& s, const Rules& r, CandidateBag& bag) {
     }
     detail += ".";
 
-    std::string cat;
-    std::string label;
-    r.classifyName(e.name, e.name, "other_sw", &cat, &label);
-    const int idx = bag.get(cat, e.name, label);
-    bag.addEvidence(idx, "event", detail, exception ? 0.9 : 0.7, 0);
+    // 스스로 끝난 것이므로 '프로그램 자체의 문제' 후보에 단다 (이름이 파일 이름이 아니면 예전처럼 other_sw)
+    int idx = -1;
+    if (signals::looksLikeModuleName(e.name)) {
+      idx = targetCandidate(e.name, r, bag);
+    } else {
+      std::string cat;
+      std::string label;
+      r.classifyName(e.name, e.name, "other_sw", &cat, &label);
+      idx = bag.get(cat, e.name, label);
+    }
+    bag.addEvidence(idx, "fault", detail, exception ? 0.9 : 0.7, 0);
   }
 }
 
@@ -803,7 +876,10 @@ json::Value Candidate::toJson(int tzOffsetMinutes) const {
   parts.set("time_correlation", json::Value(s_time));
   parts.set("coexistence", json::Value(s_coexist));
   parts.set("case_db", json::Value(s_case));
+  parts.set("direct", json::Value(s_direct));
   parts.set("layer_gate", json::Value(layer_gate));
+  parts.set("locality_gate", json::Value(locality_gate));
+  o.set("observed", json::Value(observed));
   o.set("score_parts", parts);
   o.set("evidence", evidenceListToJson(evidence, tzOffsetMinutes));
   return o;
@@ -812,6 +888,7 @@ json::Value Candidate::toJson(int tzOffsetMinutes) const {
 std::vector<Candidate> buildCandidates(const Snapshot& s, const Rules& r,
                                        const LayerResult& layer) {
   CandidateBag bag(r);
+  addTargetItself(s, r, bag);
   addFromModules(s, r, bag);
   addFromDrivers(s, r, bag);
   addFromDeviceFilters(s, r, bag);
@@ -829,28 +906,47 @@ std::vector<Candidate> buildCandidates(const Snapshot& s, const Rules& r,
 
   std::vector<Candidate> out;
   std::vector<Candidate>& items = bag.items();
+
+  // 사고 기록이 위치를 짚은 후보가 있는가 (근거 종류 "fault")
+  bool anyDirect = false;
+  for (std::size_t i = 0; i < items.size() && !anyDirect; i++) {
+    for (std::size_t k = 0; k < items[i].evidence.size(); k++) {
+      if (items[i].evidence[k].kind == "fault" && items[i].evidence[k].contribution > 0) anyDirect = true;
+    }
+  }
+
   for (std::size_t i = 0; i < items.size(); i++) {
     Candidate c = items[i];
 
     // [설명] 근거(evidence)들을 종류별로 모아 점수 성분을 만든다.
-    //   s1 의 Vanguard 예: 커널 상주 0.5 + 덤프 스택 0.75 → 공존 1.2(상한), 베이스라인 추가 0.55 → 시간 0.55
-    // 성분 집계: 공존은 합(상한 있음), 시간 상관은 최댓값
+    //   s1 의 Vanguard 예: 커널 상주 0.5 → 공존 0.5, 덤프 스택 0.75 → 직접 0.75, 베이스라인 추가 0.55 → 시간 0.55
+    // 성분 집계: 공존은 합(상한 있음), 시간 상관과 직접 근거는 최댓값
     double coexist = 0;
     double timeCorr = 0;
+    double direct = 0;
+    bool hasObserved = false;  // 이번 일에서 '관측된' 근거가 있는가 (기록·센서·탐지). 없으면 정황뿐인 후보다
     int strongEvidence = 0;
     for (std::size_t k = 0; k < c.evidence.size(); k++) {
       const Evidence& e = c.evidence[k];
       if (e.kind == "coexist" || e.kind == "sensor" || e.kind == "event" ||
           e.kind == "detection") {
         coexist += e.contribution;
+        if (e.kind != "coexist" && e.contribution > 0) hasObserved = true;
       } else if (e.kind == "time_corr") {
         if (e.contribution > timeCorr) timeCorr = e.contribution;
+      } else if (e.kind == "fault") {
+        if (e.contribution > direct) direct = e.contribution;
       }
       if (e.contribution >= 0.5) strongEvidence++;
     }
     c.s_coexist = std::min(1.2, coexist);
     c.s_time = timeCorr;
+    c.s_direct = direct;
     c.s_prior = r.prior(symptom, c.category);
+    // 정황 보정: 기록이 다른 곳을 짚었는데 이 후보에는 '있었다 / 최근 설치됐다'뿐이면 낮춘다.
+    // 자기 근거가 관측된 후보(하드웨어 오류 이벤트, 탐지 기록 등)는 낮추지 않는다.
+    c.observed = hasObserved || direct > 0;
+    c.locality_gate = (anyDirect && !c.observed) ? r.circumstantial_factor : 1.0;
 
     const int caseIdx = r.findCaseIndex(symptom, c.category, c.subject);
     if (caseIdx >= 0) {
@@ -876,8 +972,8 @@ std::vector<Candidate> buildCandidates(const Snapshot& s, const Rules& r,
     c.layer_gate = 0.25 + r.w_layer * layer.probabilityOf(c.layer);
 
     c.score = (r.w_prior * c.s_prior + r.w_time * c.s_time + r.w_coexist * c.s_coexist +
-               r.w_case * c.s_case) *
-              c.layer_gate;
+               r.w_case * c.s_case + r.w_direct * c.s_direct) *
+              c.layer_gate * c.locality_gate;
 
     if (c.score <= 1e-6) continue;  // 근거도 사전 확률도 없는 후보는 버린다
     c.confidence = std::min(0.95, (0.25 + 0.18 * strongEvidence) * availability);
@@ -895,16 +991,19 @@ std::vector<Candidate> buildCandidates(const Snapshot& s, const Rules& r,
     // 근거 그래프에 실제 반영된 기여분으로 갱신
     for (std::size_t k = 0; k < c.evidence.size(); k++) {
       Evidence& e = c.evidence[k];
+      const double gate = c.layer_gate * c.locality_gate;
       if (e.kind == "time_corr") {
-        e.contribution *= r.w_time * c.layer_gate;
+        e.contribution *= r.w_time * gate;
       } else if (e.kind == "case_db") {
-        e.contribution *= r.w_case * c.layer_gate;
+        e.contribution *= r.w_case * gate;
+      } else if (e.kind == "fault") {
+        e.contribution *= r.w_direct * gate;
       } else {
-        e.contribution *= r.w_coexist * c.layer_gate;
+        e.contribution *= r.w_coexist * gate;
       }
     }
     c.evidence.push_back(Evidence("prior", "증상 '" + symptom + "' 에서 이 유형의 사전 발생 비중.",
-                                  r.w_prior * c.s_prior * c.layer_gate, 0));
+                                  r.w_prior * c.s_prior * c.layer_gate * c.locality_gate, 0));
     c.evidence.push_back(
         Evidence("layer",
                  "층 판정 " + toString(c.layer) + " 확률 " +

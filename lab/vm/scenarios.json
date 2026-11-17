@@ -181,6 +181,61 @@
       "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "blender.exe", "also": [ "Blender" ],
                  "known_issue": { "product": "Blender", "affected": "5.1.0", "fixed_in": "5.1.1", "fix": "update", "source": "https://developer.blender.org/docs/release_notes/5.1/corrective_releases/" } }
     },
+
+    "fixed-godot-svg": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "documented", "verifies": "real-godot-svg",
+      "title": "After the fix: Godot 4.5 imports the project whose SVG crashes Godot 4.3; the user marks at the end to have the PC checked",
+      "note": "Scenarios 'fixed-*' (added 2026-11-17, plan fix-1): the advice for every real-* bug is 'update'. Here the first release that has the fix does the very same job in the same clone - the other half of the bug scenario named in 'verifies'. recipe.expect_ok (guest-case.ps1): the run is good when the program ends by itself with an exit code in recipe.ok_exit (default 0) and Windows records no crash of it; recipe.program = the process to watch when the recipe starts it through cmd.exe or a driver. The user's plain mark at the end gives a record of a PC on which nothing went wrong, so truth is 'none': a tool that still blames the program in that record is wrong. NOT run by us before this plan - the fixed archives were only compared with the publisher's checksum and unpacked on the host (packages.json). This one: 4.5-stable is the first stable release after the fix (4.5-dev4, issue 98341). Not known until the guest run: that '--headless --import' ends by itself with exit code 0 when nothing crashes, and how long the import takes (limit 240 s).",
+      "packages": [ "godot-4.5" ],
+      "recipe": { "exe": "C:\\Tools\\Godot\\Godot_v4.5-stable_win64.exe", "args": [ "--headless", "--disable-crash-handler", "--path", "C:\\Work\\game-project", "--import" ], "timeout_sec": 240, "expect_ok": true },
+      "mark": { "at_end": true },
+      "truth": { "symptom": "none", "cause_category": "none", "culprit": null, "note": "the fixed version of real-godot-svg doing the same job; nothing is wrong on this PC" }
+    },
+    "fixed-python-setlocale": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "documented", "verifies": "real-python-setlocale",
+      "title": "After the fix: CPython 3.13.6 runs the locale.setlocale() call that ends 3.13.5 abruptly; the user marks at the end",
+      "note": "3.13.6 is the first release with the fix (cpython issue 137273). Our reading of the fix, not checked: the call now raises locale.Error ('unsupported locale setting'), Python prints a traceback and ends with exit code 1 - an ordinary error message instead of a crash. So 1 is a good exit code here; 0 would mean the locale name was accepted. The traceback goes to the error stream and is not in recipe.log.",
+      "packages": [ "python-3.13.6" ],
+      "recipe": { "exe": "C:\\Tools\\Python313\\python.exe", "args": [ "-c", "import locale; locale.setlocale(locale.LC_CTYPE, 'ks_IN.UTF-8@devanagari')" ], "cwd": "C:\\Work\\scripts", "timeout_sec": 60, "expect_ok": true, "ok_exit": [ 0, 1 ] },
+      "mark": { "at_end": true },
+      "truth": { "symptom": "none", "cause_category": "none", "culprit": null, "note": "the fixed version of real-python-setlocale doing the same job; nothing is wrong on this PC" }
+    },
+    "fixed-git-maintenance": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "documented", "verifies": "real-git-maintenance",
+      "title": "After the fix: Git for Windows 2.47.0(2) runs 'git maintenance start', which crashes 2.47.0; the user marks at the end",
+      "note": "2.47.0(2) is the release that fixes it (PR 5198). 'git maintenance start' registers scheduled tasks for the repository; in a guest that is harmless, the clone goes back to its checkpoint. Not known until the guest run: the exit code when the tasks are registered from the guest's account (0 expected; anything else is in recipe.log only if git wrote it to the output stream).",
+      "packages": [ "git-2.47.0.2" ],
+      "recipe": { "exe": "C:\\Windows\\System32\\cmd.exe", "args": [ "/c", "C:\\Tools\\Git\\cmd\\git.exe init . && C:\\Tools\\Git\\cmd\\git.exe maintenance start" ], "cwd": "C:\\Work\\notes-repo", "timeout_sec": 90, "expect_ok": true, "program": "git.exe" },
+      "mark": { "at_end": true },
+      "truth": { "symptom": "none", "cause_category": "none", "culprit": null, "note": "the fixed version of real-git-maintenance doing the same job; nothing is wrong on this PC" }
+    },
+    "fixed-ahk-alttab": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "documented", "verifies": "real-ahk-alttab",
+      "title": "After the fix: AutoHotkey 2.0.30 runs the 'a & b::AltTabMenu' script that crashes 2.0.29; the user marks at the end",
+      "note": "2.0.30 is the first release with the fix (change log). The script is the one of real-ahk-alttab: it fires the hotkey after 15 s, closes the task switcher with Esc and ends with ExitApp 0 about 22 s after the start.",
+      "packages": [ "ahk-2.0.30" ],
+      "recipe": { "exe": "C:\\Tools\\AutoHotkey\\AutoHotkey64.exe", "args": [ "C:\\Work\\hotkeys\\window-keys.ahk" ], "timeout_sec": 90, "expect_ok": true },
+      "mark": { "at_end": true },
+      "truth": { "symptom": "none", "cause_category": "none", "culprit": null, "note": "the fixed version of real-ahk-alttab doing the same job; nothing is wrong on this PC" }
+    },
+    "fixed-npp-column": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "documented", "verifies": "real-npp-column",
+      "title": "After the fix: Notepad++ 8.6.8 does the Column Editor insert that closes 8.6.7; the user marks at the end",
+      "note": "8.6.8 is the release with the fix (issue 15144). The driver is the one of real-npp-column: when Notepad++ is still running 25 s after OK it ends Notepad++ itself and exits 0 - the good outcome here. 3, 4, 5 = the driver could not do its job (window not in front, dialog or control not found: the dialog's control ids may differ in 8.6.8 - not checked); any other code is Notepad++'s own exit code.",
+      "packages": [ "npp-8.6.8" ],
+      "recipe": { "driver": "npp-column.ps1", "driver_args": [ "-Npp", "C:\\Tools\\Notepad++\\notepad++.exe", "-Work", "C:\\Work\\notes" ], "timeout_sec": 150, "expect_ok": true, "program": "notepad++.exe" },
+      "mark": { "at_end": true },
+      "truth": { "symptom": "none", "cause_category": "none", "culprit": null, "note": "the fixed version of real-npp-column doing the same job; nothing is wrong on this PC" }
+    },
+    "fixed-blender-bgscene": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "documented", "verifies": "real-blender-bgscene",
+      "title": "After the fix: Blender 5.1.1 renders the scene with a Background Scene that crashes 5.1.0; the user marks at the end",
+      "note": "5.1.1 is the corrective release with the fix (issue 155851). The same command as real-blender-bgscene, with 5.1.1 at the same folder. Not known until the guest run: how long Cycles needs for the frame on 4 virtual CPUs without a GPU - 5.1.0 never got that far. The limit is 15 minutes; a run that is stopped at the limit says nothing about the fix. Not checked by the script: that C:\\Work\\shots holds a frame_0001 file at the end.",
+      "packages": [ "blender-5.1.1" ],
+      "recipe": { "exe": "C:\\Tools\\Blender51\\blender.exe", "args": [ "-b", "C:\\Work\\shots\\interior-shot.blend", "-E", "CYCLES", "-o", "C:\\Work\\shots\\frame_", "-f", "1" ], "cwd": "C:\\Work\\shots", "timeout_sec": 900, "expect_ok": true },
+      "mark": { "at_end": true },
+      "truth": { "symptom": "none", "cause_category": "none", "culprit": null, "note": "the fixed version of real-blender-bgscene doing the same job; nothing is wrong on this PC" }
+    },
     "sys-defender-scan": {
       "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "by_design",
       "title": "Windows' own work: a full Microsoft Defender scan is running and the user marks 'slow'",

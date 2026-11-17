@@ -58,12 +58,13 @@ bool sameSubject(const std::string& a, const std::string& b) {
 }
 
 Layer layerOfCategory(const std::string& category) {
-  const char* sw[] = {"anticheat", "antivirus", "fin_security", "security_firewall",
-                      "overlay",   "input_util", "other_sw",    "app_memory"};
+  // app_self = 증상이 난 프로그램 자신의 결함(다른 것과의 충돌이 아님), app_memory = 그 프로그램 자신의 메모리 누적
+  const char* sw[] = {"anticheat", "antivirus",  "fin_security", "security_firewall", "overlay",
+                      "input_util", "other_sw",  "app_memory",   "app_self"};
   const char* drv[] = {"gpu_driver",     "display_util", "peripheral_driver",
                        "network_driver", "os_update",    "other_driver"};
   const char* hw[] = {"thermal", "power", "connection", "storage", "memory"};
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < 9; i++) {
     if (category == sw[i]) return Layer::Software;
   }
   for (int i = 0; i < 6; i++) {
@@ -214,6 +215,8 @@ Rules Rules::fromJson(const json::Value& v) {
   r.w_coexist = c["w_coexist"].asNumber(r.w_coexist);
   r.w_case = c["w_case"].asNumber(r.w_case);
   r.w_layer = c["w_layer"].asNumber(r.w_layer);
+  r.w_direct = c["w_direct"].asNumber(r.w_direct);
+  r.circumstantial_factor = c["circumstantial_factor"].asNumber(r.circumstantial_factor);
   r.time_window_minutes = c["time_window_minutes"].asNumber(r.time_window_minutes);
   r.time_full_credit_minutes = c["time_full_credit_minutes"].asNumber(r.time_full_credit_minutes);
 
@@ -342,6 +345,8 @@ json::Value Rules::toJson() const {
   corr.set("w_coexist", json::Value(w_coexist));
   corr.set("w_case", json::Value(w_case));
   corr.set("w_layer", json::Value(w_layer));
+  corr.set("w_direct", json::Value(w_direct));
+  corr.set("circumstantial_factor", json::Value(circumstantial_factor));
   corr.set("time_window_minutes", json::Value(time_window_minutes));
   corr.set("time_full_credit_minutes", json::Value(time_full_credit_minutes));
   out.set("correlation", corr);
