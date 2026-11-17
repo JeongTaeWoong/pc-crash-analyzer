@@ -1,0 +1,58 @@
+<Window x:Class="CrashAnalyzer.UI.AiSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="AI 설정" Width="500" SizeToContent="Height" WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize" FontSize="13" Background="{StaticResource Card}"
+        FontFamily="Segoe UI Variable Text, Segoe UI, Malgun Gothic">
+
+    <!-- 2026-11-16 추가: API 키 설정 화면 (11/14 결정 3 — 키는 제품에 넣지 않고 사용자가 등록) -->
+    <StackPanel Margin="20,18,20,16">
+        <TextBlock Text="AI 설정" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextStrong}"/>
+        <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{StaticResource TextDim}"
+                   Text="AI 설명과 상담 도우미는 내 Anthropic API 키로 동작해요. 키가 없어도 검진(원인 후보·점검 안내)은 그대로 쓸 수 있어요."/>
+
+        <!-- 지금 상태 -->
+        <Border Background="{StaticResource Soft}" CornerRadius="8" Padding="12,9" Margin="0,14,0,0">
+            <StackPanel>
+                <TextBlock Text="지금 상태" FontSize="12" Foreground="{StaticResource TextDim}"/>
+                <TextBlock x:Name="txtState" Margin="0,3,0,0" FontWeight="SemiBold" TextWrapping="Wrap"
+                           Foreground="{StaticResource TextStrong}" Text="키 없음"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 키 입력 -->
+        <TextBlock Text="API 키" FontWeight="SemiBold" Margin="0,14,0,0"/>
+        <Grid Margin="0,4,0,0">
+            <PasswordBox x:Name="pwKey" Padding="6,5" PasswordChanged="OnKeyChanged"/>
+            <TextBox x:Name="txtKey" Padding="6,5" Visibility="Collapsed" TextChanged="OnKeyChanged"/>
+        </Grid>
+        <DockPanel Margin="0,5,0,0">
+            <CheckBox x:Name="chkShow" Content="키 보기" FontSize="12" DockPanel.Dock="Left"
+                      VerticalAlignment="Center" Click="OnShowClick"/>
+            <TextBlock FontSize="12" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Hyperlink NavigateUri="https://console.anthropic.com/settings/keys" RequestNavigate="OnLink">키 발급 받기 (Anthropic 콘솔)</Hyperlink>
+            </TextBlock>
+        </DockPanel>
+
+        <!-- 모델 -->
+        <TextBlock Text="사용할 모델" FontWeight="SemiBold" Margin="0,12,0,0"/>
+        <ComboBox x:Name="cboModel" Margin="0,4,0,0"/>
+
+        <!-- 결과 한 줄 -->
+        <TextBlock x:Name="txtResult" TextWrapping="Wrap" Margin="0,12,0,0" FontSize="12.5" Visibility="Collapsed"/>
+
+        <TextBlock TextWrapping="Wrap" Margin="0,12,0,0" FontSize="11.5" Foreground="{StaticResource TextFaint}"
+                   Text="키는 이 PC 의 Windows 자격 증명 관리자에만 저장되고, 설정 파일·기록·보고서에는 남지 않아요. AI 를 쓸 때 드는 요금은 키 주인의 Anthropic 계정에 청구돼요."/>
+
+        <!-- 버튼 -->
+        <DockPanel Margin="0,16,0,0" LastChildFill="False">
+            <Button x:Name="btnDelete" Content="저장된 키 지우기" Style="{StaticResource BtnSecondary}" DockPanel.Dock="Left"
+                    Padding="10,5" Click="OnDelete"/>
+            <Button Content="닫기" Style="{StaticResource BtnSecondary}" DockPanel.Dock="Right" Width="72" IsCancel="True"/>
+            <Button x:Name="btnSave" Content="저장" Style="{StaticResource BtnPrimary}" DockPanel.Dock="Right" Width="72"
+                    Margin="0,0,8,0" IsDefault="True" Click="OnSave"/>
+            <Button x:Name="btnTest" Content="연결 확인" Style="{StaticResource BtnSecondary}" DockPanel.Dock="Right"
+                    Padding="10,5" Margin="0,0,8,0" Click="OnTest"/>
+        </DockPanel>
+    </StackPanel>
+</Window>

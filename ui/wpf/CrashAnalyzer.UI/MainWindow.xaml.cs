@@ -13,6 +13,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using CrashAnalyzer.UI.Models;
 using CrashAnalyzer.UI.Services;
+using CrashAnalyzer.UI.Services.Executor;
 using Microsoft.Win32;
 
 namespace CrashAnalyzer.UI;
@@ -57,13 +58,19 @@ public partial class MainWindow : Window
     private string? _chatReason;          // 상담 창을 자동으로 연 이유 (같은 이유로 두 번 열지 않게)
     private BitmapSource? _chatImage;
 
-    // PC블랙박스 연결 · 실행기는 2026-11-02 UI/UX 푸시에서 빼고 보관함 (README 「보관」 참고)
+    // 실행기 (2026-11-16 추가). PC블랙박스 연결은 UI/UX 푸시에서 빼고 보관 (README 「보관」 참고)
+    private readonly ActionExecutor _executor;
+    private readonly System.Windows.Threading.DispatcherTimer _timer = new() { Interval = TimeSpan.FromSeconds(5) };
+    private int _timerTicks;
+    private bool _execBusy;
+    private readonly HashSet<string> _autoRanContexts = new();
     private bool _autoPlay;                                       // 임시(시연용) 자동 진행 중   // Lv1 자동 실행을 이미 한 대상 (같은 점검을 두 번 자동 실행하지 않게)
 
     public MainWindow()
     {
         InitializeComponent();
         icActivity.ItemsSource = _activity;
+        RefreshAiButton();   // 2026-11-16 추가
 
         icChat.ItemsSource = _chatLines;
         _chatImage = LoadChatImage();
@@ -112,10 +119,19 @@ public partial class MainWindow : Window
             txtElevation.Text = elevated ? "관리자 모드" : "비관리자 — ETW·모듈 추적 제한 (관리자로 실행하면 더 많이 기록해요)";
         }
 
+        // 실행기: 기본은 시험 실행 (CE_EXEC_LIVE=1 이면 처음부터 실제 실행)
+        _executor = new ActionExecutor(new WindowsSystemOps(), new ExecJournal());
+        _executor.Changed += _ => Dispatcher.BeginInvoke(new Action(OnExecChanged));
+        chkDryRun.IsChecked = Environment.GetEnvironmentVariable("CE_EXEC_LIVE") != "1";
+
+        _timer.Tick += (_, _) => OnTimer();
+        _timer.Start();
+        Loaded += async (_, _) => await RecoverPendingActions();
         UpdateCollectorHeader();
 
         Closing += (_, _) =>
         {
+            _timer.Stop();
             _collector?.Dispose();
         };
 
@@ -172,12 +188,50 @@ public partial class MainWindow : Window
         txtCollectorHeader.Text = on ? "블랙박스 수집 중" : "수집기 꺼짐";
     }
 
-    private void OnNewDump(string path)
+    /// <summary>5초마다: 시간이 다 된 일시 중지(예: 실시간 감시 끄기)를 원래대로 되돌린다</summary>
+    private void OnTimer()
+    {
+        _timerTicks++;
+        bool hasTimed = false;
+        for (int i = 0; i < _executor.Journal.Entries.Count; i++)
+            if (_executor.Journal.Entries[i].IsActive && _executor.Journal.Entries[i].AutoRollbackAt != null) hasTimed = true;
+        if (hasTimed && !_execBusy)
+        {
+            _execBusy = true;
+            Task.Run(() => _executor.RollbackExpired()).ContinueWith(_ => Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _execBusy = false;
+                OnExecChanged();
+            })));
+        }
+    }
+
+    private async void OnNewDump(string path)
     {
         string name = System.IO.Path.GetFileName(System.IO.Path.GetDirectoryName(path)) ?? path;
         AppendLog($"[새 덤프] {path}");
         Activity($"새 기록: {name}");
         SetStatus($"새 기록 감지: {name}");
+
+        // 조치를 확인하는 중에 새 오류가 기록됨 = 조치 뒤 악화 → 원래대로 되돌린다 (2026-11-16)
+        if (_session?.SessionPath is string sp && _executor.Active(sp).Count > 0)
+        {
+            var active = _executor.Active(sp);
+            _execBusy = true;
+            await Task.Run(() =>
+            {
+                for (int i = 0; i < active.Count; i++)
+                    _executor.Rollback(active[i], "조치를 확인하는 중에 블랙박스가 새 오류(" + name + ")를 기록했어요");
+            });
+            _execBusy = false;
+            Activity("새 오류 감지 → 조치를 원래대로 되돌림");
+            SetStatus("조치 뒤 새 오류가 기록돼 원래대로 되돌렸어요. 같은 증상이면 '그대로예요'를 눌러 주세요. 새 기록은 [최근 기록 열기]로 볼 수 있어요.");
+            OnExecChanged();
+            if (!SuppressDialogs)
+                MessageBox.Show(this, "조치를 확인하는 중에 블랙박스가 새 오류를 기록해서, 바꾼 것을 원래대로 되돌렸어요.\n" +
+                                      "같은 증상이면 '그대로예요'를, 다른 문제면 [최근 기록 열기]로 새 기록을 검진해 주세요.", "조치 되돌림");
+            return; // 지금 세션을 이어 가도록 새 기록은 자동으로 열지 않는다
+        }
 
         if (chkAutoDiagnose.IsChecked == true)
             LoadSnapshot(path);
@@ -411,6 +465,8 @@ public partial class MainWindow : Window
         var nc = _view?["next_check"];
         if (nc is null) return;
         string checkId = Str(nc["check_id"]);
+        await SettleAction("check:" + checkId, result == "solved",
+            result == "solved" ? "증상이 사라져서 원인이 확인됐어요" : "점검 결과가 '" + (result == "skipped" ? "할 수 없어요" : "그대로") + "'라 원인이 아니었어요");
         if (await RunSession(s => s.Report(checkId, result)) != null)
             AutoOpenChat();
     }
@@ -472,6 +528,7 @@ public partial class MainWindow : Window
         string after = dlg.FileName;
         if (await RunSession(s => s.VerifyAfter(after)) != null)
         {
+            await SettleRemedyAfterVerify();
             AutoOpenChat();
         }
     }
@@ -489,6 +546,7 @@ public partial class MainWindow : Window
         int whole = (int)Math.Round(minutes);
         if (await RunSession(s => s.VerifyAnswer(recurred, whole)) != null)
         {
+            await SettleRemedyAfterVerify();
             AutoOpenChat();
         }
     }
@@ -508,6 +566,8 @@ public partial class MainWindow : Window
         FillFix();
         FillTodo();
         FillRightHeader();
+        FillExec();
+        FillExecHistory();
         UpdateChatButton();
         FillBlackBox();
         UpdateStatusBar();
@@ -1111,6 +1171,7 @@ public partial class MainWindow : Window
     private void OnRemedySelected(object sender, SelectionChangedEventArgs e)
     {
         FillRemedyDetail();
+        FillExec();
     }
 
     private void FillRemedyDetail()
@@ -1413,6 +1474,306 @@ public partial class MainWindow : Window
         }
     }
 
+    // ═══════════════════════ 실행기: 조치 실행 · 되돌리기 (2026-11-16 추가) ═══════════════════════
+    // 위험도 단계(중간발표 9번 슬라이드): Lv1 자동 실행 · Lv2 원클릭 동의 · Lv3 명시적 승인 · Lv4 직접 작업.
+    // 이번 버전은 Lv1~2 (되돌릴 수 있는 조치)만 실행한다. 기본은 '시험 실행'(실제로 바꾸지 않음).
+
+    /// <summary>지금 '지금 할 일'에 보이는 조치: (대상 키, 이름, 엔진 action 목록)</summary>
+    private (string Context, string Label, List<JsonNode> Actions)? CurrentExecTarget()
+    {
+        var v = _view;
+        if (v is null) return null;
+        string status = Str(v["status"]);
+        if (status == "checking" && v["next_check"] is JsonNode nc && nc["action"] is JsonNode act)
+            return ("check:" + Str(nc["check_id"]), Str(nc["label"]) + " → " + Str(nc["target"]), new List<JsonNode> { act });
+        if ((status == "confirmed" || status == "fixing") && lvRemedies.SelectedItem is RemedyRow row &&
+            v["remedies"] is JsonArray rem && row.Index < rem.Count)
+        {
+            var actions = new List<JsonNode>();
+            if (rem[row.Index]?["actions"] is JsonArray acts)
+                for (int i = 0; i < acts.Count; i++)
+                    if (acts[i] != null) actions.Add(acts[i]!);
+            return ("remedy:" + row.RemedyId, "해결책: " + row.Label, actions);
+        }
+        return null;
+    }
+
+    private static int LevelOf(List<JsonNode> actions)
+    {
+        int level = 0;
+        for (int i = 0; i < actions.Count; i++)
+        {
+            bool reversible = actions[i]["reversible"] is JsonValue rv && rv.TryGetValue<bool>(out bool b) && b;
+            int lv = RiskLevel.FromAction(Str(actions[i]["execution"]), reversible);
+            if (lv > level) level = lv;
+        }
+        return level;
+    }
+
+    private static List<ActionRequest> Requests(List<JsonNode> actions)
+    {
+        var list = new List<ActionRequest>();
+        for (int i = 0; i < actions.Count; i++)
+            list.Add(new ActionRequest
+            {
+                Label = Str(actions[i]["label"]),
+                Automation = Str(actions[i]["automation"]),
+                Execution = Str(actions[i]["execution"]),
+                Reversible = actions[i]["reversible"] is JsonValue rv && rv.TryGetValue<bool>(out bool b) && b,
+            });
+        return list;
+    }
+
+    private void OnExecChanged()
+    {
+        FillExec();
+        FillExecHistory();
+        FillBlackBox();
+    }
+
+    /// <summary>점검 진행 탭의 '조치 실행 기록' — 지금 세션에서 실행기가 한 일 (2026-11-16)</summary>
+    private void FillExecHistory()
+    {
+        var rows = new List<ExecEventRow>();
+        string? session = _session?.SessionPath;
+        if (session != null)
+            for (int i = 0; i < _executor.Journal.Entries.Count; i++)
+            {
+                ExecEntry en = _executor.Journal.Entries[i];
+                if (en.SessionPath != session) continue;
+                rows.Add(new ExecEventRow { Kind = "done", Text = en.Label + " · " + RiskLevel.Name(en.Level) + (en.DryRun ? " · 시험 실행" : "") });
+                for (int k = 0; k < en.Events.Count; k++)
+                    rows.Add(new ExecEventRow
+                    {
+                        Kind = en.Events[k].Kind,
+                        Text = "   " + en.Events[k].Time.ToString("HH:mm:ss", CultureInfo.InvariantCulture) + "  " + en.Events[k].Text,
+                    });
+            }
+        icExecHistory.ItemsSource = rows;
+        txtExecHistoryEmpty.Visibility = rows.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void FillExec()
+    {
+        var target = CurrentExecTarget();
+        string? session = _session?.SessionPath;
+        ExecEntry? entry = target != null && session != null ? _executor.Latest(session, target.Value.Context) : null;
+        bool auto = _mode == "auto";
+        if (target is null || (!auto && entry is null))
+        {
+            bdExec.Visibility = Visibility.Collapsed;
+            return;
+        }
+        bdExec.Visibility = Visibility.Visible;
+
+        var (context, label, actions) = target.Value;
+        int level = LevelOf(actions);
+        txtExecTitle.Text = "조치: " + label;
+        txtExecLevel.Text = RiskLevel.Name(level);
+        (Brush bg, Brush fg) = level switch
+        {
+            1 => (Ui.AutoBg, Ui.AutoFg),
+            2 => (Ui.ConfirmBg, Ui.ConfirmFg),
+            3 or 4 => (Ui.ManualBg, Ui.ManualFg),
+            _ => (Ui.GuideBg, Ui.GuideFg),
+        };
+        bdExecLevel.Background = bg;
+        txtExecLevel.Foreground = fg;
+
+        // 이번 버전에서 실행할 수 있는 조치인가
+        string? why = null;
+        int supported = 0;
+        for (int i = 0; i < actions.Count; i++)
+        {
+            string? w = ActionExecutor.WhyNotSupported(Str(actions[i]["automation"]));
+            if (w == null) supported++;
+            else why ??= w;
+        }
+
+        bool dry = chkDryRun.IsChecked == true;
+        string note;
+        bool canRun;
+        if (level >= 3)
+        {
+            note = level == 3
+                ? "Lv3 — 되돌리기 어려워 자동 실행하지 않아요. 위 단계를 직접 해 주세요."
+                : "Lv4 — 직접 해야 하는 조치예요. 위 단계를 따라 해 주세요.";
+            canRun = false;
+        }
+        else if (level == 0)
+        {
+            note = "안내 모드라 실행하지 않아요.";
+            canRun = false;
+        }
+        else if (supported == 0)
+        {
+            note = "자동 실행을 지원하지 않아요(" + why + "). 위 단계를 직접 해 주세요.";
+            canRun = false;
+        }
+        else
+        {
+            note = (level == 1 ? "자동으로 실행" : "[동의하고 실행]을 누르면 실행") +
+                   " · 실패하거나 '그대로'·새 오류면 원래대로 되돌려요" + (dry ? " · 시험 실행(실제로 안 바꿈)" : "");
+            canRun = true;
+        }
+        txtExecNote.Text = note;
+
+        var rows = new List<ExecEventRow>();
+        if (entry != null)
+            for (int i = 0; i < entry.Events.Count; i++)
+            {
+                ExecEvent ev = entry.Events[i];
+                string icon = ev.Kind switch
+                {
+                    "record" => "○ ",
+                    "apply" => "● ",
+                    "rollback" => "↩ ",
+                    "error" => "✕ ",
+                    "done" => "✓ ",
+                    _ => "· ",
+                };
+                rows.Add(new ExecEventRow { Kind = ev.Kind, Text = ev.Time.ToString("HH:mm:ss", CultureInfo.InvariantCulture) + "  " + icon + ev.Text });
+            }
+        // 카드에는 마지막 2줄만 (전체 기록은 '점검 진행' 탭)
+        icExecEvents.ItemsSource = rows.Count > 2 ? rows.GetRange(rows.Count - 2, 2) : rows;
+        svExecEvents.Visibility = rows.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        svExecEvents.ScrollToEnd();
+
+        bool active = entry != null && entry.IsActive;
+        btnExecRun.Visibility = canRun && !active && auto ? Visibility.Visible : Visibility.Collapsed;
+        btnExecRun.Content = entry != null ? "다시 실행" : (level == 1 ? "실행" : "동의하고 실행");
+        btnExecRun.IsEnabled = !_execBusy;
+        btnExecRollback.Visibility = entry != null && (entry.State == EntryState.Verifying || entry.State == EntryState.Kept)
+            ? Visibility.Visible : Visibility.Collapsed;
+        btnExecRollback.IsEnabled = !_execBusy;
+        chkDryRun.IsEnabled = !active;
+
+        // Lv1 은 자동 실행 (같은 대상은 한 번만)
+        if (canRun && auto && level == 1 && entry is null && !_execBusy && _autoRanContexts.Add(session + "|" + context))
+            Dispatcher.BeginInvoke(new Action(() => OnExecRun(this, new RoutedEventArgs())));
+    }
+
+    private async void OnExecRun(object sender, RoutedEventArgs e) => await RunCurrentActionAsync();
+
+    private async Task RunCurrentActionAsync()
+    {
+        var target = CurrentExecTarget();
+        string? session = _session?.SessionPath;
+        if (target is null || session is null || _execBusy) return;
+        var (context, label, actions) = target.Value;
+        int level = LevelOf(actions);
+        bool dry = chkDryRun.IsChecked == true;
+        var reqs = Requests(actions);
+        _execBusy = true;
+        FillExec();
+        ExecEntry? entry = null;
+        try
+        {
+            entry = await Task.Run(() => _executor.Run(session, context, label, level, dry, reqs));
+        }
+        catch (Exception ex)
+        {
+            SetStatus("실행기 오류: " + ex.Message);
+        }
+        _execBusy = false;
+        if (entry != null)
+        {
+            string result = entry.State switch
+            {
+                EntryState.Verifying => "실행함 — 결과 확인 중",
+                EntryState.Failed => "실패 → 원래대로 되돌림",
+                EntryState.Refused => "실행하지 않음",
+                _ => entry.State,
+            };
+            Activity((dry ? "[시험] " : "") + "조치 " + result + ": " + label);
+            SetStatus("조치 " + result + (dry ? " (시험 실행 · 실제로 바꾸지 않음)" : ""));
+        }
+        OnExecChanged();
+    }
+
+    private async void OnExecRollback(object sender, RoutedEventArgs e)
+    {
+        var target = CurrentExecTarget();
+        string? session = _session?.SessionPath;
+        if (target is null || session is null || _execBusy) return;
+        ExecEntry? entry = _executor.Latest(session, target.Value.Context);
+        if (entry is null) return;
+        _execBusy = true;
+        FillExec();
+        await Task.Run(() => _executor.Rollback(entry, "사용자가 [지금 되돌리기]를 눌렀어요"));
+        _execBusy = false;
+        Activity("조치 되돌림: " + entry.Label);
+        OnExecChanged();
+    }
+
+    private void OnDryRunToggle(object sender, RoutedEventArgs e)
+    {
+        if (chkDryRun.IsChecked != true && !SuppressDialogs)
+        {
+            var answer = MessageBox.Show(this,
+                "시험 실행을 끄면 서비스·방화벽·Defender 설정을 실제로 바꿔요.\n" +
+                "바꾸기 전 상태를 기록해 두고 문제가 생기면 되돌리지만, 처음에는 테스트용 PC 에서 해 보는 걸 권해요.\n\n실제로 실행할까요?",
+                "실제 실행", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (answer != MessageBoxResult.Yes) chkDryRun.IsChecked = true;
+        }
+        FillExec();
+    }
+
+    /// <summary>점검 결과를 알릴 때: 효과가 있으면 그대로 두고, 아니면 원래대로 되돌린다.</summary>
+    private async Task SettleAction(string context, bool keep, string reason)
+    {
+        string? session = _session?.SessionPath;
+        if (session is null) return;
+        ExecEntry? entry = _executor.Latest(session, context);
+        if (entry is null || entry.State != EntryState.Verifying) return;
+        _execBusy = true;
+        await Task.Run(() =>
+        {
+            if (keep) _executor.Keep(entry, reason);
+            else _executor.Rollback(entry, reason);
+        });
+        _execBusy = false;
+        Activity((keep ? "조치 유지: " : "조치 되돌림: ") + entry.Label);
+    }
+
+    /// <summary>해결책 검증 뒤: 해결됨이면 그대로 두고, 재발이면 해결책 조치를 원래대로 되돌린다.</summary>
+    private async Task SettleRemedyAfterVerify()
+    {
+        string? session = _session?.SessionPath;
+        if (session is null) return;
+        string outcome = Str(_view?["last_verify"]?["outcome"]);
+        if (outcome != "resolved" && outcome != "recurred") return;
+        var active = _executor.Active(session);
+        for (int i = 0; i < active.Count; i++)
+        {
+            if (!active[i].Context.StartsWith("remedy:", StringComparison.Ordinal)) continue;
+            await SettleAction(active[i].Context, outcome == "resolved",
+                outcome == "resolved" ? "검증 결과 해결됐어요" : "해결책을 적용했는데 재발했어요");
+        }
+        OnExecChanged();
+    }
+
+    /// <summary>UI 를 켤 때: 지난번 조치 도중 꺼졌으면 원래대로 되돌린다.</summary>
+    private async Task RecoverPendingActions()
+    {
+        bool any = false;
+        for (int i = 0; i < _executor.Journal.Entries.Count; i++)
+            if (_executor.Journal.Entries[i].IsActive) any = true;
+        if (!any) return;
+        _execBusy = true;
+        List<ExecEntry> recovered = await Task.Run(() => _executor.RecoverPending());
+        _execBusy = false;
+        if (recovered.Count == 0) return;
+        var names = new List<string>();
+        for (int i = 0; i < recovered.Count; i++) names.Add("· " + recovered[i].Label + (recovered[i].DryRun ? " (시험 실행)" : ""));
+        Activity("지난번 조치 " + recovered.Count + "개를 원래대로 되돌림");
+        SetStatus("지난번 조치 도중 꺼져서 원래대로 되돌렸어요");
+        if (!SuppressDialogs)
+            MessageBox.Show(this, "지난번에 조치를 확인하는 도중 프로그램이나 PC 가 꺼졌어요.\n문제가 생기기 전 상태로 되돌렸어요.\n\n" +
+                                  string.Join("\n", names), "조치 되돌림");
+        OnExecChanged();
+    }
+
     // ═══════════════════════ 임시(시연용) 자동 진행 — 2026-11-02 추가 ═══════════════════════
     // "지금 할 일"을 사람 대신 차례로 처리한다: 조치 실행(자동 점검 모드일 때) → 점검 결과 알리기 → 해결책 적용 → 검증.
     // 점검 결과는 실험용 시나리오의 정답(ground_truth)으로 정한다. 정답이 없는 실제 기록은 조치까지만 하고 결과에서 멈춘다.
@@ -1615,8 +1976,13 @@ public partial class MainWindow : Window
                 string label = Str(nc["label"]);
                 string target = Str(nc["target"]);
                 if (target.Length > 0) label += " → " + target;   // 같은 점검 이름(예: 오버레이 종료)도 대상으로 구분
-                ShowAutoBanner("점검: " + label, "오른쪽 '지금 할 점검'의 점검을 해 봐요.");
+                ShowAutoBanner("점검: " + label, "오른쪽 '지금 할 일'의 점검을 해 봐요.");
                 if (!await AutoWait(AutoStepMs)) break;
+                if (await RunActionIfPossible())
+                {
+                    AddAutoLog("조치 실행: " + label);
+                    if (!await AutoWait(AutoStepMs)) break;
+                }
                 if (truth is null)
                 {
                     StopAutoPlay("정답 정보가 없는 기록이라 결과를 자동으로 정할 수 없어요. 해 본 결과를 버튼으로 알려 주세요.");
@@ -1640,6 +2006,11 @@ public partial class MainWindow : Window
             {
                 ShowAutoBanner("원인 확인 → 해결책 적용", "원인이 확인됐어요. 추천 해결책을 적용하고 '적용했어요'를 눌러요.");
                 if (!await AutoWait(AutoStepMs)) break;
+                if (await RunActionIfPossible())
+                {
+                    AddAutoLog("해결 조치 실행");
+                    if (!await AutoWait(AutoStepMs)) break;
+                }
                 string remedyId = lvRemedies.SelectedItem is RemedyRow r ? r.RemedyId : "";
                 string appliedAt = txtAppliedAt.Text.Trim();
                 await AutoPress(btnApply);
@@ -1663,7 +2034,8 @@ public partial class MainWindow : Window
                 if (!_autoPlay) break;
                 if (await RunSession(s => s.VerifyAnswer(false, 120)) != null)
                 {
-                            AddAutoLog("해결 확인: 재발 없음 · 120분");
+                    await SettleRemedyAfterVerify();
+                    AddAutoLog("해결 확인: 재발 없음 · 120분");
                     AutoOpenChat();
                 }
                 if (!await AutoWait(AutoStepMs)) break;
@@ -1684,6 +2056,28 @@ public partial class MainWindow : Window
         StopAutoPlay(_autoPlay ? "자동 진행 끝 (단계가 너무 많아 멈췄어요)" : "자동 진행을 멈췄어요.");
     }
 
+    /// <summary>자동 점검 모드이고 Lv1~2 로 실행할 수 있는 조치면, 아직 안 했을 때 실행한다. 실행했으면 true.</summary>
+    private async Task<bool> RunActionIfPossible()
+    {
+        if (_mode != "auto") return false;
+        var target = CurrentExecTarget();
+        string? session = _session?.SessionPath;
+        if (target is null || session is null) return false;
+        int level = LevelOf(target.Value.Actions);
+        if (level < 1 || level > 2) return false;
+        bool supported = false;
+        for (int i = 0; i < target.Value.Actions.Count; i++)
+            if (ActionExecutor.WhyNotSupported(Str(target.Value.Actions[i]["automation"])) == null) supported = true;
+        if (!supported) return false;
+        // Lv1 은 화면이 이미 자동 실행했을 수 있다 — 끝날 때까지 기다린다
+        for (int i = 0; i < 20 && _execBusy; i++) await Task.Delay(300);
+        if (_executor.Latest(session, target.Value.Context) != null) return true;
+        _autoRanContexts.Add(session + "|" + target.Value.Context);
+        await AutoPress(btnExecRun);
+        await RunCurrentActionAsync();
+        return true;
+    }
+
     private void StopAutoPlay(string message)
     {
         _autoPlay = false;
@@ -1700,6 +2094,39 @@ public partial class MainWindow : Window
             if (message.Contains("해결이 확인")) bdAutoPlay.Background = (Brush)FindResource("Accent");
             else bdAutoPlay.Background = (Brush)FindResource("Ink");
         }
+    }
+
+    /// <summary>타임라인·목록에 넣을 실행기 기록 (지금 세션)</summary>
+    private List<BlackBoxItem> ExecTimelineItems()
+    {
+        var items = new List<BlackBoxItem>();
+        string? session = _session?.SessionPath;
+        if (session is null) return items;
+        for (int i = 0; i < _executor.Journal.Entries.Count; i++)
+        {
+            ExecEntry en = _executor.Journal.Entries[i];
+            if (en.SessionPath != session) continue;
+            for (int k = 0; k < en.Events.Count; k++)
+            {
+                ExecEvent ev = en.Events[k];
+                string kind = ev.Kind switch
+                {
+                    "apply" => "조치 실행",
+                    "rollback" => "원래대로 되돌림",
+                    "error" => "조치 오류",
+                    _ => "",
+                };
+                if (kind.Length == 0) continue;
+                items.Add(new BlackBoxItem
+                {
+                    Time = ev.Time, Lane = "action", Kind = (en.DryRun ? "[시험] " : "") + kind, Text = ev.Text,
+                    Source = "조치", Title = kind,
+                    Detail = en.Label + "\n" + RiskLevel.Name(en.Level) + (en.DryRun ? " · 시험 실행" : ""),
+                    ActionKind = ev.Kind,
+                });
+            }
+        }
+        return items;
     }
 
     // ═══════════════════════ 블랙박스 기록 페이지 (확정안 2-4-C) ═══════════════════════
@@ -1783,6 +2210,12 @@ public partial class MainWindow : Window
     {
         if (_page != "bb") return;
         var bb = _blackbox;
+        // 실행기 기록(조치 실행·되돌림)을 덧붙인다
+        if (bb != null && bb.Source != "none")
+        {
+            var extra = ExecTimelineItems();
+            if (extra.Count > 0) bb = bb.WithExtra(extra);
+        }
         _bbView = bb;
         _bbItems.Clear();
         lvBlackBox.ItemsSource = null;
@@ -2067,7 +2500,7 @@ public partial class MainWindow : Window
         if (bb != null)
             for (int i = 0; i < bb.Items.Count; i++)
                 if (bb.Items[i].Lane == "action") hasAction = true;
-        if (hasAction) _lanes.Add(("action", "조치 실행·되돌림", false));
+        if (hasAction || ExecTimelineItems().Count > 0) _lanes.Add(("action", "조치 실행·되돌림", false));
         cvTimeline.Height = TimelineTop + _lanes.Count * RowH + 6;
     }
 
@@ -2354,4 +2787,22 @@ public partial class MainWindow : Window
     private static double Num(JsonNode? n) => n is JsonValue v && v.TryGetValue<double>(out var d) ? d : 0;
 
     private static bool Bool(JsonNode? n) => n is JsonValue v && v.TryGetValue<bool>(out var b) && b;
+
+    // ═══════════════════════ AI 설정 (2026-11-16 추가) ═══════════════════════
+
+    /// <summary>머리글 'AI 설정' 버튼 글자: 키가 있으면 모델 이름, 없으면 '키 없음'. 키 자체는 보이지 않는다.</summary>
+    private void RefreshAiButton()
+    {
+        bool hasKey = AiSettings.ResolveKey(out _) != null;
+        string model = AiSettings.ShortName(AiSettings.Load().Model);
+        btnAiSettings.Content = hasKey ? "AI 설정 · " + model : "AI 설정 · 키 없음";
+    }
+
+    private void OnAiSettings(object sender, RoutedEventArgs e)
+    {
+        var dlg = new AiSettingsWindow { Owner = this };
+        dlg.ShowDialog();
+        RefreshAiButton();
+        if (dlg.Changed) SetStatus(AiSettings.HasKey() ? "AI 설정을 저장했어요" : "AI 키가 없어요 — 검진만 동작해요");
+    }
 }

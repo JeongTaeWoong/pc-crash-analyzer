@@ -12,7 +12,8 @@
          오른쪽(모든 탭에서 그대로): '지금 할 점검' 안내 카드 — 한 번에 하나씩. 아래쪽 오른쪽에 둥근 상담(챗봇) 버튼.
          준비된 점검을 다 해도 그대로면 오른쪽이 '점검 결과'로 바뀌고 상담 도우미(챗봇)가 그 안에서 열린다 (2-4-B).
          PDF 에 없지만 남겨 둔 것: 안내/자동 점검 모드, 최근 기록 열기·파일 열기, 시연용 자동 진행, 블랙박스 수집기 카드·수집기 로그.
-         (PC블랙박스 연결 · 실행기는 2026-11-02 UI/UX 푸시에서 빼고 보관) -->
+         (PC블랙박스 연결 · 실행기는 2026-11-02 UI/UX 푸시에서 빼고 보관)
+         2026-11-16 추가: 실행기(조치 실행·되돌리기 카드)를 다시 넣음. PC블랙박스 연결은 아직 보관 중. -->
 
     <Grid>
         <Grid.ColumnDefinitions>
@@ -38,12 +39,16 @@
                     </StackPanel>
                 </Border>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                    <!-- 2026-11-16 추가: AI 설정(API 키) 버튼. 글자는 키 상태에 따라 코드에서 바꾼다 -->
+                    <Button x:Name="btnAiSettings" Content="AI 설정 · 키 없음" Style="{StaticResource BtnChip}" Margin="0,0,14,0"
+                            VerticalAlignment="Center" Click="OnAiSettings"
+                            ToolTip="AI 설명·상담에 쓸 내 Anthropic API 키를 등록해요. 키가 없어도 검진은 동작해요"/>
                     <RadioButton x:Name="rbModeGuide" Content="안내 모드" GroupName="mode" IsChecked="True" FontSize="12"
                                  VerticalAlignment="Center" Click="OnModeClick" Foreground="{StaticResource TextDim}"
                                  ToolTip="점검 단계만 안내해요"/>
                     <RadioButton x:Name="rbModeAuto" Content="자동 점검 모드" GroupName="mode" Margin="10,0,0,0" FontSize="12"
                                  VerticalAlignment="Center" Click="OnModeClick" Foreground="{StaticResource TextDim}"
-                                 ToolTip="엔진이 자동으로 할 수 있는 조치인지 함께 보여 줘요"/>
+                                 ToolTip="되돌릴 수 있는 조치는 실행기로 실행해요 (Lv1 자동, Lv2 동의 후)"/>
                 </StackPanel>
             </DockPanel>
 
@@ -379,7 +384,7 @@
                                 </StackPanel>
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Style="{StaticResource Faint}"
-                                               Text="켜 두면 최근 5분을 메모리에만 기록하다가, 크래시가 감지되는 순간 앞뒤 구간을 남깁니다. 새 기록이 생기면 자동으로 검진합니다."/>
+                                               Text="켜 두면 최근 5분을 메모리에만 기록하다가, 크래시가 감지되는 순간 앞뒤 구간을 남깁니다. 새 기록이 생기면 자동으로 검진하고, 조치를 확인하는 중이었다면 조치를 원래대로 되돌립니다."/>
                                     <TextBlock x:Name="txtNoActivity" Style="{StaticResource Faint}" Margin="0,8,0,0"
                                                Text="아직 활동이 없습니다."/>
                                     <ItemsControl x:Name="icActivity" Margin="0,6,0,0">
@@ -428,6 +433,21 @@
                                                                FontWeight="{Binding Weight}" Margin="10,0,0,0"/>
                                                 </Grid>
                                             </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource CardBox}" BorderThickness="0" Padding="18,14">
+                            <StackPanel>
+                                <TextBlock Text="조치 실행 기록 (실행기)" Style="{StaticResource SectionTitle}" Margin="0,0,0,8"/>
+                                <TextBlock x:Name="txtExecHistoryEmpty" Foreground="{StaticResource TextDim}"
+                                           Text="아직 실행한 조치가 없어요. 자동 점검 모드에서 조치를 실행하면 여기에 남아요."/>
+                                <ItemsControl x:Name="icExecHistory">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Text}" Foreground="{Binding Fg}" FontSize="12.5"
+                                                       TextWrapping="Wrap" Margin="0,2"/>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
@@ -498,6 +518,43 @@
                             </Border>
                         </DockPanel>
                     </StackPanel>
+
+                    <!-- 조치 실행·되돌리기 (자동 점검 모드이거나 실행 기록이 있을 때만) -->
+                    <Border x:Name="bdExec" DockPanel.Dock="Bottom" Background="{StaticResource Soft}" CornerRadius="10"
+                            Margin="22,0,22,10" Padding="12,8" Visibility="Collapsed">
+                        <StackPanel>
+                            <DockPanel>
+                                <Border x:Name="bdExecLevel" DockPanel.Dock="Right" CornerRadius="10" Padding="8,1"
+                                        Background="#EDEDED" VerticalAlignment="Center">
+                                    <TextBlock x:Name="txtExecLevel" FontSize="11" FontWeight="SemiBold"/>
+                                </Border>
+                                <TextBlock x:Name="txtExecTitle" FontWeight="SemiBold" FontSize="12.5" Foreground="{StaticResource TextStrong}"
+                                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            </DockPanel>
+                            <TextBlock x:Name="txtExecNote" FontSize="11.5" Foreground="{StaticResource TextDim}"
+                                       TextWrapping="Wrap" Margin="0,3,0,0"/>
+                            <!-- 진행 기록은 마지막 줄만 (전체는 '점검 진행' 탭) -->
+                            <ScrollViewer x:Name="svExecEvents" MaxHeight="36" VerticalScrollBarVisibility="Hidden" Margin="0,4,0,0">
+                                <ItemsControl x:Name="icExecEvents">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Text}" Foreground="{Binding Fg}" FontSize="11.5"
+                                                       TextTrimming="CharacterEllipsis" Margin="0,0"/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <Button x:Name="btnExecRun" Content="동의하고 실행" Style="{StaticResource BtnPrimary}" FontSize="12"
+                                        Padding="10,4" Margin="0,0,6,0" Click="OnExecRun"/>
+                                <Button x:Name="btnExecRollback" Content="지금 되돌리기" Style="{StaticResource BtnSecondary}" FontSize="12"
+                                        Padding="10,4" Margin="0,0,10,0" Click="OnExecRollback"/>
+                                <CheckBox x:Name="chkDryRun" Content="시험 실행" IsChecked="True" FontSize="12"
+                                          VerticalAlignment="Center" Click="OnDryRunToggle" Foreground="{StaticResource TextDim}"
+                                          ToolTip="켜 두면 실제로 바꾸지 않고 기록만 남겨요"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
 
                     <!-- 가운데: 상태에 따라 셋 중 하나 -->
                     <Grid>
