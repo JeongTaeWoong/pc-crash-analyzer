@@ -71,6 +71,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         icActivity.ItemsSource = _activity;
         RefreshAiButton();   // 2026-11-16 추가
+        Activated += (_, _) => RefreshAiButton();   // 2026-11-17 추가: AI 설명 창에서 키를 바꾸고 돌아올 때
 
         icChat.ItemsSource = _chatLines;
         _chatImage = LoadChatImage();
@@ -647,7 +648,7 @@ public partial class MainWindow : Window
     /// <summary>맨 아래 작은 상태 글. 엔진·세션 경로(사용자 이름이 들어감)는 글에 넣지 않고 마우스를 올리면 보이게 했다.</summary>
     private void UpdateStatusBar()
     {
-        var parts = new List<string> { _mode == "auto" ? "자동 점검 모드" : "안내 모드" };
+        var parts = new List<string> { _mode == "auto" ? "점검 방식: 자동으로" : "점검 방식: 직접" };   // 2026-11-17 쉬운 말로
         if (_lastStatusMessage.Length > 0) parts.Add(_lastStatusMessage);
         txtStatus.Text = string.Join(" · ", parts);
         var tip = new List<string>();
@@ -729,12 +730,14 @@ public partial class MainWindow : Window
             if (p2 > 0.001) AddArc(c, cx, cy, 66, 6, p2, Ui.Accent2);
         }
         bool confirmed = _view?["confirmed"] is JsonObject;
-        txtRingCaption.Text = confirmed ? "확인된 원인" : "가장 유력한 원인";
+        txtRingCaption.Text = confirmed ? "확인된 원인" : "가장 의심되는 원인";   // 2026-11-17: 순위로 말하기
         txtRingPct.Text = Ui.Pct(p1);
         txtRingPct.FontSize = 34;
         txtRingPct.Foreground = Ui.Accent;
         txtRingName.Text = Ui.Short(NameOf(cands[0]), 16);
+        // 2026-11-17 추가: 고리 위 글이 '가장 의심되는 원인'이라 아래에는 진행 단계만 둔다. 숫자 뜻은 툴팁으로
         txtRingSub.Text = confirmed ? "원인 확인됨" : (Str(_view?["status"]) == "exhausted" ? "확정 못 함 · 상담으로" : "아직 확정 전");
+        txtRingPct.ToolTip = confirmed ? null : Ui.SuspicionTip(true, p1);
     }
 
     private static void AddCircle(Canvas c, double cx, double cy, double r, double thick, Brush stroke)
@@ -774,16 +777,35 @@ public partial class MainWindow : Window
                 "DRIVER" => txtStateDRIVER,
                 _ => txtStateHW,
             };
+            TextBlock note = k switch   // 2026-11-17 추가: 상태 아래 쉬운 설명
+            {
+                "SW" => txtStateNoteSW,
+                "DRIVER" => txtStateNoteDRIVER,
+                _ => txtStateNoteHW,
+            };
             if (probs is null)
             {
                 val.Text = "-";
                 val.Foreground = Ui.FaintFg;
                 val.ToolTip = null;
+                note.Text = "검진하면 여기에 결과가 나와요";
                 continue;
             }
             double p = Num(probs[k]);
             string word = k == top ? "주의" : (p >= 0.2 ? "관찰" : "양호");
-            val.Text = word;
+            // 2026-11-17 추가: 색만으로 구분하지 않도록 아이콘을 붙인다
+            val.Text = word switch
+            {
+                "주의" => "⚠ 주의",
+                "관찰" => "◐ 관찰",
+                _ => "✓ 양호",
+            };
+            note.Text = word switch
+            {
+                "주의" => "원인이 있을 가능성이 가장 커요",
+                "관찰" => "원인일 수도 있어요",
+                _ => "문제없어 보여요",
+            };
             val.Foreground = word switch
             {
                 "주의" => Ui.Hex("#A23B1E"),
@@ -813,7 +835,7 @@ public partial class MainWindow : Window
         }
         txtRankNote.Text = string.Join("\n", lines);
         txtRankNote.ToolTip = _diag != null && cands.Count > 0
-            ? "층 판정 신뢰도 " + Ui.Pct(Num(_diag["layer"]?["confidence"])) + " · 1순위 범위: " + Ui.StageKo((int)Num(cands[0]?["stage"]))
+            ? "층 판정 신뢰도 " + Ui.Pct(Num(_diag["layer"]?["confidence"])) + " · 1순위 범위: " + Ui.StageKo((int)Num(cands[0]?["stage"]), Str(cands[0]?["category"]))
             : null;
     }
 
@@ -1036,6 +1058,7 @@ public partial class MainWindow : Window
         btnNotSolved.IsEnabled = enabled;
         btnSkipped.IsEnabled = enabled;
         spReport.Visibility = enabled ? Visibility.Visible : Visibility.Collapsed;
+        bdFirstSteps.Visibility = v is null ? Visibility.Visible : Visibility.Collapsed;   // 2026-11-17 추가: 검진 전에만
 
         if (!enabled)
         {
@@ -1136,7 +1159,8 @@ public partial class MainWindow : Window
         }
         string status = Str(v["status"]);
         txtCauseTitle.Text = "원인: " + Str(c["label"]);
-        var lines = new List<string> { Ui.StageKo((int)Num(c["stage"])) + " 범위" };
+        // 2026-11-17 추가: app_self 는 '범위'를 붙이지 않고 '프로그램 자체 문제'로
+        var lines = new List<string> { Str(c["category"]) == "app_self" ? "프로그램 자체 문제" : Ui.StageKo((int)Num(c["stage"])) + " 범위" };
         if (c["evidence"] is JsonArray ev)
             for (int i = 0; i < ev.Count && lines.Count < 4; i++)
             {
@@ -1614,7 +1638,7 @@ public partial class MainWindow : Window
         }
         else if (level == 0)
         {
-            note = "안내 모드라 실행하지 않아요.";
+            note = "'직접 할게요'를 골라서 실행하지 않아요. 안내대로 직접 해 주세요.";
             canRun = false;
         }
         else if (supported == 0)
@@ -2800,14 +2824,13 @@ public partial class MainWindow : Window
 
     private static bool Bool(JsonNode? n) => n is JsonValue v && v.TryGetValue<bool>(out var b) && b;
 
-    // ═══════════════════════ AI 설정 (2026-11-16 추가) ═══════════════════════
+    // ═══════════════════════ AI 설정 (2026-11-16 추가, 2026-11-17 KeyStore 로 맞춤) ═══════════════════════
 
-    /// <summary>머리글 'AI 설정' 버튼 글자: 키가 있으면 모델 이름, 없으면 '키 없음'. 키 자체는 보이지 않는다.</summary>
+    /// <summary>머리글 'AI 설정' 버튼 글자: 키가 있으면 '키 등록됨', 없으면 '키 없음'. 키 자체는 보이지 않는다.
+    /// 모델은 AI 설명 창에서 고르므로 여기에는 쓰지 않는다.</summary>
     private void RefreshAiButton()
     {
-        bool hasKey = AiSettings.ResolveKey(out _) != null;
-        string model = AiSettings.ShortName(AiSettings.Load().Model);
-        btnAiSettings.Content = hasKey ? "AI 설정 · " + model : "AI 설정 · 키 없음";
+        btnAiSettings.Content = AiSettings.HasKey() ? "AI 설정 · 키 등록됨" : "AI 설정 · 키 없음";
     }
 
     private void OnAiSettings(object sender, RoutedEventArgs e)

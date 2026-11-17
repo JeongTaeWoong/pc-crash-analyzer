@@ -5,11 +5,12 @@
         ResizeMode="NoResize" FontSize="13" Background="{StaticResource Card}"
         FontFamily="Segoe UI Variable Text, Segoe UI, Malgun Gothic">
 
-    <!-- 2026-11-16 추가: API 키 설정 화면 (11/14 결정 3 — 키는 제품에 넣지 않고 사용자가 등록) -->
+    <!-- 2026-11-16 추가: API 키 설정 화면 (11/14 결정 3 — 키는 제품에 넣지 않고 사용자가 등록)
+         2026-11-17 추가: 키 보관을 CrashAnalyzer.Ai 의 KeyStore 로 맞추고, 모델 고르기는 AI 설명 창에 맡김 -->
     <StackPanel Margin="20,18,20,16">
         <TextBlock Text="AI 설정" FontSize="17" FontWeight="Bold" Foreground="{StaticResource TextStrong}"/>
         <TextBlock TextWrapping="Wrap" Margin="0,6,0,0" Foreground="{StaticResource TextDim}"
-                   Text="AI 설명과 상담 도우미는 내 Anthropic API 키로 동작해요. 키가 없어도 검진(원인 후보·점검 안내)은 그대로 쓸 수 있어요."/>
+                   Text="[AI 설명…]은 내 Anthropic API 키로 동작해요. 키가 없어도 검진(원인 후보·점검 안내)은 그대로 쓸 수 있어요."/>
 
         <!-- 지금 상태 -->
         <Border Background="{StaticResource Soft}" CornerRadius="8" Padding="12,9" Margin="0,14,0,0">
@@ -34,15 +35,11 @@
             </TextBlock>
         </DockPanel>
 
-        <!-- 모델 -->
-        <TextBlock Text="사용할 모델" FontWeight="SemiBold" Margin="0,12,0,0"/>
-        <ComboBox x:Name="cboModel" Margin="0,4,0,0"/>
-
         <!-- 결과 한 줄 -->
         <TextBlock x:Name="txtResult" TextWrapping="Wrap" Margin="0,12,0,0" FontSize="12.5" Visibility="Collapsed"/>
 
-        <TextBlock TextWrapping="Wrap" Margin="0,12,0,0" FontSize="11.5" Foreground="{StaticResource TextFaint}"
-                   Text="키는 이 PC 의 Windows 자격 증명 관리자에만 저장되고, 설정 파일·기록·보고서에는 남지 않아요. AI 를 쓸 때 드는 요금은 키 주인의 Anthropic 계정에 청구돼요."/>
+        <TextBlock TextWrapping="Wrap" Margin="0,12,0,0" FontSize="12.5" Foreground="{StaticResource TextFaint}"
+                   Text="키는 이 PC 의 이 Windows 계정으로만 풀 수 있게 암호화해서 보관하고, 화면에는 끝 네 글자만 보여요. 모델은 [AI 설명…]에서 물을 때마다 예상 요금과 함께 골라요. 요금은 키 주인의 Anthropic 계정에 청구돼요."/>
 
         <!-- 버튼 -->
         <DockPanel Margin="0,16,0,0" LastChildFill="False">

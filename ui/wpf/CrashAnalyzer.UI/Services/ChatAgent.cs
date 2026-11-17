@@ -206,7 +206,8 @@ public sealed class OfflineChatAgent : IChatAgent
         var outOfScope = new List<string>();
         if (v["belief"] is JsonArray belief)
             for (int i = 0; i < belief.Count && outOfScope.Count < 3; i++)
-                if (belief[i]?["in_focus"] is JsonValue f && f.TryGetValue<bool>(out bool inFocus) && !inFocus)
+                if (belief[i]?["in_focus"] is JsonValue f && f.TryGetValue<bool>(out bool inFocus) && !inFocus
+                    && S(belief[i]?["category"]) != "app_self")   // 2026-11-17 추가: 프로그램 자체 문제는 범위 밖이 아님
                     outOfScope.Add(S(belief[i]?["label"]));
 
         lines.Add("");

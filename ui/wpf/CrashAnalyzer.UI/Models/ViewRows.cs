@@ -20,7 +20,8 @@ public sealed class RankRow
     public Brush NameFg => Index < 0 ? Ui.DimFg : Ui.StrongFg;
     public Brush PctFg => IsFirst ? Ui.Accent : Ui.StrongFg;
     public Brush BarFill => IsFirst ? Ui.Accent : (Index < 0 ? Ui.Hex("#B9CBC1") : Ui.Accent2);
-    public string PctText => Ui.Pct(Probability);
+    // 2026-11-17 추가: 숫자 옆에 순위로 말한 의심 정도 ('가장 의심' / '의심' / '낮음'). '기타' 줄은 숫자만
+    public string PctText => Index < 0 ? Ui.Pct(Probability) : Ui.Pct(Probability) + " · " + Ui.SuspicionShort(IsFirst, Probability);
 }
 
 /// <summary>점검 진행 한 줄. Kind = done / now / later</summary>

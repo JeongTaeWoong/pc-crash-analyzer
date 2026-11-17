@@ -2,16 +2,16 @@ using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Navigation;
+using CrashAnalyzer.Ai;
 using CrashAnalyzer.UI.Services;
 
 namespace CrashAnalyzer.UI;
 
-// AI 설정 창 — 2026-11-16 추가
-//   키 입력(가림/보기) · 모델 선택 · 연결 확인(요금 없는 모델 목록 조회) · 저장(자격 증명 관리자) · 저장된 키 지우기
-//   입력한 키는 이 창 안에서만 쓰고, 화면에는 가린 형태(sk-ant-…abcd)로만 보인다.
+// AI 설정 창 — 2026-11-16 추가, 2026-11-17 추가: 키는 KeyStore 에만 저장 (AI 설명 창과 같은 키)
+//   키 입력(가림/보기) · 연결 확인(요금 없는 모델 목록 조회) · 저장 · 저장된 키 지우기
+//   입력한 키는 이 창 안에서만 쓰고, 화면에는 KeyStore.Masked(끝 네 글자)로만 보인다.
 public partial class AiSettingsWindow : Window
 {
-    private readonly AiSettings _settings;
     private bool _syncing;
 
     /// <summary>저장 또는 지우기를 했는가 (메인 창의 'AI 설정' 버튼 글자를 새로 고칠 때 씀)</summary>
@@ -20,34 +20,23 @@ public partial class AiSettingsWindow : Window
     public AiSettingsWindow()
     {
         InitializeComponent();
-        _settings = AiSettings.Load();
-        for (int i = 0; i < AiSettings.Models.Length; i++)
-        {
-            cboModel.Items.Add(AiSettings.Models[i]);
-            if (AiSettings.Models[i].Id == _settings.Model) cboModel.SelectedIndex = i;
-        }
-        if (cboModel.SelectedIndex < 0) cboModel.SelectedIndex = 0;
         RefreshState();
         Loaded += (_, _) => pwKey.Focus();
     }
 
     private void RefreshState()
     {
-        string? key = AiSettings.ResolveKey(out ApiKeySource source);
-        switch (source)
+        string? key = AiSettings.LoadKey();
+        if (!string.IsNullOrEmpty(key))
         {
-            case ApiKeySource.CredentialStore:
-                txtState.Text = "저장된 키를 쓰고 있어요: " + AiSettings.Mask(key!);
-                break;
-            case ApiKeySource.EnvironmentVariable:
-                txtState.Text = "환경 변수 " + AiSettings.EnvVarName + " 의 키를 쓰고 있어요: " + AiSettings.Mask(key!)
-                                + "\n여기서 키를 저장하면 저장한 키를 먼저 써요.";
-                break;
-            default:
-                txtState.Text = "키 없음 — AI 설명·상담 없이 검진만 동작해요.";
-                break;
+            txtState.Text = "등록된 키를 쓰고 있어요: " + KeyStore.Masked(key);
+            btnDelete.IsEnabled = true;
         }
-        btnDelete.IsEnabled = source == ApiKeySource.CredentialStore;
+        else
+        {
+            txtState.Text = "키 없음 — AI 설명 없이 검진만 동작해요.";
+            btnDelete.IsEnabled = KeyStore.Exists();   // 풀 수 없는 키 파일이 남아 있으면 지울 수 있게
+        }
     }
 
     /// <summary>입력 칸의 키 (앞뒤 공백·줄바꿈 제거)</summary>
@@ -55,11 +44,6 @@ public partial class AiSettingsWindow : Window
     {
         string raw = chkShow.IsChecked == true ? txtKey.Text : pwKey.Password;
         return raw.Trim();
-    }
-
-    private string SelectedModel()
-    {
-        return cboModel.SelectedItem is AiModelChoice m ? m.Id : AiSettings.DefaultModel;
     }
 
     private void ShowResult(string text, bool ok)
@@ -108,7 +92,7 @@ public partial class AiSettingsWindow : Window
         }
         else
         {
-            key = AiSettings.ResolveKey(out _) ?? "";
+            key = AiSettings.LoadKey() ?? "";
             if (key.Length == 0)
             {
                 ShowResult("확인할 키가 없어요. 키를 먼저 입력해 주세요.", false);
@@ -122,7 +106,7 @@ public partial class AiSettingsWindow : Window
         txtResult.Foreground = (Brush)FindResource("TextDim");
         try
         {
-            var (ok, message) = await AiSettings.TestKeyAsync(key, SelectedModel());
+            var (ok, message) = await AiSettings.TestKeyAsync(key);
             ShowResult(message, ok);
         }
         finally
@@ -135,36 +119,26 @@ public partial class AiSettingsWindow : Window
     private void OnSave(object sender, RoutedEventArgs e)
     {
         string key = InputKey();
-        if (key.Length > 0)
+        if (key.Length == 0)
         {
-            string? bad = AiSettings.CheckFormat(key);
-            if (bad != null)
-            {
-                ShowResult(bad, false);
-                return;
-            }
-            try
-            {
-                ApiKeyStore.Save(key);
-            }
-            catch (Exception ex)
-            {
-                ShowResult(ex.Message, false);
-                return;
-            }
+            DialogResult = false;   // 입력 없이 저장 = 바꿀 것이 없음
+            return;
         }
-
+        string? bad = AiSettings.CheckFormat(key);
+        if (bad != null)
+        {
+            ShowResult(bad, false);
+            return;
+        }
         try
         {
-            _settings.Model = SelectedModel();
-            _settings.Save();
+            KeyStore.Save(key);
         }
         catch (Exception ex)
         {
-            ShowResult("모델 설정을 저장하지 못했어요: " + ex.Message, false);
+            ShowResult("키를 저장하지 못했어요: " + ex.Message, false);
             return;
         }
-
         pwKey.Password = "";
         txtKey.Text = "";
         Changed = true;
@@ -174,19 +148,19 @@ public partial class AiSettingsWindow : Window
     private void OnDelete(object sender, RoutedEventArgs e)
     {
         var answer = MessageBox.Show(this,
-            "저장된 API 키를 지울까요?\n지운 뒤에는 AI 설명·상담 없이 검진만 동작해요(환경 변수 키가 있으면 그 키를 써요).",
+            "저장된 API 키를 지울까요?\n지운 뒤에는 AI 설명 없이 검진만 동작해요.",
             "AI 설정", MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (answer != MessageBoxResult.Yes) return;
         try
         {
-            ApiKeyStore.Delete();
+            KeyStore.Delete();
             Changed = true;
             RefreshState();
             ShowResult("저장된 키를 지웠어요.", true);
         }
         catch (Exception ex)
         {
-            ShowResult(ex.Message, false);
+            ShowResult("키를 지우지 못했어요: " + ex.Message, false);
         }
     }
 

@@ -43,12 +43,13 @@
                     <Button x:Name="btnAiSettings" Content="AI 설정 · 키 없음" Style="{StaticResource BtnChip}" Margin="0,0,14,0"
                             VerticalAlignment="Center" Click="OnAiSettings"
                             ToolTip="AI 설명·상담에 쓸 내 Anthropic API 키를 등록해요. 키가 없어도 검진은 동작해요"/>
-                    <RadioButton x:Name="rbModeGuide" Content="안내 모드" GroupName="mode" IsChecked="True" FontSize="12"
+                    <!-- 2026-11-17 추가: 모드 이름을 쉬운 말로 (안내 모드 → 직접 할게요, 자동 점검 모드 → 자동으로 해 주세요) -->
+                    <RadioButton x:Name="rbModeGuide" Content="직접 할게요" GroupName="mode" IsChecked="True" FontSize="12.5"
                                  VerticalAlignment="Center" Click="OnModeClick" Foreground="{StaticResource TextDim}"
-                                 ToolTip="점검 단계만 안내해요"/>
-                    <RadioButton x:Name="rbModeAuto" Content="자동 점검 모드" GroupName="mode" Margin="10,0,0,0" FontSize="12"
+                                 ToolTip="점검 방법을 차례로 알려 드리고, 실제로 바꾸는 일은 직접 해요 (안내 모드)"/>
+                    <RadioButton x:Name="rbModeAuto" Content="자동으로 해 주세요" GroupName="mode" Margin="10,0,0,0" FontSize="12.5"
                                  VerticalAlignment="Center" Click="OnModeClick" Foreground="{StaticResource TextDim}"
-                                 ToolTip="되돌릴 수 있는 조치는 실행기로 실행해요 (Lv1 자동, Lv2 동의 후)"/>
+                                 ToolTip="되돌릴 수 있는 조치는 프로그램이 대신 실행해요. 위험한 조치는 먼저 물어봐요 (자동 점검 모드: Lv1 자동, Lv2 동의 후)"/>
                 </StackPanel>
             </DockPanel>
 
@@ -81,7 +82,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <StackPanel Grid.Column="0" Margin="0,0,14,0">
-                        <TextBlock x:Name="txtAutoHead" Foreground="#CDEBDD" FontSize="11.5" FontWeight="SemiBold"
+                        <TextBlock x:Name="txtAutoHead" Foreground="#CDEBDD" FontSize="12.5" FontWeight="SemiBold"
                                    Text="▶ 자동 진행 중" TextTrimming="CharacterEllipsis"/>
                         <TextBlock x:Name="txtAutoStep" Foreground="White" FontSize="15" FontWeight="Bold"
                                    TextTrimming="CharacterEllipsis" Margin="0,1,0,0"/>
@@ -90,7 +91,7 @@
                     </StackPanel>
                     <Border Grid.Column="1" BorderBrush="#3D9474" BorderThickness="1,0,0,0" Padding="12,0,0,0">
                         <StackPanel>
-                            <TextBlock Text="방금 한 일" Foreground="#CDEBDD" FontSize="11.5" FontWeight="SemiBold"/>
+                            <TextBlock Text="방금 한 일" Foreground="#CDEBDD" FontSize="12.5" FontWeight="SemiBold"/>
                             <ItemsControl x:Name="icAutoLog">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
@@ -111,7 +112,7 @@
 
             <!-- 맨 아래: 작은 상태 글 (엔진 호출·오류 알림) -->
             <TextBlock x:Name="txtStatus" DockPanel.Dock="Bottom" Text="준비됨" Foreground="{StaticResource TextFaint}"
-                       FontSize="11.5" TextTrimming="CharacterEllipsis" Margin="2,6,0,0"/>
+                       FontSize="12.5" TextTrimming="CharacterEllipsis" Margin="2,6,0,0"/>
 
             <!-- ─── 페이지 ─── -->
             <Grid Margin="0,12,0,0">
@@ -137,30 +138,43 @@
                                                Foreground="{StaticResource TextStrong}"
                                                HorizontalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                                     <TextBlock x:Name="txtRingSub" FontSize="12" Foreground="{StaticResource TextDim}"
-                                               HorizontalAlignment="Center"/>
+                                               HorizontalAlignment="Center" TextAlignment="Center"/>
                                 </StackPanel>
                             </Grid>
                             <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                                <!-- 2026-11-17 추가: 층 이름 아래 한 줄 설명, 상태(주의/관찰/양호)에 아이콘과 쉬운 설명 -->
                                 <UniformGrid Columns="3">
                                     <Border Style="{StaticResource CardBox}" BorderThickness="0" Padding="14,12" Margin="0,0,5,0">
                                         <StackPanel>
-                                            <TextBlock Text="소프트웨어" FontSize="12" Foreground="{StaticResource TextDim}"/>
-                                            <TextBlock x:Name="txtStateSW" Text="-" FontSize="22" FontWeight="Bold"
+                                            <TextBlock Text="소프트웨어" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}"/>
+                                            <TextBlock Text="프로그램끼리 부딪히는 문제" FontSize="12" Foreground="{StaticResource TextDim}"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock x:Name="txtStateSW" Text="-" FontSize="22" FontWeight="Bold" Margin="0,6,0,0"
                                                        Foreground="{StaticResource TextFaint}"/>
+                                            <TextBlock x:Name="txtStateNoteSW" Text="검진하면 여기에 결과가 나와요" FontSize="12" Foreground="{StaticResource TextDim}"
+                                                       TextWrapping="Wrap"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Style="{StaticResource CardBox}" BorderThickness="0" Padding="14,12" Margin="5,0">
                                         <StackPanel>
-                                            <TextBlock Text="드라이버" FontSize="12" Foreground="{StaticResource TextDim}"/>
-                                            <TextBlock x:Name="txtStateDRIVER" Text="-" FontSize="22" FontWeight="Bold"
+                                            <TextBlock Text="드라이버" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}"/>
+                                            <TextBlock Text="장치를 움직이는 프로그램 문제" FontSize="12" Foreground="{StaticResource TextDim}"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock x:Name="txtStateDRIVER" Text="-" FontSize="22" FontWeight="Bold" Margin="0,6,0,0"
                                                        Foreground="{StaticResource TextFaint}"/>
+                                            <TextBlock x:Name="txtStateNoteDRIVER" Text="검진하면 여기에 결과가 나와요" FontSize="12" Foreground="{StaticResource TextDim}"
+                                                       TextWrapping="Wrap"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Style="{StaticResource CardBox}" BorderThickness="0" Padding="14,12" Margin="5,0,0,0">
                                         <StackPanel>
-                                            <TextBlock Text="하드웨어" FontSize="12" Foreground="{StaticResource TextDim}"/>
-                                            <TextBlock x:Name="txtStateHW" Text="-" FontSize="22" FontWeight="Bold"
+                                            <TextBlock Text="하드웨어" FontSize="13" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}"/>
+                                            <TextBlock Text="부품(열·전원·메모리) 문제" FontSize="12" Foreground="{StaticResource TextDim}"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock x:Name="txtStateHW" Text="-" FontSize="22" FontWeight="Bold" Margin="0,6,0,0"
                                                        Foreground="{StaticResource TextFaint}"/>
+                                            <TextBlock x:Name="txtStateNoteHW" Text="검진하면 여기에 결과가 나와요" FontSize="12" Foreground="{StaticResource TextDim}"
+                                                       TextWrapping="Wrap"/>
                                         </StackPanel>
                                     </Border>
                                 </UniformGrid>
@@ -187,7 +201,7 @@
                                                     <Grid.ColumnDefinitions>
                                                         <ColumnDefinition Width="150"/>
                                                         <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="56"/>
+                                                        <ColumnDefinition Width="120"/>
                                                     </Grid.ColumnDefinitions>
                                                     <TextBlock Text="{Binding Name}" FontWeight="{Binding Weight}"
                                                                Foreground="{Binding NameFg}" TextTrimming="CharacterEllipsis"
@@ -446,7 +460,7 @@
                             <StackPanel>
                                 <TextBlock Text="조치 실행 기록 (실행기)" Style="{StaticResource SectionTitle}" Margin="0,0,0,8"/>
                                 <TextBlock x:Name="txtExecHistoryEmpty" Foreground="{StaticResource TextDim}"
-                                           Text="아직 실행한 조치가 없어요. 자동 점검 모드에서 조치를 실행하면 여기에 남아요."/>
+                                           Text="아직 실행한 조치가 없어요. 위쪽에서 '자동으로 해 주세요'를 고르면, 프로그램이 대신 실행한 조치가 여기에 남아요."/>
                                 <ItemsControl x:Name="icExecHistory">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
@@ -480,7 +494,7 @@
                             </Button>
                             <!-- 임시(시연용) 자동 진행 -->
                             <Button x:Name="btnAutoPlay" Content="▶ 자동 진행 (시연용)" Style="{StaticResource BtnDark}"
-                                    Padding="10,3" FontSize="11.5" Margin="0,5,0,0" HorizontalAlignment="Right"
+                                    Padding="10,3" FontSize="12.5" Margin="0,5,0,0" HorizontalAlignment="Right"
                                     Click="OnAutoPlay" ToolTip="점검 → 조치 → 결과 → 해결 → 검증을 자동으로 진행해요 (실험용 시나리오의 정답으로 결과를 정함)"/>
                         </StackPanel>
                         <StackPanel>
@@ -530,19 +544,19 @@
                             <DockPanel>
                                 <Border x:Name="bdExecLevel" DockPanel.Dock="Right" CornerRadius="10" Padding="8,1"
                                         Background="#EDEDED" VerticalAlignment="Center">
-                                    <TextBlock x:Name="txtExecLevel" FontSize="11" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="txtExecLevel" FontSize="12" FontWeight="SemiBold"/>
                                 </Border>
                                 <TextBlock x:Name="txtExecTitle" FontWeight="SemiBold" FontSize="12.5" Foreground="{StaticResource TextStrong}"
                                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             </DockPanel>
-                            <TextBlock x:Name="txtExecNote" FontSize="11.5" Foreground="{StaticResource TextDim}"
+                            <TextBlock x:Name="txtExecNote" FontSize="12.5" Foreground="{StaticResource TextDim}"
                                        TextWrapping="Wrap" Margin="0,3,0,0"/>
                             <!-- 진행 기록은 마지막 줄만 (전체는 '점검 진행' 탭) -->
                             <ScrollViewer x:Name="svExecEvents" MaxHeight="36" VerticalScrollBarVisibility="Hidden" Margin="0,4,0,0">
                                 <ItemsControl x:Name="icExecEvents">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding Text}" Foreground="{Binding Fg}" FontSize="11.5"
+                                            <TextBlock Text="{Binding Text}" Foreground="{Binding Fg}" FontSize="12.5"
                                                        TextTrimming="CharacterEllipsis" Margin="0,0"/>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -574,13 +588,58 @@
                                                VerticalAlignment="Center" Margin="0,0,8,0"/>
                                     <Border x:Name="bdNextExec" CornerRadius="10" Padding="8,2" VerticalAlignment="Center"
                                             Background="#EDEDED">
-                                        <TextBlock x:Name="txtNextExec" FontSize="11" FontWeight="SemiBold"/>
+                                        <TextBlock x:Name="txtNextExec" FontSize="12" FontWeight="SemiBold"/>
                                     </Border>
                                 </WrapPanel>
                                 <TextBlock x:Name="txtNextTitle" FontSize="20" FontWeight="Bold" TextWrapping="Wrap" LineHeight="28"
                                            Foreground="{StaticResource TextStrong}" Text="아직 검진 전이에요"/>
                                 <TextBlock x:Name="txtNextAdvice" Style="{StaticResource Dim}" FontSize="12.5" Margin="0,6,0,0"
                                            Text="[최근 기록 열기]를 누르면 수집기가 남긴 가장 최근 기록으로 검진을 시작해요.&#10;다른 기록이나 실험용 시나리오는 [파일 열기…]로 고를 수 있어요."/>
+
+                                <!-- 2026-11-17 추가: 검진 전에만 보이는 3단계 안내 -->
+                                <Border x:Name="bdFirstSteps" Background="{StaticResource Soft}" CornerRadius="10" Padding="14,12"
+                                        Margin="0,14,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="이렇게 진행돼요" FontWeight="SemiBold" FontSize="13"
+                                                   Foreground="{StaticResource TextStrong}" Margin="0,0,0,8"/>
+                                        <DockPanel Margin="0,0,0,8">
+                                            <Border Width="24" Height="24" CornerRadius="12" Background="{StaticResource Accent}"
+                                                    VerticalAlignment="Top" DockPanel.Dock="Left" Margin="0,0,10,0">
+                                                <TextBlock Text="1" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                            <StackPanel>
+                                                <TextBlock Text="기록 열기" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}"/>
+                                                <TextBlock Text="[최근 기록 열기]를 누르면 문제가 생긴 순간의 기록을 읽고 원인 후보를 찾아요."
+                                                           FontSize="12.5" TextWrapping="Wrap" Foreground="{StaticResource TextDim}"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                        <DockPanel Margin="0,0,0,8">
+                                            <Border Width="24" Height="24" CornerRadius="12" Background="{StaticResource Accent}"
+                                                    VerticalAlignment="Top" DockPanel.Dock="Left" Margin="0,0,10,0">
+                                                <TextBlock Text="2" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                            <StackPanel>
+                                                <TextBlock Text="점검 따라 하기" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}"/>
+                                                <TextBlock Text="이 자리에 할 일이 하나씩 나와요. 해 보고 [증상이 사라졌어요] / [그대로예요]를 눌러 주세요."
+                                                           FontSize="12.5" TextWrapping="Wrap" Foreground="{StaticResource TextDim}"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                        <DockPanel>
+                                            <Border Width="24" Height="24" CornerRadius="12" Background="{StaticResource Accent}"
+                                                    VerticalAlignment="Top" DockPanel.Dock="Left" Margin="0,0,10,0">
+                                                <TextBlock Text="3" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center"
+                                                           VerticalAlignment="Center"/>
+                                            </Border>
+                                            <StackPanel>
+                                                <TextBlock Text="해결 확인" FontWeight="SemiBold" Foreground="{StaticResource TextStrong}"/>
+                                                <TextBlock Text="원인을 찾으면 해결 방법을 알려 드려요. 적용한 뒤 다시 생기는지 같이 확인해요."
+                                                           FontSize="12.5" TextWrapping="Wrap" Foreground="{StaticResource TextDim}"/>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </StackPanel>
+                                </Border>
 
                                 <!-- 왜 이걸 먼저 하나요? -->
                                 <Border x:Name="bdWhy" Background="{StaticResource Soft}" CornerRadius="8" Padding="13,10"
@@ -723,7 +782,7 @@
                                 <StackPanel VerticalAlignment="Center">
                                     <TextBlock Text="상담 도우미" Foreground="White" FontWeight="Bold" FontSize="13.5"/>
                                     <TextBlock x:Name="txtAgentMode" Text="점검 결과와 블랙박스 기록을 보고 같이 찾아요" Foreground="#D6EFE3"
-                                               FontSize="11.5" TextTrimming="CharacterEllipsis"/>
+                                               FontSize="12.5" TextTrimming="CharacterEllipsis"/>
                                 </StackPanel>
                             </DockPanel>
                         </Border>

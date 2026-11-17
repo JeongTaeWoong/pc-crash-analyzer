@@ -47,8 +47,10 @@ internal static class Ui
         _ => layer,
     };
 
-    /// <summary>후보의 범위(stage) 표시. 0 = 범위 밖.</summary>
-    public static string StageKo(int stage) => stage switch
+    /// <summary>후보의 범위(stage) 표시. 0 = 범위 밖.
+    /// 2026-11-17 추가: 엔진의 새 분류 app_self(꺼진 프로그램 자신의 문제)는 stage 0 이어도 '범위 밖'이 아니라
+    /// '프로그램 자체 문제'로 보인다 (11/12 목표가 원인 프로그램 찾기이고, 프로그램 자체 버그는 정답 사례라서).</summary>
+    public static string StageKo(int stage, string category = "") => category == "app_self" ? "프로그램 자체 문제" : stage switch
     {
         1 => "1차 보안",
         2 => "2차 드라이버",
@@ -110,6 +112,21 @@ internal static class Ui
 
     public static string Pct(double p) => (int)Math.Round(p * 100) + "%";
 
+    // 2026-11-17 추가: 확률을 말로. 처음에는 50%·20% 기준(높음/보통/낮음)이었는데, 1순위가 43% 일 때
+    // '보통'으로 보여 헷갈려서 순위로 말하도록 바꿨다(사용자 결정, 바뀔 수 있음).
+    //   1순위 → '가장 의심돼요', 나머지 → 20% 이상 '의심돼요', 그 밖 '가능성 낮음'. 엔진 확률은 바꾸지 않는다.
+    public static string Suspicion(bool isFirst, double p) =>
+        isFirst ? "가장 의심돼요" : (p >= 0.2 ? "의심돼요" : "가능성 낮음");
+
+    /// <summary>순위 막대 옆에 붙일 짧은 말</summary>
+    public static string SuspicionShort(bool isFirst, double p) =>
+        isFirst ? "가장 의심" : (p >= 0.2 ? "의심" : "낮음");
+
+    public static string SuspicionTip(bool isFirst, double p) =>
+        "엔진이 계산한 확률 " + Pct(p) + ". " + (isFirst
+            ? "후보 중 1순위라 '가장 의심돼요'로 보여 줘요. 아직 점검으로 확인된 원인은 아니에요."
+            : "1순위가 아닌 후보는 20% 이상이면 '의심돼요', 그 밖은 '가능성 낮음'으로 보여 줘요.");
+
     public static string Short(string text, int limit) =>
         text.Length <= limit ? text : text.Substring(0, limit - 1) + "…";
 }
@@ -138,8 +155,9 @@ public sealed class CandidateVm
     public int ConfPct { get; init; }
     public bool InFocus { get; init; }
     public int Stage { get; init; }
+    public string Category { get; init; } = "";   // 2026-11-17 추가
     public string ProbText => ProbPct + "%";
-    public string RangeText => InFocus ? $"{Stage}차 범위" : "범위 밖";
+    public string RangeText => Category == "app_self" ? "프로그램 자체 문제" : (InFocus ? $"{Stage}차 범위" : "범위 밖");
     public string SubText => $"{Ui.LayerKo(Layer)} · {RangeText} · 신뢰 {ConfPct}%";
     public double RowOpacity => InFocus ? 1.0 : 0.55;
     public Brush RankBg => InFocus ? Ui.AutoBg : Ui.GuideBg;
@@ -182,7 +200,7 @@ public sealed class DiagnoseVm
     public List<string> Notes { get; init; } = new();
 
     public string MetaLine =>
-        $"증상 {Symptom}   ·   대상 {(string.IsNullOrEmpty(Target) ? "-" : Target)}   ·   {(Mode == "auto" ? "자동 점검 모드" : "안내 모드")}";
+        $"증상 {Symptom}   ·   대상 {(string.IsNullOrEmpty(Target) ? "-" : Target)}   ·   {(Mode == "auto" ? "자동으로" : "직접")}";
     public string ConfidenceLine => $"판정 신뢰도 {LayerConfidencePct}%  (수집된 항목이 적으면 낮아집니다)";
 
     public string SummaryText
@@ -252,6 +270,7 @@ public static class ViewMap
                     ConfPct = Pct(c?["confidence"]),
                     InFocus = c?["in_focus"]?.GetValue<bool>() ?? true,
                     Stage = (int)(c?["stage"]?.GetValue<double>() ?? 1),
+                    Category = S(c?["category"]),
                     Evidence = Evidence(c?["evidence"]),
                 });
         }
