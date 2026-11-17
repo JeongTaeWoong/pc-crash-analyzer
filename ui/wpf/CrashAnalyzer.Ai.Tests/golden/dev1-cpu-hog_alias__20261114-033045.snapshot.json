@@ -1,0 +1,555 @@
+{
+ "schema_version": "1.1",
+ "snapshot_id": "20261114-033527-manual",
+ "marked_at": "2026-11-14T03:35:27.5960593+09:00",
+ "trigger": {
+  "kind": "hotkey"
+ },
+ "host": {
+  "os": "Windows 10.0.26300.0",
+  "sensor_support": false
+ },
+ "symptom": {
+  "type": "slow",
+  "target_process": "",
+  "scope": "unknown",
+  "started_at": "2026-11-14T03:35:27.5960593+09:00",
+  "faulting_modules": []
+ },
+ "resource_trends": {
+  "window_minutes": 60,
+  "samples": 2,
+  "cpu_samples": 2,
+  "commit_slope_pct_per_hour": null,
+  "commit_pct_now": 38.75,
+  "avail_mb_slope_per_min": null,
+  "gpu_dedicated_mb_slope_per_min": null,
+  "gpu_temp_max": null,
+  "gpu_clock_min": null,
+  "gpu_clock_max": null,
+  "gpu_name": null,
+  "gpu_mem_total_mb": null,
+  "gpu_mem_used_mb_max": null,
+  "gpu_mem_pct_max": null,
+  "focus_process": null,
+  "focus_process_last15": null,
+  "top_memory_growers": [],
+  "top_cpu_60": []
+ },
+ "resource_recent": {
+  "window_seconds": 200,
+  "samples": 21,
+  "commit_pct_last": 37,
+  "commit_pct_min": 24.8,
+  "commit_pct_max": 42.2,
+  "commit_limit_mb": 10111,
+  "avail_mb_last": 4366,
+  "avail_mb_min": 3589,
+  "pages_per_sec_avg": 2090.8,
+  "pages_per_sec_max": 19757.6,
+  "cpu_measurements": 6,
+  "cpu_total_pct_avg": 32.9,
+  "cpu_total_pct_max": 100,
+  "top_cpu": [
+   {
+    "pid": 3984,
+    "name": "scanbridge",
+    "cpu_avg": 26.2,
+    "cpu_avg_active": 78.8,
+    "cpu_max": 99.5,
+    "cpu_last": 99.5,
+    "measurements": 2,
+    "priv_mb_last": 8.1
+   },
+   {
+    "pid": 3592,
+    "name": "msmpeng",
+    "cpu_avg": 1.4,
+    "cpu_avg_active": 1.7,
+    "cpu_max": 4.6,
+    "cpu_last": null,
+    "measurements": 5,
+    "priv_mb_last": 297.6
+   },
+   {
+    "pid": 8584,
+    "name": "code",
+    "cpu_avg": 0.5,
+    "cpu_avg_active": 1.5,
+    "cpu_max": 2.4,
+    "cpu_last": null,
+    "measurements": 2,
+    "priv_mb_last": 237.6
+   },
+   {
+    "pid": 4,
+    "name": "system",
+    "cpu_avg": 0.4,
+    "cpu_avg_active": 0.5,
+    "cpu_max": 1,
+    "cpu_last": null,
+    "measurements": 5,
+    "priv_mb_last": 0
+   },
+   {
+    "pid": 2564,
+    "name": "godot_v4.7.2-stable_win64",
+    "cpu_avg": 0.3,
+    "cpu_avg_active": 0.9,
+    "cpu_max": 1.7,
+    "cpu_last": 0.1,
+    "measurements": 2,
+    "priv_mb_last": 192.3
+   }
+  ],
+  "top_io": [
+   {
+    "pid": 3592,
+    "name": "msmpeng",
+    "io_mbps_avg": 1.32,
+    "io_mbps_avg_active": 1.58,
+    "io_mbps_max": 7.64,
+    "io_mbps_last": null,
+    "measurements": 5
+   },
+   {
+    "pid": 3436,
+    "name": "svchost",
+    "io_mbps_avg": 0.67,
+    "io_mbps_avg_active": 2.02,
+    "io_mbps_max": 3.65,
+    "io_mbps_last": null,
+    "measurements": 2
+   },
+   {
+    "pid": 6984,
+    "name": "code",
+    "io_mbps_avg": 0.39,
+    "io_mbps_avg_active": 1.17,
+    "io_mbps_max": 1.61,
+    "io_mbps_last": null,
+    "measurements": 2
+   }
+  ],
+  "top_memory": [
+   {
+    "pid": 3592,
+    "name": "MsMpEng",
+    "priv_mb_last": 298.9,
+    "priv_mb_first": 291,
+    "priv_mb_delta": 7.9,
+    "seconds": 200,
+    "samples": 21,
+    "started_in_window": false
+   },
+   {
+    "pid": 8584,
+    "name": "Code",
+    "priv_mb_last": 220.1,
+    "priv_mb_first": 48.3,
+    "priv_mb_delta": 171.8,
+    "seconds": 110,
+    "samples": 12,
+    "started_in_window": true
+   },
+   {
+    "pid": 2564,
+    "name": "Godot_v4.7.2-stable_win64",
+    "priv_mb_last": 192.3,
+    "priv_mb_first": 193,
+    "priv_mb_delta": -0.7,
+    "seconds": 90,
+    "samples": 10,
+    "started_in_window": true
+   },
+   {
+    "pid": 11256,
+    "name": "powershell",
+    "priv_mb_last": 191,
+    "priv_mb_first": 190,
+    "priv_mb_delta": 1,
+    "seconds": 200,
+    "samples": 21,
+    "started_in_window": false
+   },
+   {
+    "pid": 10992,
+    "name": "Code",
+    "priv_mb_last": 183,
+    "priv_mb_first": 210.1,
+    "priv_mb_delta": -27.1,
+    "seconds": 99,
+    "samples": 11,
+    "started_in_window": true
+   }
+  ],
+  "top_memory_growth": [
+   {
+    "pid": 8584,
+    "name": "Code",
+    "priv_mb_last": 220.1,
+    "priv_mb_first": 48.3,
+    "priv_mb_delta": 171.8,
+    "seconds": 110,
+    "samples": 12,
+    "started_in_window": true
+   }
+  ],
+  "disks": [
+   {
+    "name": "0 C:",
+    "samples": 20,
+    "busy_pct_avg": 3.1,
+    "busy_pct_max": 26,
+    "busy_ge90_samples": 0,
+    "busy_pct_recent": 0.6,
+    "latency_ms_recent": 0.35,
+    "mbps_recent": 0.94,
+    "queue_avg": 0.42,
+    "queue_max": 6.73,
+    "latency_ms_avg": 1.06,
+    "latency_ms_max": 7.45,
+    "iops_avg": 117.8,
+    "mbps_avg": 9.61
+   }
+  ]
+ },
+ "processes": [
+  "Idle",
+  "System",
+  "Registry",
+  "smss",
+  "csrss",
+  "wininit",
+  "csrss",
+  "winlogon",
+  "services",
+  "lsass",
+  "svchost",
+  "fontdrvhost",
+  "fontdrvhost",
+  "svchost",
+  "svchost",
+  "dwm",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "VSSVC",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "Memory Compression",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "spoolsv",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "MpDefenderCoreService",
+  "svchost",
+  "svchost",
+  "MsMpEng",
+  "svchost",
+  "wlms",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "AggregatorHost",
+  "svchost",
+  "svchost",
+  "sihost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "taskhostw",
+  "explorer",
+  "svchost",
+  "ShellHost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "CrossDeviceResume",
+  "SearchHost",
+  "StartMenuExperienceHost",
+  "RuntimeBroker",
+  "svchost",
+  "Widgets",
+  "msedgewebview2",
+  "msedgewebview2",
+  "svchost",
+  "msedgewebview2",
+  "msedgewebview2",
+  "msedgewebview2",
+  "msedgewebview2",
+  "svchost",
+  "WidgetService",
+  "NisSrv",
+  "svchost",
+  "svchost",
+  "smartscreen",
+  "SecurityHealthSystray",
+  "SecurityHealthService",
+  "ctfmon",
+  "SearchIndexer",
+  "svchost",
+  "msedge",
+  "msedge",
+  "msedge",
+  "msedge",
+  "msedge",
+  "TextInputHost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "OneDrive",
+  "OneDrive.Sync.Service",
+  "powershell",
+  "conhost",
+  "taskhostw",
+  "MicrosoftEdgeUpdate",
+  "powershell",
+  "conhost",
+  "cmd",
+  "conhost",
+  "BlackBox",
+  "WmiPrvSE",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "Code",
+  "Code",
+  "Code",
+  "Code",
+  "Code",
+  "Code",
+  "Code",
+  "Code",
+  "Godot_v4.7.2-stable_win64",
+  "CloudNoteSync",
+  "conhost",
+  "InvoiceExport",
+  "conhost",
+  "ScanBridge",
+  "conhost",
+  "WmiPrvSE"
+ ],
+ "drivers": [
+  {
+   "name": "CDD"
+  },
+  {
+   "name": "bindflt",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "UCPD",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "WdFilter",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "applockerfltr",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "storqosflt",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "wcifs",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "CldFlt",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "bfs",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "FileCrypt",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "luafv",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "UnionFS",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "npsvctrig",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "Wof",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "FileInfo",
+   "type": "kernel_filter"
+  }
+ ],
+ "device_filters": {
+  "keyboard_upper": [
+   "kbdclass"
+  ],
+  "mouse_upper": [
+   "mouclass"
+  ]
+ },
+ "security": {
+  "realtime_av": [
+   "Windows Defender"
+  ]
+ },
+ "change_history": [
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Git",
+   "version": "2.56.0.4"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Microsoft Edge",
+   "version": "157.0.4341.46"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Microsoft Edge WebView2 런타임",
+   "version": "157.0.4341.46"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Godot Engine",
+   "version": "4.7.2"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Microsoft Visual Studio Code (User)",
+   "version": "1.145.2"
+  }
+ ],
+ "events": [
+  {
+   "time": "2026-11-14T03:32:40.4217258+09:00",
+   "id": 1001,
+   "provider": "Windows Error Reporting",
+   "subject": "MicrosoftEdgeUpdate.exe"
+  },
+  {
+   "time": "2026-11-14T03:32:40.4284713+09:00",
+   "id": 1001,
+   "provider": "Windows Error Reporting",
+   "subject": "MicrosoftEdgeUpdate.exe"
+  }
+ ],
+ "process_exits": {
+  "window_stops": 116,
+  "nonzero_stops": 23,
+  "rows": [
+   {
+    "name": "backgroundTaskHost.exe",
+    "exit_code": 1,
+    "exit_hex": "0x00000001",
+    "count": 13,
+    "last_at": "2026-11-14T03:34:20.5490105+09:00",
+    "sec_before_mark": 67,
+    "lived_sec": 63
+   },
+   {
+    "name": "wsl.exe",
+    "exit_code": 50,
+    "exit_hex": "0x00000032",
+    "count": 1,
+    "last_at": "2026-11-14T03:34:02.3340036+09:00",
+    "sec_before_mark": 85.3,
+    "lived_sec": 0
+   },
+   {
+    "name": "cmd.exe",
+    "exit_code": 1,
+    "exit_hex": "0x00000001",
+    "count": 2,
+    "last_at": "2026-11-14T03:34:01.3210505+09:00",
+    "sec_before_mark": 86.3,
+    "lived_sec": 0
+   },
+   {
+    "name": "wsl.exe",
+    "exit_code": 1,
+    "exit_hex": "0x00000001",
+    "count": 2,
+    "last_at": "2026-11-14T03:34:01.3210346+09:00",
+    "sec_before_mark": 86.3,
+    "lived_sec": 0
+   },
+   {
+    "name": "code-tunnel.exe",
+    "exit_code": 1,
+    "exit_hex": "0x00000001",
+    "count": 1,
+    "last_at": "2026-11-14T03:34:01.3205386+09:00",
+    "sec_before_mark": 86.3,
+    "lived_sec": 0
+   },
+   {
+    "name": "BackgroundTransferHost.exe",
+    "exit_code": 1,
+    "exit_hex": "0x00000001",
+    "count": 4,
+    "last_at": "2026-11-14T03:33:22.572677+09:00",
+    "sec_before_mark": 125,
+    "lived_sec": 1
+   }
+  ]
+ }
+}

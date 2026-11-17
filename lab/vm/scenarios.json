@@ -177,7 +177,7 @@
       "note": "From the 5.1.1 corrective release notes and issue 155851 (reported on Windows 11, viewport render). NOT reproduced by us: whether a background render (-b) crashes too is unknown, and so is whether Windows writes a crash event - Blender may handle its own crash and just end. So the user's mark 'crash' is sent at the end (dump kind manual); if the collector also writes a crash dump, that one is used (prefer_dump_kind). If Blender ends normally the run is not a case.",
       "packages": [ "blender-5.1.0" ],
       "recipe": { "exe": "C:\\Tools\\Blender51\\blender.exe", "args": [ "-b", "C:\\Work\\shots\\interior-shot.blend", "-E", "CYCLES", "-o", "C:\\Work\\shots\\frame_", "-f", "1" ], "cwd": "C:\\Work\\shots", "timeout_sec": 300, "crash": true },
-      "mark": { "at_end": true, "text": "crash" },
+      "mark": { "at_end": true, "text": "app_crash blender" },
       "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "blender.exe", "also": [ "Blender" ],
                  "known_issue": { "product": "Blender", "affected": "5.1.0", "fixed_in": "5.1.1", "fix": "update", "source": "https://developer.blender.org/docs/release_notes/5.1/corrective_releases/" } }
     },
@@ -190,13 +190,46 @@
       "truth": { "symptom": "slow", "cause_category": "system_work", "culprit": "MsMpEng.exe", "also": [ "Microsoft Defender", "Windows Defender", "Defender", "Antimalware Service Executable" ],
                  "known_issue": { "product": "Microsoft Defender Antivirus", "fix": "wait_or_schedule", "source": "https://learn.microsoft.com/en-us/defender-endpoint/configure-advanced-scan-types-microsoft-defender-antivirus" } }
     },
+    "sys-search-index": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "by_design",
+      "title": "Windows' own work: the search indexer works through 30,000 new documents and the user marks 'slow'",
+      "note": "Added 2026-11-15, NOT yet run in a guest - written for the hard-case TEST set (never used in development). A driver script writes 30,000 small text files into the user's Documents folder (an unpacked archive) and stays alive; Documents is an indexed location, so SearchIndexer.exe and its helpers have to read them. Microsoft describes this load. How heavy it is in a guest is unknown, and so is whether the search service runs there (the driver ends with code 4 if it does not): the run is a case only when the PC was really busy and one of the search processes is among the top users. The sound advice is to wait or to exclude the folder from the index - not to switch Windows Search off for good.",
+      "packages": [ "drivers-syswork" ],
+      "recipe": { "driver": "docs-unpack.ps1", "driver_args": [ "-Folder", "archive-2019", "-Count", "30000" ], "timeout_sec": 480, "stop_at_end": true, "fail_exit": [ 4 ] },
+      "mark": { "after_sec": 180, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "system_work", "culprit": "SearchIndexer.exe",
+                 "also": [ "SearchProtocolHost.exe", "SearchFilterHost.exe", "Windows Search", "Microsoft Windows Search Indexer", "WSearch" ],
+                 "known_issue": { "product": "Windows Search", "fix": "wait_or_exclude_folder", "source": "https://learn.microsoft.com/en-us/troubleshoot/windows-client/shell-experience/windows-search-performance-issues" } }
+    },
+    "sys-defender-copy": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "by_design",
+      "title": "Two programs: the user copies a large program folder and Defender's real-time protection scans every file written; the user marks 'slow'",
+      "note": "Added 2026-11-15, NOT yet run in a guest - written for the hard-case TEST set (never used in development). A driver script copies the Blender 5.1.0 folder (about 1 GB, thousands of files, many executables and DLLs) with robocopy several times in a row. Microsoft documents that real-time protection scans what a process writes and names the remedies (exclusions for trusted folders, the performance analyzer). The answer key is fixed beforehand: Defender (MsMpEng.exe) is the cause of the slowness, the copy is the user's own job, and the sound advice is to wait or add an exclusion - not to turn the protection off. Because the copy itself is also busy, the run is a case only when MsMpEng.exe is among the first two CPU users (truth.effect_top); otherwise it is dropped without further looking.",
+      "packages": [ "blender-5.1.0", "drivers-syswork" ],
+      "recipe": { "driver": "folder-backup.ps1", "driver_args": [ "-Source", "C:\\Tools\\Blender51", "-DestRoot", "C:\\Work\\backup", "-Copies", "30" ], "timeout_sec": 420, "stop_at_end": true, "fail_exit": [ 3 ],
+                  "history": "2026-11-16 (plan test-2, lab records only): with 8 copies the job was over before the mark on both clones - one copy takes 3-5 s on dev1 and 6-9 s on office1, not the tens of seconds assumed. 30 copies keep it running past the mark at 75 s; the job is stopped 45 s after the mark." },
+      "mark": { "after_sec": 75, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "system_work", "culprit": "MsMpEng.exe", "effect_top": 2, "workload": "robocopy.exe",
+                 "also": [ "Microsoft Defender", "Windows Defender", "Defender", "Antimalware Service Executable" ],
+                 "known_issue": { "product": "Microsoft Defender Antivirus", "fix": "wait_or_exclusion", "source": "https://learn.microsoft.com/en-us/defender-endpoint/troubleshoot-performance-issues" } }
+    },
+    "work-sfc-verify": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "by_design",
+      "title": "No fault: the user runs the System File Checker (sfc /verifyonly - it checks, it repairs nothing) and marks 'slow' while it runs",
+      "note": "Added 2026-11-15, NOT yet run in a guest - written for the hard-case TEST set (never used in development). A user's own job done by a Windows tool: people run sfc after reading advice on a forum. Which process carries the load is NOT confirmed by us (expected: TiWorker.exe, the Windows Modules Installer Worker, started by sfc); the effect check accepts TiWorker.exe, sfc.exe or TrustedInstaller.exe among the top users. If none is there, or the PC was not really busy, the run is not a case.",
+      "recipe": { "exe": "C:\\Windows\\System32\\sfc.exe", "args": [ "/verifyonly" ], "timeout_sec": 600, "stop_at_end": true,
+                  "history": "2026-11-16 (plan test-2, lab records only): on office2 (slow profile) sfc was still running at the mark (150 s) and the run is a case; on office1 it had finished before 150 s with 'no integrity violations' (exit 0). The mark moved to 45 s." },
+      "mark": { "after_sec": 45, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "user_workload", "culprit": null, "workload": "TiWorker.exe",
+                 "workload_also": [ "sfc.exe", "TrustedInstaller.exe", "System File Checker", "Windows Modules Installer Worker" ] }
+    },
     "bg-steam-update": {
       "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "by_design",
       "title": "A launcher's own work: Steam downloads and verifies a large game-server package and the user marks 'slow'",
-      "note": "The 'a game is updating' situation. SteamCMD with Steam's anonymous login - no personal account in the guest (decided 2026-11-14: personal accounts are not put into guests for now). The busy program is the answer and the sound advice is to wait, limit the download speed or schedule updates. The first run updates SteamCMD itself, so how long it takes until the download really starts is unknown. Not yet run in a guest.",
+      "note": "The 'a game is updating' situation. SteamCMD with Steam's anonymous login - no personal account in the guest (decided 2026-11-14: personal accounts are not put into guests for now). The busy program is the answer and the sound advice is to wait, limit the download speed or schedule updates. Run in guests three times, no case yet: 2026-11-14 SteamCMD ended with exit code 7 after updating itself; 2026-11-15 (two runs, self-update as a first step) the download step ended in under 4 minutes with 'Failed to install app 232250 (Missing configuration)', exit code 8 - cause not confirmed. Since then a driver script asks up to three times and refreshes the app information first (lab/vm/drivers/steam-update.ps1). 2026-11-15 evening (plan real-3, two runs): the first try failed with the same message both times and the second try downloaded - asking again works (2/2), the cause is still not confirmed. The package is 15.4 GB. On the slow profile (office2) the download was at 16 % when the mark came at 300 s: a case. On dev1 the whole 15.4 GB arrived in 3 min 48 s and the program had ended before the mark: not a case. The download starts 20-45 s after the start, so the mark is now at 150 s.",
       "packages": [ "steamcmd" ],
-      "recipe": { "exe": "C:\\Tools\\SteamCMD\\steamcmd.exe", "args": [ "+force_install_dir", "C:\\Games\\server", "+login", "anonymous", "+app_update", "232250", "validate", "+quit" ], "cwd": "C:\\Tools\\SteamCMD", "timeout_sec": 420, "stop_at_end": true },
-      "mark": { "after_sec": 180, "text": "slow" },
+      "recipe": { "driver": "steam-update.ps1", "driver_args": [ "-SteamCmd", "C:\\Tools\\SteamCMD\\steamcmd.exe", "-InstallDir", "C:\\Games\\server", "-AppId", "232250" ], "cwd": "C:\\Tools\\SteamCMD", "timeout_sec": 660, "stop_at_end": true },
+      "mark": { "after_sec": 150, "text": "slow" },
       "truth": { "symptom": "slow", "cause_category": "system_work", "culprit": "steamcmd.exe", "also": [ "Steam", "SteamCMD" ],
                  "known_issue": { "product": "Steam", "fix": "wait_or_limit_download" } }
     },
@@ -213,8 +246,8 @@
       "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "by_design",
       "title": "No fault: the user renders a frame with Blender on the CPU (their own heavy job) and marks 'slow' while it runs",
       "note": "Only on clones with Blender (design bundle). Not yet run in a guest.",
-      "recipe": { "app": "blender", "exe_name": "blender.exe", "args": [ "-b", "--python-expr", "import bpy; s=bpy.context.scene; s.render.engine='CYCLES'; s.cycles.device='CPU'; s.cycles.samples=4096; s.render.resolution_percentage=200", "-o", "C:\\Work\\render\\frame_", "-f", "1" ], "cwd": "C:\\Work\\render", "timeout_sec": 300, "stop_at_end": true },
-      "mark": { "after_sec": 100, "text": "slow" },
+      "recipe": { "app": "blender", "exe_name": "blender.exe", "args": [ "-b", "--python-expr", "import bpy; s=bpy.context.scene; s.render.engine='CYCLES'; s.cycles.device='CPU'; s.cycles.samples=4096; s.cycles.use_adaptive_sampling=False; s.render.resolution_percentage=400", "-o", "C:\\Work\\render\\frame_", "-f", "1" ], "cwd": "C:\\Work\\render", "timeout_sec": 300, "stop_at_end": true },
+      "mark": { "after_sec": 60, "text": "slow" },
       "truth": { "symptom": "slow", "cause_category": "user_workload", "culprit": null, "workload": "blender.exe" }
     },
     "busy-mem-pressure": {
@@ -241,6 +274,104 @@
       "workload": { "app": "7zip", "exe_name": "7z.exe", "args": [ "a", "-mx=5", "-mmt=on", "-bd", "programs.7z", "C:\\Program Files", "C:\\Windows\\System32", "-xr!*.7z" ], "cwd": "C:\\Work\\backup", "lead_sec": 20 },
       "fault": { "mode": "plugin", "args": [], "timeout_sec": 120, "ok_exit": [ 0 ] },
       "truth": { "symptom": "app_crash", "cause_category": "third_party_module", "culprit": "FaultPlugin.dll", "note": "faulting process FaultHost.exe", "workload": "7z.exe" }
+    },
+    "real-node-rmsync": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "prefer_dump_kind": "crash", "confidence": "documented",
+      "title": "Real program bug: Node.js 23.3.0 ends abruptly on fs.rmSync() of a file with a non-ASCII name",
+      "note": "From issue 56049 (Windows 10; Node 23.3.0 and 23.0.0, while 22.11.0 is fine): fs.rmSync of an existing file named U+901F 'just crashed' without throwing. The issue gives no exit code, no output and no word about a Windows crash event or the reporter's code page. Fixed by PR 61108, which the changelogs list in 25.4.0 and 24.13.1; no 23.x release has it. NOT reproduced by us. Read from the 23.3.0 source, not said in the issue: RmSync hands the UTF-8 bytes of the path to std::filesystem::path as if they were ANSI text, and Node is built with _HAS_EXCEPTIONS=0, so a failed conversion should end the process inside the C runtime (expected exit 0xC0000409 and an event 1000 - unconfirmed). Windows rejects these bytes under code page 949 as it does under 936, 950 and 932 (MultiByteToWideChar with MB_ERR_INVALID_CHARS, asked on the host 2026-11-15); under 1252 the same bytes convert (to wrong characters) and under a UTF-8 system code page they convert correctly, so this ending is not expected there. The file must exist (the script writes it first), otherwise rmSync throws ENOENT. Because a crash event is not documented, the user's mark is sent at the end (dump kind manual); if the collector also writes a crash dump, that one is used (prefer_dump_kind). Exit code 0 or 1 (1 = an ordinary JavaScript error) means the bug did not show and the run is not a case.",
+      "packages": [ "node-23.3.0" ],
+      "recipe": { "exe": "C:\\Tools\\Node23\\node.exe", "args": [ "C:\\Work\\site-tools\\build-index.js" ], "cwd": "C:\\Work\\site-tools", "timeout_sec": 90, "crash": true, "fail_exit": [ 0, 1 ] },
+      "mark": { "at_end": true, "text": "app_crash node" },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "node.exe", "also": [ "Node.js", "node" ],
+                 "known_issue": { "product": "Node.js", "affected": "23.0.0 - 24.13.0, 25.0.0 - 25.3.0", "fixed_in": "24.13.1 / 25.4.0", "fix": "update", "source": "https://github.com/nodejs/node/issues/56049" } }
+    },
+    "real-node-cpsync": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "prefer_dump_kind": "crash", "confidence": "documented",
+      "title": "Real program bug: Node.js 22.6.0 ends abruptly on fs.cpSync() of a folder with a non-ASCII name",
+      "note": "From issue 54476 (Windows 10 19045 x64, Node 22.6.0, while 20.17.0 is fine): fs.cpSync from a folder with a Chinese name to C:/model gives 'no output, only crash'. The source folder is the one with the non-ASCII name; the destination is plain ASCII. The issue gives no exit code and no word about a Windows crash event or the reporter's code page. A maintainer names PR 53614 (new in 22.6.0) as the cause; the fix is PR 54653, which the changelog lists in 22.10.0 (and 23.0.0), so 22.7.0 - 22.9.0 are taken to be affected too. NOT reproduced by us. Read from the 22.6.0 source, not said in the issue: cpSyncCheckPaths hands the UTF-8 bytes of both paths to std::filesystem::path as if they were ANSI text, and Node is built with _HAS_EXCEPTIONS=0, so a failed conversion should end the process inside the C runtime before anything is copied (expected exit 0xC0000409 and an event 1000 - unconfirmed). Windows rejects these bytes under code page 949 as it does under 936, 950 and 932 (MultiByteToWideChar with MB_ERR_INVALID_CHARS, asked on the host 2026-11-15); under 1252 the same bytes convert (to wrong characters) and under a UTF-8 system code page they convert correctly, so this ending is not expected there. The script makes the source folder on C: with plain mkdirSync - recursive mkdir has a std::filesystem path of its own in 22.6.0 and is avoided. Because a crash event is not documented, the user's mark is sent at the end (dump kind manual); if the collector also writes a crash dump, that one is used (prefer_dump_kind). Exit code 0 or 1 (1 = an ordinary JavaScript error) means the bug did not show and the run is not a case.",
+      "packages": [ "node-22.6.0" ],
+      "recipe": { "exe": "C:\\Tools\\Node22\\node.exe", "args": [ "C:\\Work\\model-tools\\copy-model.js" ], "cwd": "C:\\Work\\model-tools", "timeout_sec": 90, "crash": true, "fail_exit": [ 0, 1 ] },
+      "mark": { "at_end": true, "text": "app_crash node" },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "node.exe", "also": [ "Node.js", "node" ],
+                 "known_issue": { "product": "Node.js", "affected": "22.6.0 - 22.9.0", "fixed_in": "22.10.0", "fix": "update", "source": "https://github.com/nodejs/node/issues/54476" } }
+    },
+    "real-tsc-lodash": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "confidence": "documented",
+      "title": "Real program bug: TypeScript 5.1.3 type-checks a one-line project that has @types/lodash 4.14.195 for minutes at full CPU with growing memory; the user marks 'slow' while it runs",
+      "note": "From TypeScript issue 54542: a regression from PR 52106, fixed by PR 54781, which is in 5.1.5 (cherry-pick 54792) and in 5.2; 5.0.4 and 5.2.2 are reported fine. NOT reproduced by us - nothing was run on the host, the first run is in a guest. The project is the maintainer's reduction: one file with import \"lodash\", strict off, skipLibCheck off; the runaway check is the variance computation for ObjectChain<T> in node_modules/@types/lodash/common/common.d.ts. The reporter's numbers are from their own 253-file project with the heap limit raised to 8 GB, as in our args: check time 239.51 s of 242.05 s, memory 2.38 GB, then tsc ends by itself with errors TS2589 and TS2430 in common.d.ts. --max-old-space-size=8192 is from the issue's command line; with node's default heap limit the issue says tsc 'eventually crashes' with 'JavaScript heap out of memory' (another report with TypeScript 5.1.3: at the 2 GB limit after 68 s), and that could come before the mark. Not in the issue: time and memory of the one-line project itself, and the time of a healthy run (with 5.1.5 or later this file should check in a few seconds - our expectation, not measured). The mark at 60 s is a quarter of the reporter's run; the job is stopped 45 s after it. If tsc has ended before the mark (alive_at_mark false, or recipe_end says 'ended by itself') the run is not a case - lower after_sec. Unknown: what a 4 GB guest does once the heap passes 2 GB (paging is likely).",
+      "packages": [ "node-22.6.0", "ts-5.1.3-project" ],
+      "recipe": { "exe": "C:\\Tools\\Node22\\node.exe", "args": [ "--max-old-space-size=8192", "node_modules\\typescript\\bin\\tsc", "--noEmit", "--extendedDiagnostics", "-p", "." ], "cwd": "C:\\Work\\web-app", "timeout_sec": 600, "stop_at_end": true,
+                  "history": "2026-11-16 (plan test-2, lab records only): on dev1 and office1 tsc ended by itself before the mark at 60 s with exit code 2 and exactly the two errors of the issue (TS2589, TS2430 in common.d.ts) - the bug is there, but the one-line project does not run for minutes. How long it runs is not in the records, so --extendedDiagnostics was added (tsc prints its check time and memory) and the mark moved to 25 s. If tsc is over before that again, this is a burst of a few seconds, not a slow PC, and the scenario is dropped from the test set." },
+      "mark": { "after_sec": 25, "text": "slow" },
+      "truth": { "symptom": "slow", "cause_category": "app_bug", "culprit": "node.exe", "also": [ "TypeScript", "tsc" ],
+                 "known_issue": { "product": "TypeScript", "affected": "5.1.0-beta - 5.1.3", "fixed_in": "5.1.5", "fix": "update", "source": "https://github.com/microsoft/TypeScript/issues/54542" } }
+    },
+    "real-godot-obj": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "crash", "confidence": "documented",
+      "title": "Real program bug: Godot 4.3 crashes while importing an OBJ in which an object without UVs follows one with UVs",
+      "note": "From issue 97152 and its fix, PR 97264 (merged 2024-09-21, milestone 4.4; 4.4-dev3 is the first build that has it, 4.4-dev2 does not; no 4.3.x release was ever tagged). NOT reproduced by us - first run is in a guest. Sample = the issue's own minimal project (OBJ_Import_Crash.zip, folder obj_import_crash, files unchanged, .godot cache left out). cubes_01.obj holds 'Cube_noMat' with vt lines and then 'Cube_noMatNoUVs' whose faces are v//vn. That order is the trigger: a surface without UVs after a surface with UVs in the same file. An OBJ with no UVs at all does not crash (4.3-stable source and the PR text: the importer asks whether the file has any UVs, not whether this surface has them). What the issue says (Windows 10, 4.3-stable, in the editor): 'ERROR: UVs are required to generate tangents.', then 'FATAL: Index p_index = 2 is out of bounds (size() = 0).' (core/templates/cowdata.h:205), then 'CrashHandlerException: Program crashed with signal 4'. Stack from a maintainer's build: CowData<float>::get <- Vector<float>::operator[] <- _parse_obj (resource_importer_obj.cpp) <- ResourceImporterOBJ::import. The issue does not say whether a Windows error dialog appears, and nobody there ran it headless. Not known until the guest run: (1) that '--headless --import' reaches this importer - expected, because the project has no .godot folder and no cubes_01.obj.import, so the first scan imports the file; (2) the exception code with --disable-crash-handler - expected 0xC000001D (illegal instruction: the fatal index check ends in a trap instruction; signal 4 = SIGILL), not 0xC0000005 as in real-godot-svg. If Godot ends normally the run is not a case.",
+      "packages": [ "godot-4.3-obj" ],
+      "recipe": { "exe": "C:\\Tools\\Godot\\Godot_v4.3-stable_win64.exe", "args": [ "--headless", "--disable-crash-handler", "--path", "C:\\Work\\level-project", "--import" ], "timeout_sec": 180, "crash": true },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "Godot_v4.3-stable_win64.exe",
+                 "known_issue": { "product": "Godot Engine", "affected": "4.3-stable, 4.4-dev1, 4.4-dev2", "fixed_in": "4.4-dev3", "fix": "update", "source": "https://github.com/godotengine/godot/issues/97152" } }
+    },
+    "real-blender-solidify": {
+      "kind": "recipe", "expect_dump": true, "expect_dump_kind": "manual", "prefer_dump_kind": "crash", "confidence": "documented",
+      "title": "Real program bug: Blender 5.1.0 crashes on opening a file from 5.0 whose mesh has a Solidify modifier in Complex mode",
+      "note": "From the 5.1.1 corrective release notes ('Complex Solidify from previous version crashes 5.1.0', #155792) and the issue. NOT reproduced by us - first run is in a guest. Sample = the issue's own attachment 123.blend, renamed torso-model.blend: saved by 5.0 (file header v0500), one mesh object 'NR_Torso.003' with one Solidify modifier, Mode = Complex; no camera. Trigger = evaluating that modifier, which happens as soon as the file is open - no render (and without a camera -f would not render). The mesh matters: the reporter says a new 5.0.1 file with Complex Solidify opens fine. What the issue says (Windows 11, 5.1.0 hash adfe2921d5f3, in the GUI): 'Open attached blend file with 5.1.0, blender crash'; worked in 5.0.1; a developer confirmed it on main; with the modifier set to Simple the file opens and switching back to Complex crashes at once. Attached crash log: EXCEPTION_ACCESS_VIOLATION (0xc0000005), read of 0xFFFFFFFFFFFFFFFF, module blender.exe, on a worker thread: AttributeStorage::lookup <- MutableAttributeAccessor::lookup_or_add_for_write <- MOD_solidify_nonmanifold_modifyMesh <- mesh_calc_modifiers <- BKE_object_eval_uber_data (dependency-graph task); the main thread is in wm_file_read_post -> wm_event_do_depsgraph. Fix: 'Complex Solidify use after free', PR 155803 (commit d57c6aa1d0ec in main, dd2b188551a5 in the 5.1 branch). The reporter's screen recording shows Blender's own box 'Blender has stopped working' (Restart / View Crash Log / Close) naming %TEMP%\\123.crash.txt - not a Windows error dialog. Not known: (1) whether background mode (-b) hits it - nobody in the issue ran it that way. It should: -b also evaluates the dependency graph when a file is loaded (5.1.0 has the switch --disable-depsgraph-on-file-load to turn exactly that off), the same path as in the crash log. The --python-expr is a second try in case the load did not evaluate: it tags every object and asks for the evaluated graph; if the load crashes it is never reached. (2) The exit code and whether Windows writes a crash event: as in real-blender-bgscene Blender is expected to catch the fault itself, write %TEMP%\\torso-model.crash.txt and end with code 11, so the user's mark is sent at the end (dump kind manual; a crash dump is used if the collector writes one). (3) That it shows on every run: it is a use-after-free; the reporter and the developer got it each time, more is not proven. fail_exit: 0 = ended normally, 1 = Blender's ordinary error exit in background mode (believed to include a file that could not be loaded - not checked); both mean the bug did not show and the run is not a case.",
+      "packages": [ "blender-5.1.0-solidify" ],
+      "recipe": { "exe": "C:\\Tools\\Blender51\\blender.exe", "args": [ "-b", "C:\\Work\\models\\torso-model.blend", "--python-expr", "import bpy; [o.update_tag(refresh={'DATA'}) for o in bpy.data.objects]; bpy.context.evaluated_depsgraph_get()" ], "cwd": "C:\\Work\\models", "timeout_sec": 180, "crash": true, "fail_exit": [ 0, 1 ] },
+      "mark": { "at_end": true, "text": "app_crash blender" },
+      "truth": { "symptom": "app_crash", "cause_category": "app_bug", "culprit": "blender.exe", "also": [ "Blender" ],
+                 "known_issue": { "product": "Blender", "affected": "5.1.0", "fixed_in": "5.1.1", "fix": "update", "source": "https://developer.blender.org/docs/release_notes/5.1/corrective_releases/" } }
+    },
+    "real-blender-denoise-leak": {
+      "kind": "recipe",
+      "expect_dump": true,
+      "expect_dump_kind": "manual",
+      "confidence": "documented",
+      "title": "Real program bug: Blender 5.0.1 keeps 55 MiB more memory on every frame while its compositor denoises an EXR sequence (Image node -> Denoise node); the user marks 'slow' while it runs",
+      "note": "From issue 151940 (filed by a Blender triager on Windows, RTX 4090; broken in 5.1.0 Alpha of 2025-12-19, in 5.0 and in 4.5, 'Worked: Unsure'; confirmed, severity High; first reported in a comment on issue 137969): 'When using the compositor with a denoise node to denoise a EXR sequence, memory usage will climb with each frame rendered until you're out of memory and Blender crashes', about 80 GB after 1500 frames. NOT reproduced by us - nothing was run on the host, the first run is in a guest. Trigger (issue, fix PR 151990 and the 5.0.1 source): a Denoise node whose Albedo and Normal inputs come DIRECTLY from an Image node, with Prefilter = Accurate (the default). Every frame the node prefilters albedo and normal into two new buffers that hang on the Image node's output; Result::free() returns early for a result that wraps outside data and never frees them. It does not need the GPU (the reporter set the denoise device to GPU only for speed and says so); HDR and Quality do not matter. Render Layers -> Denoise does NOT leak in 5.0.1 (that node copies each pass into a buffer of its own - read from the source), so an ordinary 'render and denoise in the compositor' job is not this bug: it needs an EXR sequence with denoising passes on disk. Size, from the source: albedo (4 floats) + normal (3 floats) = 28 bytes per pixel per frame = 58.1 MB (55.4 MiB) at 1920x1080; the issue's 80 GB / 1500 frames = 53 - 57 MB a frame agrees. Fix: commit 0b10654783ec in main (2025-12-22, in 5.1.0) and 17501feda7da in the 4.5 branch (listed under 4.5.6 in the LTS task, issue 141871). Checked at the release tags: v4.5.5, v5.0.0 and v5.0.1 are without it, v4.5.6 and v5.1.0 have it; no later 5.0.x exists and the triager wrote 'Blender 5.0 does not have the fix'. 4.4.x has the same code (our reading, not said in the issue). Samples = the issue's two attachments, unchanged: turntable-plates.blend ('EXR Generator.blend': default cube, Cycles, 1920x1080, 4 samples, multilayer EXR with Denoising Albedo/Normal/Depth written to //EXRs, frames 1-500) and product-turntable.blend ('Memory leak with denoise node compositor.blend': Image node = sequence //EXRs/0001.exr -> Denoise (Image, Albedo, Normal; Accurate; HDR) -> Composite, 1920x1080, JPEG output, compositor on CPU, no Render Layers node - so the 3D scene, set to EEVEE, is never rendered and no GPU is needed). The issue's two steps run in one process: turntable_job.py renders only 4 plates (not 500), opens the comp and changes four things - frame range 1-2000, the Image node loops over the 4 plates (frame_duration 4, use_cyclic), denoise device CPU (the file says GPU), final denoise quality Fast (the file says High; the leak per frame does not depend on it, a frame is shorter) - then '-o ... -a' renders the comp. A script error ends Blender with exit code 1 (--python-exit-code). Not known until the guest run: (1) the speed on 4 vCPUs. Guess: plates done 30 - 60 s after the start, then 4 - 8 s per comp frame (three denoiser passes over 2 megapixels). That gives about +0.8 - 2 GiB at 3 minutes, +1.2 - 2.8 GiB at the mark (240 s) and +1.6 - 3.6 GiB at 5 minutes on top of a base of roughly 0.5 - 1 GB; with a slower guest half of that. (2) That looping 4 plates leaks like 500 different ones - expected, because the buffers belong to the node's output of each evaluation, not to the image. (3) That a file opened by the script is the one '-o' and '-a' then use - the 5.0.1 argument code handles exactly this ('Script may load a file'). What to look for: recipe.log has the script's lines 'turntable ... plates done' and 'comp ready'; Blender's own frame lines, if they are in the log too, show one saved frame_NNNN.jpg after another and a 'Mem:' figure that rises by about 55 M per frame; the private bytes of blender.exe rise in a straight line and never fall. Not a case if: Blender has ended before the mark (exit 1 = the script failed, its last 'turntable' line says where), or the comp frames take well under a second and memory stays flat (the Image node did not find the plates or their passes, so the Denoise node had nothing to do). This does NOT fill an 8 GB guest by the mark: at the guessed rate blender.exe passes 5 GiB only 7 - 14 minutes after the start (raise mark.after_sec to 600 - 900 for real memory pressure; the reporter's crash came after tens of GB). The 'slow' a user feels at 240 s is mostly the denoiser on all CPUs, which a fixed Blender (5.1.x, 4.5.6+) would also show - the bug is the growth, which there stays flat.",
+      "packages": [
+        "blender-5.0.1-denoise"
+      ],
+      "recipe": {
+        "exe": "C:\\Tools\\Blender50\\blender.exe",
+        "args": [
+          "-b",
+          "C:\\Work\\turntable\\turntable-plates.blend",
+          "--python-exit-code",
+          "1",
+          "--python",
+          "C:\\Work\\turntable\\turntable_job.py",
+          "-o",
+          "C:\\Work\\turntable\\frame_####",
+          "-a"
+        ],
+        "cwd": "C:\\Work\\turntable",
+        "timeout_sec": 560,
+        "stop_at_end": true
+      },
+      "mark": {
+        "after_sec": 420,
+        "text": "slow",
+        "why_420": "the research note above reckons with a mark at 240 s; it was moved to 420 s on 2026-11-15 so that the growth (55 MiB a frame) is a few GiB by the time of the mark and fills most of the 5-minute dump window"
+      },
+      "truth": {
+        "symptom": "slow",
+        "cause_category": "app_bug",
+        "culprit": "blender.exe",
+        "also": [
+          "Blender"
+        ],
+        "known_issue": {
+          "product": "Blender",
+          "affected": "4.5.0 - 4.5.5, 5.0.0 - 5.0.1",
+          "fixed_in": "4.5.6 / 5.1.0",
+          "fix": "update",
+          "source": "https://projects.blender.org/blender/blender/issues/151940"
+        }
+      }
     }
   }
 }

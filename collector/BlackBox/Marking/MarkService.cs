@@ -217,11 +217,14 @@ public sealed class MarkService
                     snapshot["significance"] = new { significance.Score, significance.Tier, significance.Tags, significance.Factors };
                 }
 
-                object triggerObj = mergedTriggers is { Count: > 0 }
-                    ? new { primary = trigger, mergedWithinCooldown = mergedTriggers }
+                // 병합 목록은 OnAutoTrigger 가 쿨다운 동안 잠금 안에서 덧붙인다 — 같은 잠금으로 복사해 쓴다
+                List<EventLogTrigger>? mergedCopy;
+                lock (_lock) mergedCopy = mergedTriggers?.ToList();
+                object triggerObj = mergedCopy is { Count: > 0 }
+                    ? new { primary = trigger, mergedWithinCooldown = mergedCopy }
                     : trigger;
 
-                var engineSnapshot = EngineSnapshotBuilder.Build(markTime, kind, autoTrigger, events, snapResult.Facts, crashModulePaths, significance, resourceTrends, manual);
+                var engineSnapshot = EngineSnapshotBuilder.Build(markTime, kind, autoTrigger, events, snapResult.Facts, crashModulePaths, significance, resourceTrends, manual, mergedCopy);
                 var dir = _writer.Write(markTime, kind, triggerObj, from, to, events, snapshot, engineSnapshot, significance, _buffer.Stats, _statuses);
                 Console.WriteLine($"[dump] {Json.Serialize(new { dir, completedAt = DateTimeOffset.Now, kind, events = events.Count, significance = significance?.Score, tier = significance?.Tier })}");
                 try

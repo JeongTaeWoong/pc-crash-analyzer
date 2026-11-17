@@ -21,7 +21,8 @@ public static class EngineSnapshotBuilder
         List<string>? crashModulePaths,
         SignificanceResult? significance,
         object? resourceTrends = null,
-        ManualMark? manual = null)
+        ManualMark? manual = null,
+        IReadOnlyList<EventLogTrigger>? mergedTriggers = null)
     {
         // 증상·범위는 TriggerClassifier 결과를 그대로 쓴다. manual은 콘솔 `m slow blender` 또는 UI 증상 대화상자가 채운다.
         string symType = trigger?.Class.SymptomType ?? manual?.Symptom ?? "unknown";
@@ -122,6 +123,32 @@ public static class EngineSnapshotBuilder
         {
             if (RecentResources.Summarize(events) is { } recent)
                 snapshot["resource_recent"] = recent;
+        }
+        catch { /* 필드 생략 */ }
+
+        // 확장 필드(11/15): 쿨다운(10초) 안에 뒤따라 와서 이 덤프에 병합된 다른 자동 트리거.
+        // 덤프의 증상(symptom)은 먼저 온 트리거의 것이다. 11/14 실험실: GPU 복제본의 LiveKernelEvent 2~6초 뒤에 온 프로그램 크래시가
+        // 병합돼, 스냅샷만 보면 "시스템 전체 멈춤"이고 크래시는 이벤트 목록에만 있었다(크래시 실행 9개 중 2개).
+        // 여기서는 뒤따라 온 사건이 있었다는 사실만 적는다 — 어느 쪽이 사용자의 문제인지는 판단하지 않는다.
+        if (mergedTriggers is { Count: > 0 })
+            snapshot["merged_triggers"] = mergedTriggers.Select(m => new
+            {
+                kind = m.Kind,
+                event_id = m.EventId,
+                received_at = m.ReceivedAt,
+                process = m.ProcessName,
+                faulting_module = m.FaultingModule,
+                exception_code = m.ExceptionCode,
+                wer_event_type = m.WerEventType,
+                symptom_type = m.Class.SymptomType,
+            }).ToList();
+
+        // 확장 필드(11/15): 덤프 창에서 끝난 프로세스의 종료 코드(이름·코드별 묶음). 크래시 이벤트 없이 꺼진 프로그램은
+        // 여기에만 남는다 — 마킹 시점의 프로세스 목록에는 이미 없다. 적기만 하고 판단하지 않는다(ProcessExits 주석).
+        try
+        {
+            if (ProcessExits.Summarize(events, markTime, targetProcess) is { } exits)
+                snapshot["process_exits"] = exits;
         }
         catch { /* 필드 생략 */ }
 

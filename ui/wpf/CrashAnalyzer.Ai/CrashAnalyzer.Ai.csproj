@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- AI diagnosis with the user's OWN API key: evidence bundle, prompt, call, answer parsing, advice check, key storage.
+       No WPF here - the UI (CrashAnalyzer.UI) only shows what this library returns. Added 2026-11-16. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>CrashAnalyzer.Ai</RootNamespace>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- written by eval/export_prompt.py from the evaluation harness - do not edit by hand -->
+    <EmbeddedResource Include="Resources\system-prompt.txt" />
+    <EmbeddedResource Include="Resources\answer-schema.json" />
+    <EmbeddedResource Include="Resources\versions.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Anthropic" Version="13.8.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+</Project>

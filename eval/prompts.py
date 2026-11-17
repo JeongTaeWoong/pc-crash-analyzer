@@ -12,7 +12,23 @@ from __future__ import annotations
 #   - the hardware rule no longer says "do not make the busiest program the culprit": on a slow disk that one program
 #     filled, p2 answered "the disk" and told the user to keep the program. Now: a part that copes normally and gave
 #     out only while one program ran -> that program first, the part second.
-PROMPT_VERSION = "p3-2026-11-14"
+# p4 (2026-11-16), after the ADVICE of p3 answers was judged for the first time (eval/judge.py, rubric r1, 50 answers
+#     to the 25 hard development cases; docs/evaluation-design-v3.md change log). Who is named did not change; what the
+#     answers told the user to do had problems the code grader cannot see:
+#   - 16 actions touched something that is not the cause ("also update the graphics driver", "repair the Visual C++
+#     runtime") or ended the user's own job as the first step (Haiku 11 of 25 answers, Sonnet 3 of 25);
+#   - the user's own job (7-Zip, a Blender render) was named as the cause - correct - and Haiku's first action was to
+#     end it (5 of 25 first actions judged unfit, all Haiku);
+#   - cautions for hard-to-undo actions were mostly missing (both models).
+#   Added: five rules on advice (below the action levels). Nothing about candidates or the verdict was changed.
+# p5 (same day), after p4 was run on the development sets (AI judge only, not yet checked against a person's labels):
+#     Haiku on the 25 hard cases - answers with a harmful action 13 -> 0, first action fit 20 -> 25, top-1 19/21 -> 20/21.
+#     But on the 36 injected cases one of 23 fault cases went wrong in a new way: the CPU hog runs under the made-up
+#     name 'MediaIndexer.exe', and with the new "Windows' own work is not a fault" rule Haiku took it for Windows'
+#     search indexing and answered no_problem_found (p3 named it 3 times of 3). The test set's injected programs all
+#     carry such ordinary-sounding names. Added to that rule: the busy program stays a candidate (only the advice
+#     changes), and a name that merely sounds like background work is not evidence of Windows' own work.
+PROMPT_VERSION = "p5-2026-11-16"
 
 SYSTEM = """당신은 Windows PC 문제의 원인을 찾는 진단 도우미입니다. 사용자는 로그를 읽기 어려운 일반 사용자(사무직, 디자이너 등)이고, PC가 꺼지거나 멈추거나 느려졌을 때 이 도구를 씁니다.
 
@@ -35,6 +51,14 @@ SYSTEM = """당신은 Windows PC 문제의 원인을 찾는 진단 도우미입�
 - Lv3 시스템 변경: 프로그램 제거·업데이트, 드라이버 되돌리기
 - Lv4 사용자가 직접 해야 하는 것: 조직이 관리하는 보안 프로그램, 하드웨어 점검 등
 가장 가볍고 되돌리기 쉬운 조치부터 권합니다.
+
+권고를 적을 때 지켜 주세요.
+- 원인 후보로 적지 않은 것(다른 프로그램, 드라이버, 런타임, 부품)을 끄거나 지우거나 바꾸거나 업데이트하라고 권하지 않습니다. "혹시 모르니 해 보는" 조치도 사용자에게는 시간과 위험입니다. 다른 가능성을 더 확인해야 한다면 Lv0(지켜보기, 기록 확인)로만 적습니다.
+- PC를 바쁘게 한 것이 사용자가 직접 시킨 작업(압축, 렌더, 빌드, 복사, 내려받기 등)이거나 Windows·런처 자체의 작업(백신 검사, 색인, 업데이트)으로 보이면, 고장이 아니라고 알리고 첫 조치는 끝날 때까지 기다리는 것으로 적습니다. 멈추거나 끝내는 것은 급할 때의 선택으로 그다음에 적고, 하던 작업을 잃을 수 있다는 점을 함께 적습니다. 이 경우에도 그 프로그램은 PC가 느려진 이유이므로 원인 후보에 그대로 적고 verdict 는 culprit_found 입니다. 달라지는 것은 권고뿐입니다.
+- 이름이 그럴듯하다는 것("색인", "백업", "업데이트", "동기화" 같은 낱말이 든 이름)만으로 Windows 자체 작업이나 사용자가 시킨 작업이라고 보지 않습니다. Windows 에 원래 들어 있는 프로세스이거나, 사용자가 그 작업을 시작했다는 흔적이 자료에 있을 때만 그렇게 봅니다. 확실하지 않으면 자원을 다 쓴 배경 프로그램으로 다루어 원인 후보에 적고, 끝내거나 일시 정지하는 것을 권합니다.
+- 백신이나 Windows 의 보호·검색 같은 기능을 아예 끄거나 지우라고 권하지 않습니다. 검사 시간을 옮기거나 특정 폴더를 예외로 두는 것은 권할 수 있습니다.
+- 원인이 어떤 프로그램 자체의 문제로 보이면, 다시 실행해 보는 것과 함께 그 프로그램의 업데이트(수정 버전)가 있는지 확인하라는 조치를 넣습니다.
+- Lv2 이상의 조치에는 주의할 점이나 되돌리는 방법을 why 에 한 마디 적습니다.
 
 explanation_for_user 는 사용자가 읽을 설명입니다. 전문 용어를 풀어서, 무엇이 왜 문제였고 무엇을 하면 되는지 서너 문장으로 적어 주세요."""
 

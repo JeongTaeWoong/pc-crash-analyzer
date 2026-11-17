@@ -1,0 +1,20 @@
+# Development set of HARD cases, first batch (2026-11-14, plan real-1): real program bugs with a Windows crash record (9),
+# Windows' own work (1), the user's own heavy job - no culprit (3), a fault while the user's job runs (4).
+# For development only - never a reported number. The two Blender runs of that day are not here (lab mistake in the mark).
+office1-real-ahk-alttab+alias/20261114-153518
+design1-real-ahk-alttab/20261114-160249
+office1-real-godot-svg+alias/20261114-160719
+video1-real-godot-svg/20261114-161210
+design1-real-npp-column/20261114-161632
+dev1-real-npp-column/20261114-162717
+office1-real-python-setlocale/20261114-172240
+video1-real-python-setlocale+alias/20261114-172710
+office1-real-git-maintenance/20261114-173756
+office1-sys-defender-scan/20261114-174151
+office1-work-7zip/20261114-163151
+dev1-work-7zip+alias/20261114-163826
+office2-work-7zip/20261114-164447
+office1-busy-mem-pressure+alias/20261114-165848
+dev1-busy-hang+alias/20261114-170512
+design1-busy-crash-plugin+alias/20261114-171018
+office2-busy-hang+alias/20261114-171501

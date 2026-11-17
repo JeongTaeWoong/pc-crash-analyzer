@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <map>
 
 #include "ce/signals.hpp"
@@ -582,6 +583,48 @@ int countEvents(const Snapshot& s, bool (*pred)(const EventItem&), long long* fi
 //   카테고리마다 후보를 하나씩 두고, 스냅샷에 그 부품을 가리키는 신호가 있을 때만 공존 근거를 붙인다.
 //   신호가 없으면 근거 없이 사전 가중치(priors)만 남아 확률이 낮게 나온다.
 //   근거 값(0.4~0.95)은 '얼마나 그 부품을 직접 가리키는가' 순서다. 예) 메모리 WHEA 0.9 > 매번 다른 오류 모듈 0.4
+// 수집기의 종료 기록(process_exits)으로 후보를 만든다 (2026-11-15).
+//   사용자가 지목한 프로그램이 0 이 아닌 코드로 끝났는데 Windows 크래시 기록(오류 모듈)이 없는 경우만 다룬다:
+//   프로그램이 자체 처리기로 예외를 잡고 스스로 끝낸 것이라 이벤트 로그만 보면 아무 일도 없었다
+//   (2026-11-14~15 실험실 Blender 5.1.0: 종료 코드 11, Windows 이벤트 없음 3/3 — 이 규칙 전에는 후보에 Blender 가 없었다).
+//   - 오류 모듈이 기록된 크래시는 그쪽(addFromCrashModules)이 더 구체적이다. 여기서 프로그램 본체를 또 올리면
+//     플러그인 DLL 이 원인인 사례에서 본체가 DLL 과 경쟁하게 된다.
+//   - 지목되지 않은 프로그램의 0 아닌 종료는 근거로 쓰지 않는다. 평소에도 덤프 창마다 중앙값 12건이 있다
+//     (개발용 덤프 124개: 대부분 backgroundTaskHost.exe 의 1).
+void addFromProcessExits(const Snapshot& s, const Rules& r, CandidateBag& bag) {
+  if (s.target_process.empty() || s.process_exits.empty()) return;
+  if (s.symptom != Symptom::AppCrash && s.symptom != Symptom::LaunchFail && s.symptom != Symptom::Unknown) return;
+  if (!signals::distinctFaultingModules(s).empty()) return;
+
+  for (std::size_t i = 0; i < s.process_exits.size(); i++) {
+    const ProcessExit& e = s.process_exits[i];
+    if (!e.is_target || e.code == 0) continue;
+    if (e.sec_before_mark > 120) continue;  // 마킹 2분보다 전에 끝난 것은 이번 일로 묶지 않는다
+
+    char hex[16];
+    std::snprintf(hex, sizeof(hex), "0x%08X", e.code);
+    // 0xC0000000 이상 = Windows 가 '오류' 등급으로 매긴 상태 코드(접근 위반 0xC0000005 등): 처리되지 않은 예외로 끝났다
+    const bool exception = e.code >= 0xC0000000u;
+    std::string detail = "Windows 크래시 기록 없이 종료 코드 " + std::string(hex);
+    if (exception) {
+      detail += "(Windows 예외 코드)";
+    } else if (e.code < 256) {
+      detail += "(" + std::to_string(e.code) + ")";
+    }
+    detail += "로 끝났습니다";
+    if (e.lived_sec >= 0) {
+      detail += " — 켜진 지 " + std::to_string(static_cast<int>(e.lived_sec + 0.5)) + "초 만입니다";
+    }
+    detail += ".";
+
+    std::string cat;
+    std::string label;
+    r.classifyName(e.name, e.name, "other_sw", &cat, &label);
+    const int idx = bag.get(cat, e.name, label);
+    bag.addEvidence(idx, "event", detail, exception ? 0.9 : 0.7, 0);
+  }
+}
+
 void addHardwareCandidates(const Snapshot& s, CandidateBag& bag) {
   const bool sensorsOk = s.available.sensors;
   const double cpu = signals::maxCpuTemp(s);
@@ -775,6 +818,7 @@ std::vector<Candidate> buildCandidates(const Snapshot& s, const Rules& r,
   addFromSecurity(s, r, bag);
   addFromChanges(s, r, bag);
   addFromCrashModules(s, r, bag);
+  addFromProcessExits(s, r, bag);
   addDriverEventEvidence(s, r, bag);
   addHardwareCandidates(s, bag);
   addFromResourceTrends(s, r, bag);

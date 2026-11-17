@@ -218,6 +218,18 @@ struct ResourceRecent {
   std::vector<RecentDisk> disks;              // 바쁜 순
 };
 
+// 덤프 창에서 끝난 프로세스의 종료 기록 (수집기 ProcessExits, 2026-11-15). 같은 이름·같은 종료 코드끼리 묶여 온다.
+// Windows 크래시 이벤트 없이 꺼진 프로그램(자체 처리기가 예외를 잡고 종료 코드만 남긴 경우)은 여기에만 남는다:
+// 마킹 시점의 프로세스 목록에는 이미 없고 이벤트 로그에도 없다.
+struct ProcessExit {
+  std::string name;
+  unsigned int code = 0;       // 종료 코드(부호 없는 32비트). 0xC0000005 같은 Windows 예외 코드도 그대로 온다
+  int count = 0;
+  double sec_before_mark = 0;  // 마지막 종료가 마킹 몇 초 전에 기록됐는지 (기록이 1초쯤 늦게 도착해 0 근처 음수가 흔하다)
+  double lived_sec = -1;       // 마지막으로 끝난 것이 켜져 있던 시간. -1 = 덤프 창 이전에 켜졌다
+  bool is_target = false;      // 사용자가 마킹할 때 지목한 프로그램
+};
+
 struct BaselineDiff {  // 베이스라인 스냅샷 대비 변화 (제안서 5.1)
   bool available = false;
   std::vector<std::string> added;
@@ -276,6 +288,7 @@ struct Snapshot {
   BaselineDiff baseline;
   ResourceTrends trends;
   ResourceRecent recent;
+  std::vector<ProcessExit> process_exits;  // 0 이 아닌 코드로 끝난 것 + 지목된 프로그램 (선택 필드)
   Availability available;
 
   // 벤치마크 전용. 실측 스냅샷에는 없고 실험용 시나리오 파일에만 들어간다.

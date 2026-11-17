@@ -1,0 +1,70 @@
+## 사건
+[sym] {"marked_at":"2026-11-14T03:35:27.5960593+09:00","trigger":{"kind":"hotkey"},"symptom":"slow","scope":"unknown","target_process":null,"faulting_modules":[]}
+[host] {"os":"Windows 10.0.26300.0","sensor_support":false}
+
+## 이벤트 로그 (Windows 이벤트, 덤프 창 안)
+[ev1] {"time":"2026-11-14T03:32:40.4217258+09:00","id":1001,"provider":"Windows Error Reporting","subject":"MicrosoftEdgeUpdate.exe"}
+[ev2] {"time":"2026-11-14T03:32:40.4284713+09:00","id":1001,"provider":"Windows Error Reporting","subject":"MicrosoftEdgeUpdate.exe"}
+
+## 덤프 구간에서 끝난 프로세스 (종료 코드가 0 이 아닌 것, 이름·코드별 묶음)
+읽는 법: window_stops = 구간에서 끝난 프로세스 전체 수, nonzero_stops = 그중 종료 코드가 0 이 아닌 수. 행 하나 = 같은 이름·같은 코드의 종료 묶음(count = 횟수, last_at = 마지막 종료가 기록된 시각, sec_before_mark = 마킹 몇 초 전인지 — 기록이 1초쯤 늦게 도착하므로 0 근처 음수는 마킹 직전을 뜻한다, lived_sec = 마지막으로 끝난 것이 켜져 있던 시간, 없으면 구간 이전에 켜졌다). is_target = 사용자가 마킹할 때 지목한 프로그램. 0 이 아닌 코드가 곧 오류는 아니다: 평소에도 0 이 아닌 코드로 끝나는 프로그램이 있다.
+[exits] {"window_stops":116,"nonzero_stops":23}
+[exit1] {"name":"backgroundTaskHost.exe","exit_code":1,"exit_hex":"0x00000001","count":13,"last_at":"2026-11-14T03:34:20.5490105+09:00","sec_before_mark":67,"lived_sec":63}
+[exit2] {"name":"wsl.exe","exit_code":50,"exit_hex":"0x00000032","count":1,"last_at":"2026-11-14T03:34:02.3340036+09:00","sec_before_mark":85.3,"lived_sec":0}
+[exit3] {"name":"cmd.exe","exit_code":1,"exit_hex":"0x00000001","count":2,"last_at":"2026-11-14T03:34:01.3210505+09:00","sec_before_mark":86.3,"lived_sec":0}
+[exit4] {"name":"wsl.exe","exit_code":1,"exit_hex":"0x00000001","count":2,"last_at":"2026-11-14T03:34:01.3210346+09:00","sec_before_mark":86.3,"lived_sec":0}
+[exit5] {"name":"code-tunnel.exe","exit_code":1,"exit_hex":"0x00000001","count":1,"last_at":"2026-11-14T03:34:01.3205386+09:00","sec_before_mark":86.3,"lived_sec":0}
+[exit6] {"name":"BackgroundTransferHost.exe","exit_code":1,"exit_hex":"0x00000001","count":4,"last_at":"2026-11-14T03:33:22.572677+09:00","sec_before_mark":125,"lived_sec":1}
+
+## 마킹 직전 구간의 자원 사용 (10초 표본, CPU 는 30초마다 측정)
+읽는 법: measurements = 그 프로세스가 상위 목록에 잡힌 측정 횟수(전체 측정 횟수는 cpu_measurements). cpu_avg·io_mbps_avg = 구간 전체 평균(잡히지 않은 측정은 0 으로 셈 — 구간 끝에 켜진 프로그램은 낮게 나온다). cpu_avg_active·io_mbps_avg_active = 잡힌 측정만의 평균. cpu_last·io_mbps_last = 마지막 측정(마킹 무렵)의 값, null 이면 그때 상위 목록에 없었다. busy_ge90_samples = 디스크가 90% 이상 바빴던 표본 수(표본 1개 = 10초). busy_pct_recent·latency_ms_recent·mbps_recent = 마지막 표본 6개(약 1분, 마킹 무렵)의 평균.
+[res] {"window_seconds":200,"samples":21,"commit_pct_last":37,"commit_pct_min":24.8,"commit_pct_max":42.2,"commit_limit_mb":10111,"avail_mb_last":4366,"avail_mb_min":3589,"pages_per_sec_avg":2090.8,"pages_per_sec_max":19757.6,"cpu_measurements":6,"cpu_total_pct_avg":32.9,"cpu_total_pct_max":100}
+[cpu1] {"list":"top_cpu","pid":3984,"name":"scanbridge","cpu_avg":26.2,"cpu_avg_active":78.8,"cpu_max":99.5,"cpu_last":99.5,"measurements":2,"priv_mb_last":8.1}
+[cpu2] {"list":"top_cpu","pid":3592,"name":"msmpeng","cpu_avg":1.4,"cpu_avg_active":1.7,"cpu_max":4.6,"cpu_last":null,"measurements":5,"priv_mb_last":297.6}
+[cpu3] {"list":"top_cpu","pid":8584,"name":"code","cpu_avg":0.5,"cpu_avg_active":1.5,"cpu_max":2.4,"cpu_last":null,"measurements":2,"priv_mb_last":237.6}
+[cpu4] {"list":"top_cpu","pid":4,"name":"system","cpu_avg":0.4,"cpu_avg_active":0.5,"cpu_max":1,"cpu_last":null,"measurements":5,"priv_mb_last":0}
+[cpu5] {"list":"top_cpu","pid":2564,"name":"godot_v4.7.2-stable_win64","cpu_avg":0.3,"cpu_avg_active":0.9,"cpu_max":1.7,"cpu_last":0.1,"measurements":2,"priv_mb_last":192.3}
+[io1] {"list":"top_io","pid":3592,"name":"msmpeng","io_mbps_avg":1.32,"io_mbps_avg_active":1.58,"io_mbps_max":7.64,"io_mbps_last":null,"measurements":5}
+[io2] {"list":"top_io","pid":3436,"name":"svchost","io_mbps_avg":0.67,"io_mbps_avg_active":2.02,"io_mbps_max":3.65,"io_mbps_last":null,"measurements":2}
+[io3] {"list":"top_io","pid":6984,"name":"code","io_mbps_avg":0.39,"io_mbps_avg_active":1.17,"io_mbps_max":1.61,"io_mbps_last":null,"measurements":2}
+[mem1] {"list":"top_memory","pid":3592,"name":"MsMpEng","priv_mb_last":298.9,"priv_mb_first":291,"priv_mb_delta":7.9,"seconds":200,"samples":21,"started_in_window":false}
+[mem2] {"list":"top_memory","pid":8584,"name":"Code","priv_mb_last":220.1,"priv_mb_first":48.3,"priv_mb_delta":171.8,"seconds":110,"samples":12,"started_in_window":true}
+[mem3] {"list":"top_memory","pid":2564,"name":"Godot_v4.7.2-stable_win64","priv_mb_last":192.3,"priv_mb_first":193,"priv_mb_delta":-0.7,"seconds":90,"samples":10,"started_in_window":true}
+[mem4] {"list":"top_memory","pid":11256,"name":"powershell","priv_mb_last":191,"priv_mb_first":190,"priv_mb_delta":1,"seconds":200,"samples":21,"started_in_window":false}
+[mem5] {"list":"top_memory","pid":10992,"name":"Code","priv_mb_last":183,"priv_mb_first":210.1,"priv_mb_delta":-27.1,"seconds":99,"samples":11,"started_in_window":true}
+[grow1] {"list":"top_memory_growth","pid":8584,"name":"Code","priv_mb_last":220.1,"priv_mb_first":48.3,"priv_mb_delta":171.8,"seconds":110,"samples":12,"started_in_window":true}
+[disk1] {"list":"disks","name":"0 C:","samples":20,"busy_pct_avg":3.1,"busy_pct_max":26,"busy_ge90_samples":0,"busy_pct_recent":0.6,"latency_ms_recent":0.35,"mbps_recent":0.94,"queue_avg":0.42,"queue_max":6.73,"latency_ms_avg":1.06,"latency_ms_max":7.45,"iops_avg":117.8,"mbps_avg":9.61}
+
+## 최근 60분 추세 (1분 표본, 프로세스가 10분 이상 있어야 행이 생긴다)
+[trend] {"window_minutes":60,"samples":2,"cpu_samples":2,"commit_pct_now":38.75}
+
+## 표준 경로 밖 커널 드라이버·파일 시스템 필터
+[drv1] {"name":"CDD"}
+[drv2] {"name":"bindflt","type":"kernel_filter"}
+[drv3] {"name":"UCPD","type":"kernel_filter"}
+[drv4] {"name":"WdFilter","type":"kernel_filter"}
+[drv5] {"name":"applockerfltr","type":"kernel_filter"}
+[drv6] {"name":"storqosflt","type":"kernel_filter"}
+[drv7] {"name":"wcifs","type":"kernel_filter"}
+[drv8] {"name":"CldFlt","type":"kernel_filter"}
+[drv9] {"name":"bfs","type":"kernel_filter"}
+[drv10] {"name":"FileCrypt","type":"kernel_filter"}
+[drv11] {"name":"luafv","type":"kernel_filter"}
+[drv12] {"name":"UnionFS","type":"kernel_filter"}
+[drv13] {"name":"npsvctrig","type":"kernel_filter"}
+[drv14] {"name":"Wof","type":"kernel_filter"}
+[drv15] {"name":"FileInfo","type":"kernel_filter"}
+[filt] {"keyboard_upper":["kbdclass"],"mouse_upper":["mouclass"]}
+
+## 보안 제품
+[sec] {"realtime_av":["Windows Defender"]}
+
+## 최근 설치·변경 (날짜만 알 수 있다)
+[chg1] {"time":"2026-11-12T00:00:00+09:00","kind":"install","subject":"Git","version":"2.56.0.4"}
+[chg2] {"time":"2026-11-12T00:00:00+09:00","kind":"install","subject":"Microsoft Edge","version":"157.0.4341.46"}
+[chg3] {"time":"2026-11-12T00:00:00+09:00","kind":"install","subject":"Microsoft Edge WebView2 런타임","version":"157.0.4341.46"}
+[chg4] {"time":"2026-11-12T00:00:00+09:00","kind":"install","subject":"Godot Engine","version":"4.7.2"}
+[chg5] {"time":"2026-11-12T00:00:00+09:00","kind":"install","subject":"Microsoft Visual Studio Code (User)","version":"1.145.2"}
+
+## 마킹 시점에 실행 중이던 프로세스 (이름×개수)
+[proc] AggregatorHost, BlackBox, CloudNoteSync, cmd, Code×8, conhost×6, CrossDeviceResume, csrss×2, ctfmon, dwm, explorer, fontdrvhost×2, Godot_v4.7.2-stable_win64, Idle, InvoiceExport, lsass, Memory Compression, MicrosoftEdgeUpdate, MpDefenderCoreService, msedge×5, msedgewebview2×6, MsMpEng, NisSrv, OneDrive, OneDrive.Sync.Service, powershell×2, Registry, RuntimeBroker, ScanBridge, SearchHost, SearchIndexer, SecurityHealthService, SecurityHealthSystray, services, ShellHost, sihost, smartscreen, smss, spoolsv, StartMenuExperienceHost, svchost×80, System, taskhostw×2, TextInputHost, VSSVC, Widgets, WidgetService, wininit, winlogon, wlms, WmiPrvSE×2

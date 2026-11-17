@@ -3,8 +3,8 @@
   "total_usd": 300,
   "reserve_usd": 120,
   "phases": {
-    "pilot": { "limit_usd": 15, "until": "2026-11-16", "what": "cost and run-to-run spread on about 10 cases, every method and model" },
-    "exp_a": { "limit_usd": 85, "until": "2026-11-30", "what": "judgment accuracy vs cost (A0-A6)" },
+    "pilot": { "limit_usd": 28, "until": "2026-11-23", "what": "pilot and development runs (prompt, rules, hard cases). Raised from 15 to 25 on 2026-11-15 by the owner: 10 USD moved here from exp_a. 25 -> 28 on 2026-11-16: the owner approved one more check (Sonnet under prompt p5 on the hard development cases plus its judging, about 2 USD) when the phase stood at 19.20 - the 80 % line of 25; 3 USD moved here from exp_a so that the run is not cut off at that line" },
+    "exp_a": { "limit_usd": 72, "until": "2026-11-30", "what": "judgment accuracy vs cost (A0-A6) on the frozen test set. 85 until 2026-11-15, 75 until 2026-11-16" },
     "exp_c": { "limit_usd": 65, "until": "2026-11-30", "what": "agent with action tools in lab guests, Lv3 included" },
     "judge": { "limit_usd": 15, "until": "2026-11-30", "what": "rubric-based grading of explanations" }
   }

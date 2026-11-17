@@ -1,0 +1,9 @@
+{
+  "note": "HARD cases, third trial (written 2026-11-15 after real-2: 6 of 8 usable). DEVELOPMENT runs, about 40 minutes. (1) bg-steam-update failed twice in real-2 with 'Failed to install app 232250 (Missing configuration)' right after SteamCMD updated itself - cause not confirmed; a driver script now asks up to three times and refreshes the app information first, and the mark moved to 300 s. (2) The guest payload was rebuilt on 2026-11-15 with the collector that writes process_exits and merged_triggers into the engine snapshot; the two Blender runs check that the guest's own snapshot now carries blender.exe's exit code (until now it was filled in afterwards by eval/replay.py). design1 is a GPU clone: its scenario starts 215 s after boot.",
+  "jobs": [
+    { "id": "r3-01", "name": "office2", "from": "bundle-office-b", "case": "bg-steam-update",      "open": [ "firefox" ] },
+    { "id": "r3-02", "name": "dev1",    "from": "bundle-dev",      "case": "bg-steam-update",      "open": [ "vscode" ] },
+    { "id": "r3-03", "name": "dev1",    "from": "bundle-dev",      "case": "real-blender-bgscene", "open": [ "vscode" ] },
+    { "id": "r3-04", "name": "design1", "from": "bundle-design",   "case": "real-blender-bgscene", "open": [ "gimp" ] }
+  ]
+}

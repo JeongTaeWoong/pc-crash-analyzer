@@ -1,0 +1,585 @@
+{
+ "schema_version": "1.1",
+ "snapshot_id": "20261115-070239-crash-1000",
+ "marked_at": "2026-11-15T07:02:39.3886324+09:00",
+ "trigger": {
+  "kind": "auto_app_crash",
+  "event_id": 1000
+ },
+ "host": {
+  "os": "Windows 10.0.26300.0",
+  "sensor_support": false
+ },
+ "symptom": {
+  "type": "app_crash",
+  "target_process": "git.exe",
+  "scope": "single_app",
+  "started_at": "2026-11-15T07:02:38.386559+09:00",
+  "faulting_modules": [
+   "git.exe"
+  ]
+ },
+ "significance": {
+  "score": 40,
+  "tier": "minor",
+  "tags": [
+   "third-party-module",
+   "short-lived"
+  ]
+ },
+ "resource_trends": {
+  "window_minutes": 60,
+  "samples": 2,
+  "cpu_samples": 2,
+  "commit_slope_pct_per_hour": null,
+  "commit_pct_now": 29.51,
+  "avail_mb_slope_per_min": null,
+  "gpu_dedicated_mb_slope_per_min": null,
+  "gpu_temp_max": null,
+  "gpu_clock_min": null,
+  "gpu_clock_max": null,
+  "gpu_name": null,
+  "gpu_mem_total_mb": null,
+  "gpu_mem_used_mb_max": null,
+  "gpu_mem_pct_max": null,
+  "focus_process": null,
+  "focus_process_last15": null,
+  "top_memory_growers": [],
+  "top_cpu_60": []
+ },
+ "resource_recent": {
+  "window_seconds": 160,
+  "samples": 17,
+  "commit_pct_last": 29.3,
+  "commit_pct_min": 27.8,
+  "commit_pct_max": 32.6,
+  "commit_limit_mb": 10111,
+  "avail_mb_last": 5004,
+  "avail_mb_min": 4502,
+  "pages_per_sec_avg": 1206,
+  "pages_per_sec_max": 10085.2,
+  "cpu_measurements": 5,
+  "cpu_total_pct_avg": 9.6,
+  "cpu_total_pct_max": 23.5,
+  "top_cpu": [
+   {
+    "pid": 3844,
+    "name": "msmpeng",
+    "cpu_avg": 3.3,
+    "cpu_avg_active": 3.3,
+    "cpu_max": 8.6,
+    "cpu_last": 0.4,
+    "measurements": 5,
+    "priv_mb_last": 310.2
+   },
+   {
+    "pid": 4,
+    "name": "system",
+    "cpu_avg": 0.8,
+    "cpu_avg_active": 0.8,
+    "cpu_max": 3.2,
+    "cpu_last": 0.1,
+    "measurements": 5,
+    "priv_mb_last": 0
+   },
+   {
+    "pid": 3628,
+    "name": "svchost",
+    "cpu_avg": 0.7,
+    "cpu_avg_active": 3.3,
+    "cpu_max": 3.3,
+    "cpu_last": null,
+    "measurements": 1,
+    "priv_mb_last": 28.3
+   },
+   {
+    "pid": 1376,
+    "name": "inkscape",
+    "cpu_avg": 0.5,
+    "cpu_avg_active": 1.2,
+    "cpu_max": 2.3,
+    "cpu_last": null,
+    "measurements": 2,
+    "priv_mb_last": 114.8
+   }
+  ],
+  "top_io": [
+   {
+    "pid": 3628,
+    "name": "svchost",
+    "io_mbps_avg": 3.64,
+    "io_mbps_avg_active": 18.19,
+    "io_mbps_max": 18.19,
+    "io_mbps_last": null,
+    "measurements": 1
+   },
+   {
+    "pid": 3844,
+    "name": "msmpeng",
+    "io_mbps_avg": 2.08,
+    "io_mbps_avg_active": 2.08,
+    "io_mbps_max": 8.54,
+    "io_mbps_last": 0.01,
+    "measurements": 5
+   },
+   {
+    "pid": 9760,
+    "name": "svchost",
+    "io_mbps_avg": 1.23,
+    "io_mbps_avg_active": 6.16,
+    "io_mbps_max": 6.16,
+    "io_mbps_last": null,
+    "measurements": 1
+   }
+  ],
+  "top_memory": [
+   {
+    "pid": 3844,
+    "name": "MsMpEng",
+    "priv_mb_last": 310.2,
+    "priv_mb_first": 538.4,
+    "priv_mb_delta": -228.2,
+    "seconds": 160,
+    "samples": 17,
+    "started_in_window": false
+   },
+   {
+    "pid": 11156,
+    "name": "powershell",
+    "priv_mb_last": 241.3,
+    "priv_mb_first": 241.7,
+    "priv_mb_delta": -0.4,
+    "seconds": 160,
+    "samples": 17,
+    "started_in_window": false
+   },
+   {
+    "pid": 1376,
+    "name": "inkscape",
+    "priv_mb_last": 114.6,
+    "priv_mb_first": 2.8,
+    "priv_mb_delta": 111.8,
+    "seconds": 70,
+    "samples": 8,
+    "started_in_window": true
+   },
+   {
+    "pid": 1344,
+    "name": "powershell",
+    "priv_mb_last": 100.5,
+    "priv_mb_first": 79.1,
+    "priv_mb_delta": 21.4,
+    "seconds": 160,
+    "samples": 17,
+    "started_in_window": false
+   },
+   {
+    "pid": 5188,
+    "name": "StartMenuExperienceHost",
+    "priv_mb_last": 92.5,
+    "priv_mb_first": 98.7,
+    "priv_mb_delta": -6.2,
+    "seconds": 160,
+    "samples": 17,
+    "started_in_window": false
+   }
+  ],
+  "top_memory_growth": [
+   {
+    "pid": 1376,
+    "name": "inkscape",
+    "priv_mb_last": 114.6,
+    "priv_mb_first": 2.8,
+    "priv_mb_delta": 111.8,
+    "seconds": 70,
+    "samples": 8,
+    "started_in_window": true
+   }
+  ],
+  "disks": [
+   {
+    "name": "0 C:",
+    "samples": 16,
+    "busy_pct_avg": 4.2,
+    "busy_pct_max": 22.4,
+    "busy_ge90_samples": 0,
+    "busy_pct_recent": 0.7,
+    "latency_ms_recent": 0.49,
+    "mbps_recent": 0.6,
+    "queue_avg": 0.17,
+    "queue_max": 1,
+    "latency_ms_avg": 0.87,
+    "latency_ms_max": 5.52,
+    "iops_avg": 136,
+    "mbps_avg": 8.64
+   }
+  ]
+ },
+ "processes": [
+  "Idle",
+  "System",
+  "Registry",
+  "smss",
+  "csrss",
+  "wininit",
+  "csrss",
+  "winlogon",
+  "services",
+  "lsass",
+  "svchost",
+  "fontdrvhost",
+  "fontdrvhost",
+  "svchost",
+  "svchost",
+  "dwm",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "VSSVC",
+  "svchost",
+  "svchost",
+  "Memory Compression",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "spoolsv",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "MpDefenderCoreService",
+  "svchost",
+  "wlms",
+  "MsMpEng",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "AggregatorHost",
+  "svchost",
+  "svchost",
+  "sihost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "taskhostw",
+  "explorer",
+  "ShellHost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "CrossDeviceResume",
+  "svchost",
+  "SearchHost",
+  "StartMenuExperienceHost",
+  "RuntimeBroker",
+  "svchost",
+  "Widgets",
+  "msedgewebview2",
+  "WidgetService",
+  "msedgewebview2",
+  "msedgewebview2",
+  "msedgewebview2",
+  "msedgewebview2",
+  "msedgewebview2",
+  "svchost",
+  "SearchIndexer",
+  "SearchProtocolHost",
+  "NisSrv",
+  "svchost",
+  "WmiPrvSE",
+  "ctfmon",
+  "smartscreen",
+  "SecurityHealthSystray",
+  "SecurityHealthService",
+  "svchost",
+  "msedge",
+  "msedge",
+  "msedge",
+  "msedge",
+  "msedge",
+  "TextInputHost",
+  "svchost",
+  "svchost",
+  "svchost",
+  "WmiPrvSE",
+  "svchost",
+  "svchost",
+  "powershell",
+  "conhost",
+  "svchost",
+  "svchost",
+  "taskhostw",
+  "MicrosoftEdgeUpdate",
+  "powershell",
+  "conhost",
+  "cmd",
+  "conhost",
+  "BlackBox",
+  "svchost",
+  "svchost",
+  "WmiPrvSE",
+  "svchost",
+  "OneDrive",
+  "OneDrive.Sync.Service",
+  "svchost",
+  "svchost",
+  "svchost",
+  "inkscape",
+  "gdbus",
+  "backgroundTaskHost",
+  "svchost",
+  "svchost"
+ ],
+ "modules": [
+  {
+   "process": "git.exe",
+   "name": "git.exe",
+   "path": "C:\\Tools\\Git\\mingw64\\bin\\git.exe",
+   "company": "The Git Development Community",
+   "microsoft_signed": false,
+   "version": "2.47.0.windows.1"
+  },
+  {
+   "process": "git.exe",
+   "name": "libiconv-2.dll",
+   "path": "C:\\Tools\\Git\\mingw64\\bin\\libiconv-2.dll",
+   "company": "Free Software Foundation",
+   "microsoft_signed": false,
+   "version": "1.17"
+  },
+  {
+   "process": "git.exe",
+   "name": "libpcre2-8-0.dll",
+   "path": "C:\\Tools\\Git\\mingw64\\bin\\libpcre2-8-0.dll"
+  },
+  {
+   "process": "git.exe",
+   "name": "libintl-8.dll",
+   "path": "C:\\Tools\\Git\\mingw64\\bin\\libintl-8.dll",
+   "company": "Free Software Foundation",
+   "microsoft_signed": false,
+   "version": "0.22.5"
+  },
+  {
+   "process": "git.exe",
+   "name": "libwinpthread-1.dll",
+   "path": "C:\\Tools\\Git\\mingw64\\bin\\libwinpthread-1.dll",
+   "company": "MinGW-W64 Project. All rights reserved.",
+   "microsoft_signed": false,
+   "version": "1, 0, 0, 0"
+  },
+  {
+   "process": "git.exe",
+   "name": "zlib1.dll",
+   "path": "C:\\Tools\\Git\\mingw64\\bin\\zlib1.dll"
+  }
+ ],
+ "drivers": [
+  {
+   "name": "CDD"
+  },
+  {
+   "name": "bindflt",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "UCPD",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "WdFilter",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "applockerfltr",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "storqosflt",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "wcifs",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "CldFlt",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "bfs",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "FileCrypt",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "luafv",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "UnionFS",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "npsvctrig",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "Wof",
+   "type": "kernel_filter"
+  },
+  {
+   "name": "FileInfo",
+   "type": "kernel_filter"
+  }
+ ],
+ "device_filters": {
+  "keyboard_upper": [
+   "kbdclass"
+  ],
+  "mouse_upper": [
+   "mouclass"
+  ]
+ },
+ "security": {
+  "realtime_av": [
+   "Windows Defender"
+  ]
+ },
+ "change_history": [
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Inkscape",
+   "version": "1.4.4"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Blender",
+   "version": "5.3.0"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Microsoft Edge",
+   "version": "157.0.4341.46"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "Microsoft Edge WebView2 런타임",
+   "version": "157.0.4341.46"
+  },
+  {
+   "time": "2026-11-12T00:00:00+09:00",
+   "kind": "install",
+   "subject": "GIMP 3.2.6",
+   "version": "3.2.6.0"
+  }
+ ],
+ "events": [
+  {
+   "time": "2026-11-15T07:02:05.3936724+09:00",
+   "id": 1001,
+   "provider": "Windows Error Reporting",
+   "subject": "LiveKernelEvent 0x193"
+  },
+  {
+   "time": "2026-11-15T07:02:39.3881359+09:00",
+   "id": 1000,
+   "provider": "Application Error",
+   "subject": "git.exe",
+   "faulting_module": "git.exe"
+  },
+  {
+   "time": "2026-11-15T07:02:41.2316761+09:00",
+   "id": 1001,
+   "provider": "Windows Error Reporting",
+   "subject": "git.exe",
+   "faulting_module": "git.exe"
+  }
+ ],
+ "process_exits": {
+  "window_stops": 70,
+  "nonzero_stops": 14,
+  "rows": [
+   {
+    "name": "git.exe",
+    "exit_code": 3221225477,
+    "exit_hex": "0xC0000005",
+    "count": 2,
+    "last_at": "2026-11-15T07:02:40.916998+09:00",
+    "sec_before_mark": -1.5,
+    "lived_sec": 2,
+    "is_target": true
+   },
+   {
+    "name": "git.exe",
+    "exit_code": 0,
+    "exit_hex": "0x00000000",
+    "count": 2,
+    "last_at": "2026-11-15T07:02:38.901685+09:00",
+    "sec_before_mark": 0.5,
+    "lived_sec": 0,
+    "is_target": true
+   },
+   {
+    "name": "backgroundTaskHost.exe",
+    "exit_code": 1,
+    "exit_hex": "0x00000001",
+    "count": 11,
+    "last_at": "2026-11-15T07:03:06.0717169+09:00",
+    "sec_before_mark": -26.7,
+    "lived_sec": 60.7
+   },
+   {
+    "name": "cmd.exe",
+    "exit_code": 3221225477,
+    "exit_hex": "0xC0000005",
+    "count": 1,
+    "last_at": "2026-11-15T07:02:40.9170011+09:00",
+    "sec_before_mark": -1.5,
+    "lived_sec": 3
+   }
+  ]
+ }
+}

@@ -1,0 +1,11 @@
+{
+  "note": "TEST SET session 3, written 2026-11-16: the five jobs of test-2 that were not cases, run again after their timing was repaired, plus one more clone for the System File Checker. Same rule as test-2 - these scenarios were never used in development, the repairs were made from the lab records only (result.json, recipe.log: all five had ended before the user's mark), no dump of a test run was opened. What changed: sys-defender-copy makes 30 copies instead of 8 (one copy takes 3-9 s, not tens of seconds); work-sfc-verify is marked at 45 s instead of 150 s (on office1 sfc had finished by then); real-tsc-lodash is marked at 25 s instead of 60 s and prints its own timings (--extendedDiagnostics) - if tsc is over before the mark again the scenario is dropped. 6 jobs, about 40 minutes - run it with -Hours 1. After the session: eval\\split_test.py --auto --move, then replay and review with --no-engine on the test folder, as for test-1 and test-2.",
+  "jobs": [
+    { "id": "t3-01", "name": "dev1",    "from": "bundle-dev",      "case": "sys-defender-copy", "open": [ "vscode" ] },
+    { "id": "t3-02", "name": "office1", "from": "bundle-office",   "case": "work-sfc-verify",   "open": [ "firefox" ] },
+    { "id": "t3-03", "name": "dev1",    "from": "bundle-dev",      "case": "real-tsc-lodash",   "open": [ "vscode", "notepadpp" ] },
+    { "id": "t3-04", "name": "office1", "from": "bundle-office",   "case": "sys-defender-copy", "open": [ "libreoffice" ] },
+    { "id": "t3-05", "name": "dev1",    "from": "bundle-dev",      "case": "work-sfc-verify",   "open": [ "notepadpp" ] },
+    { "id": "t3-06", "name": "office1", "from": "bundle-office",   "case": "real-tsc-lodash",   "open": [ "libreoffice" ] }
+  ]
+}

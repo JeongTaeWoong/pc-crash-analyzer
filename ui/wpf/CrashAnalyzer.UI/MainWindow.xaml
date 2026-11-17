@@ -58,6 +58,10 @@
                         Padding="10,4" Margin="6,0,0,0" VerticalAlignment="Center" Click="OnOpenSnapshotFile"/>
                 <Button Content="최근 기록 열기" Style="{StaticResource BtnPrimary}" DockPanel.Dock="Right" FontSize="12"
                         Padding="10,4" Margin="10,0,0,0" VerticalAlignment="Center" Click="OnOpenLatestDump"/>
+                <!-- 2026-11-16: 열려 있는 기록을 사용자의 자기 API 키로 AI 에 물어 설명을 받는 창 (CrashAnalyzer.Ai) -->
+                <Button x:Name="btnAiExplain" Content="AI 설명…" Style="{StaticResource BtnDark}" DockPanel.Dock="Right" FontSize="12"
+                        Padding="10,4" Margin="10,0,0,0" VerticalAlignment="Center" Click="OnAiExplain"
+                        ToolTip="이 기록을 내 API 키로 AI 에 물어 원인과 조치 설명을 받아요 (보내기 전에 내용과 예상 요금을 보여 줘요)"/>
                 <TextBlock x:Name="txtHeaderInfo" Foreground="{StaticResource TextDim}" FontSize="12.5"
                            TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
                            Text="수집기가 남긴 기록을 열면 검진을 시작해요.  [최근 기록 열기]"/>

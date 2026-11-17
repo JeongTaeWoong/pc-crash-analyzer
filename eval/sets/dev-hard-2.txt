@@ -1,0 +1,16 @@
+# Development set of HARD cases, second batch (2026-11-15, plan real-2 and two runs of real-1 that were first counted as
+# failed). For development only - never a reported number. Bundle b2-2026-11-15 (process exits, merged triggers).
+#
+# a program that closed with no Windows crash record (Blender 5.1.0, exit code 11) - found only in the process exits
+office1-real-blender-bgscene/20261115-064319
+video1-real-blender-bgscene/20261115-064841
+# the user's own render job - no culprit
+design1-work-blender/20261115-061847
+# Windows' own work on the slow profile (Defender full scan)
+office2-sys-defender-scan/20261115-070333
+# real crashes on the GPU clones, this time with a dump of their own (the scenario waits until 215 s after boot)
+video1-real-npp-column/20261115-065354
+design1-real-git-maintenance/20261115-065854
+# the same two crashes on 11/14: merged into the dump of the GPU clone's own LiveKernelEvent a few seconds earlier
+design1-real-git-maintenance/20261114-173138
+video1-real-npp-column/20261114-162106

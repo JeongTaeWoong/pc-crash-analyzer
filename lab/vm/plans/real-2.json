@@ -1,0 +1,13 @@
+{
+  "note": "HARD cases, second trial (written 2026-11-14 evening after real-1: 19 of 25 ran, 17 usable). DEVELOPMENT runs. What failed in real-1 and why, each fixed here: (1) on GPU clones the clone's own LiveKernelEvent 184 s after boot came 2-6 s before the crash, and the crash was merged into that dump (real-npp-column on video1, real-git-maintenance on design1) -> the scenario now starts 215 s after boot on GPU clones; (2) the Blender render ended after 75 s, before the mark -> adaptive sampling off, larger frame, mark after 60 s; (3) SteamCMD ends with code 7 after updating itself on its first run -> run it once to update, then again for the download; (4) the mark 'crash' was read as a program name -> 'app_crash blender'. Run it AFTER the test-set session.",
+  "jobs": [
+    { "id": "r2-01", "name": "design1", "from": "bundle-design",   "case": "work-blender",         "open": [ "krita" ] },
+    { "id": "r2-02", "name": "office2", "from": "bundle-office-b", "case": "bg-steam-update",      "open": [ "firefox" ] },
+    { "id": "r2-03", "name": "dev1",    "from": "bundle-dev",      "case": "bg-steam-update",      "open": [ "vscode" ] },
+    { "id": "r2-04", "name": "office1", "from": "bundle-office",   "case": "real-blender-bgscene", "open": [ "libreoffice" ] },
+    { "id": "r2-05", "name": "video1",  "from": "bundle-video",    "case": "real-blender-bgscene", "open": [ "vlc" ] },
+    { "id": "r2-06", "name": "video1",  "from": "bundle-video",    "case": "real-npp-column" },
+    { "id": "r2-07", "name": "design1", "from": "bundle-design",   "case": "real-git-maintenance", "open": [ "inkscape" ] },
+    { "id": "r2-08", "name": "office2", "from": "bundle-office-b", "case": "sys-defender-scan",    "open": [ "libreoffice" ] }
+  ]
+}

@@ -1,0 +1,106 @@
+{
+ "type": "object",
+ "properties": {
+  "verdict": {
+   "type": "string",
+   "enum": [
+    "culprit_found",
+    "no_problem_found",
+    "insufficient_evidence"
+   ]
+  },
+  "candidates": {
+   "type": "array",
+   "description": "원인 후보, 가능성이 높은 순서. 최대 3개. 원인이 없거나 판단할 수 없으면 빈 배열.",
+   "items": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string",
+      "description": "프로세스 이름이나 모듈 파일 이름(자료에 나온 그대로). 프로그램이 아니면 대상을 짧게."
+     },
+     "kind": {
+      "type": "string",
+      "enum": [
+       "process",
+       "module",
+       "driver",
+       "hardware",
+       "system",
+       "other"
+      ]
+     },
+     "confidence": {
+      "type": "string",
+      "enum": [
+       "high",
+       "medium",
+       "low"
+      ]
+     },
+     "evidence_ids": {
+      "type": "array",
+      "items": {
+       "type": "string"
+      }
+     },
+     "reason": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "name",
+     "kind",
+     "confidence",
+     "evidence_ids",
+     "reason"
+    ],
+    "additionalProperties": false
+   }
+  },
+  "recommended_actions": {
+   "type": "array",
+   "items": {
+    "type": "object",
+    "properties": {
+     "level": {
+      "type": "string",
+      "enum": [
+       "Lv0",
+       "Lv1",
+       "Lv2",
+       "Lv3",
+       "Lv4"
+      ]
+     },
+     "action": {
+      "type": "string"
+     },
+     "target": {
+      "type": "string"
+     },
+     "why": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "level",
+     "action",
+     "target",
+     "why"
+    ],
+    "additionalProperties": false
+   }
+  },
+  "explanation_for_user": {
+   "type": "string"
+  }
+ },
+ "required": [
+  "verdict",
+  "candidates",
+  "recommended_actions",
+  "explanation_for_user"
+ ],
+ "additionalProperties": false
+}

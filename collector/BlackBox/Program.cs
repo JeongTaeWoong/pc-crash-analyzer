@@ -32,13 +32,33 @@ if (Array.IndexOf(args, "--resource-recent") is var ri && ri >= 0)
     // 이미 만든 덤프의 events.json 에서 엔진용 최근 자원 요약(resource_recent)을 다시 계산해 출력한다 (읽기 전용, 수집 없음).
     // 요약 규칙을 바꿨을 때 예전 덤프로 확인하는 용도.
     if (ri + 1 >= args.Length || !File.Exists(args[ri + 1])) { Console.Error.WriteLine("usage: BlackBox --resource-recent <events.json>"); Environment.ExitCode = 2; return; }
-    using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(args[ri + 1]));
-    var arr = doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array ? doc.RootElement : doc.RootElement.GetProperty("events");
-    var replay = new List<SignalEvent>();
-    foreach (var e in arr.EnumerateArray())
-        replay.Add(new SignalEvent(e.GetProperty("t").GetDateTimeOffset(), e.GetProperty("source").GetString() ?? "", e.GetProperty("payload").GetRawText()));
+    var (replay, _) = ReadDumpEvents(args[ri + 1]);
     Console.WriteLine(Json.Serialize(RecentResources.Summarize(replay), indented: true));
     return;
+}
+if (Array.IndexOf(args, "--process-exits") is var pi && pi >= 0)
+{
+    // 같은 용도: events.json 에서 process_exits(창 안에서 끝난 프로세스의 종료 코드)를 다시 계산해 출력한다. 둘째 인자 = 마킹 대상 프로그램(없어도 된다).
+    if (pi + 1 >= args.Length || !File.Exists(args[pi + 1])) { Console.Error.WriteLine("usage: BlackBox --process-exits <events.json> [target process]"); Environment.ExitCode = 2; return; }
+    var (replay, markedAt) = ReadDumpEvents(args[pi + 1]);
+    string? target = pi + 2 < args.Length && !args[pi + 2].StartsWith("--") ? args[pi + 2] : null;
+    Console.WriteLine(Json.Serialize(ProcessExits.Summarize(replay, markedAt, target), indented: true));
+    return;
+}
+
+// 덤프의 events.json → 버퍼 이벤트와 마킹 시각. 마킹 시각이 파일에 없으면(배열만 있는 옛 형식) 마지막 이벤트 시각을 쓴다.
+static (List<SignalEvent> Events, DateTimeOffset MarkTime) ReadDumpEvents(string path)
+{
+    using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(path));
+    bool isArray = doc.RootElement.ValueKind == System.Text.Json.JsonValueKind.Array;
+    var arr = isArray ? doc.RootElement : doc.RootElement.GetProperty("events");
+    var list = new List<SignalEvent>();
+    foreach (var e in arr.EnumerateArray())
+        list.Add(new SignalEvent(e.GetProperty("t").GetDateTimeOffset(), e.GetProperty("source").GetString() ?? "", e.GetProperty("payload").GetRawText()));
+    DateTimeOffset mark = !isArray && doc.RootElement.TryGetProperty("markTime", out var mt) && mt.TryGetDateTimeOffset(out var m)
+        ? m
+        : list.Count > 0 ? list[^1].Timestamp : DateTimeOffset.Now;
+    return (list, mark);
 }
 
 var host = new CollectorHost(new CollectorHostOptions

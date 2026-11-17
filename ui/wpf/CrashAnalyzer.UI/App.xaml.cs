@@ -37,6 +37,47 @@ public partial class App : Application
             return;
         }
 
+        // --shot-ai <png> --open <스냅샷> [--answer <ce-ai ask --json 으로 저장한 결과>]: AI 설명 창을 화면 밖에서 그려 PNG 로 저장하고 종료
+        // (자가 검수용 — 아무것도 보내지 않는다. --answer 가 있으면 그 답을 화면에 채운다.)
+        int aiIdx = Array.IndexOf(e.Args, "--shot-ai");
+        if (aiIdx >= 0 && aiIdx + 1 < e.Args.Length)
+        {
+            int oi = Array.IndexOf(e.Args, "--open"), ai = Array.IndexOf(e.Args, "--answer");
+            string png = e.Args[aiIdx + 1];
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            try
+            {
+                var w = new AiWindow(Path.GetFullPath(e.Args[oi + 1]))
+                {
+                    WindowStartupLocation = WindowStartupLocation.Manual, Left = -16000, Top = 0, ShowActivated = false, ShowInTaskbar = false,
+                };
+                w.Loaded += async (_, _) =>
+                {
+                    if (ai >= 0 && ai + 1 < e.Args.Length)
+                    {
+                        using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(e.Args[ai + 1]));
+                        var root = doc.RootElement;
+                        var answer = CrashAnalyzer.Ai.AiAnswer.Parse(root.GetProperty("answer").GetRawText());
+                        string model = root.GetProperty("Model").GetString() ?? "";
+                        long inTok = root.GetProperty("InputTokens").GetInt64(), outTok = root.GetProperty("OutputTokens").GetInt64();
+                        w.Show(new CrashAnalyzer.Ai.AiResult(answer is null ? "unparseable" : "ok", answer,
+                            answer is null ? [] : CrashAnalyzer.Ai.AdviceCheck.Check(answer), model, inTok, outTok,
+                            CrashAnalyzer.Ai.Pricing.CostUsd(model, inTok, outTok), root.GetProperty("Attempts").GetInt32()));
+                    }
+                    await Task.Delay(1500);
+                    w.SavePng(png);
+                    Shutdown(0);
+                };
+                w.Show();
+            }
+            catch (Exception ex)
+            {
+                File.WriteAllText(png + ".error.txt", ex.ToString());
+                Shutdown(1);
+            }
+            return;
+        }
+
         ShutdownMode = ShutdownMode.OnMainWindowClose;
         var win = new MainWindow();
         MainWindow = win;

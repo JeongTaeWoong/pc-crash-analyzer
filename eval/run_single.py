@@ -22,14 +22,17 @@ import anthropic
 
 sys.path.insert(0, str(Path(__file__).parent))
 import ledger  # noqa: E402
-from cases import load_cases  # noqa: E402
+from cases import BUNDLE_VERSION, load_cases  # noqa: E402
 from count_tokens import api_key  # noqa: E402
 from grade import grade  # noqa: E402
 from pricing import PRICES, cost_usd, usage_cost  # noqa: E402
 from prompts import ANSWER_SCHEMA, PROMPT_VERSION, SYSTEM, user_message  # noqa: E402
 
-MAX_TOKENS = 16000
-ASSUMED_OUTPUT_TOKENS = 6000   # for the pre-call estimate only (thinking + answer); the ledger records the real usage
+# 4,000 since 2026-11-15 (was 16,000): answers under prompt p3 run 1,100-3,250 tokens (422 answers, none above 3,250),
+# while 4 of 70 Sonnet answers looped inside a JSON string and ran to the old limit at about 0.17 USD each. With the lower
+# limit a looping answer is cut after a quarter of that; it is then asked once more, as before.
+MAX_TOKENS = 4000
+ASSUMED_OUTPUT_TOKENS = 3000   # for the pre-call estimate only; the ledger records the real usage
 
 
 def main() -> int:
@@ -89,7 +92,7 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "transcripts").mkdir()
     config = {"run_id": run_id, "condition": args.condition, "model": args.model, "effort": args.effort, "reps": args.reps, "phase": args.phase, "case_set": args.case_set,
-              "prompt_version": PROMPT_VERSION, "max_tokens": MAX_TOKENS, "cases": [c.id for c in cases], "estimate_usd": round(est, 4)}
+              "prompt_version": PROMPT_VERSION, "bundle_version": BUNDLE_VERSION, "max_tokens": MAX_TOKENS, "cases": [c.id for c in cases], "estimate_usd": round(est, 4)}
     (out_dir / "config.json").write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
 
     output_config: dict = {"format": {"type": "json_schema", "schema": ANSWER_SCHEMA}}
