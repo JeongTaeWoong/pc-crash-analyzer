@@ -9,6 +9,8 @@ public partial class App : Application
 {
     private void OnAppStartup(object sender, StartupEventArgs e)
     {
+        KoreanWordWrap.Install();   // 2026-11-18 추가: 한글을 단어(띄어쓰기) 단위로만 줄바꿈
+
         // --selftest [출력파일]: GUI 없이 엔진 연결·진단 변환을 검증하고 종료 (CI/스모크용)
         if (e.Args.Length >= 1 && e.Args[0] == "--selftest")
         {
