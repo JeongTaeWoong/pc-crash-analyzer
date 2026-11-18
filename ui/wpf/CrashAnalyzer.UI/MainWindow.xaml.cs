@@ -788,7 +788,7 @@ public partial class MainWindow : Window
                 val.Text = "-";
                 val.Foreground = Ui.FaintFg;
                 val.ToolTip = null;
-                note.Text = "검진하면 여기에 결과가 나와요";
+                note.Text = "검진하면 결과가 나와요";
                 continue;
             }
             double p = Num(probs[k]);
@@ -802,7 +802,7 @@ public partial class MainWindow : Window
             };
             note.Text = word switch
             {
-                "주의" => "원인이 있을 가능성이 가장 커요",
+                "주의" => "가장 의심되는 곳이에요",   // 2026-11-18: 좁은 카드에서 줄이 끊기지 않게 짧게
                 "관찰" => "원인일 수도 있어요",
                 _ => "문제없어 보여요",
             };
@@ -1069,7 +1069,7 @@ public partial class MainWindow : Window
             if (v is null)
             {
                 txtNextTitle.Text = "아직 검진 전이에요";
-                txtNextAdvice.Text = "[최근 기록 열기]를 누르면 수집기가 남긴 가장 최근 기록으로 검진을 시작해요.\n" +
+                txtNextAdvice.Text = "[최근 기록 열기]를 누르면 가장 최근 기록으로 검진을 시작해요.\n" +
                                      "다른 기록이나 실험용 시나리오는 [파일 열기…]로 고를 수 있어요.";
             }
             else
