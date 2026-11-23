@@ -59,6 +59,10 @@
                         Padding="10,4" Margin="6,0,0,0" VerticalAlignment="Center" Click="OnOpenSnapshotFile"/>
                 <Button Content="최근 기록 열기" Style="{StaticResource BtnPrimary}" DockPanel.Dock="Right" FontSize="12"
                         Padding="10,4" Margin="10,0,0,0" VerticalAlignment="Center" Click="OnOpenLatestDump"/>
+                <!-- 2026-11-18 추가: 시연용 — 시험 프로그램(FaultLab)으로 문제를 일으키고 수집기가 기록하면 자동 검진 -->
+                <Button x:Name="btnDemoFault" Content="시연: 문제 일으키기 ▾" Style="{StaticResource BtnSecondary}" DockPanel.Dock="Right"
+                        FontSize="12" Padding="10,4" Margin="10,0,0,0" VerticalAlignment="Center" Click="OnDemoFault"
+                        ToolTip="시험 프로그램으로 튕김·멈춤·느려짐을 일부러 일으켜요. 수집기가 기록하면 바로 검진 결과로 넘어가요"/>
                 <!-- 2026-11-16: 열려 있는 기록을 사용자의 자기 API 키로 AI 에 물어 설명을 받는 창 (CrashAnalyzer.Ai) -->
                 <Button x:Name="btnAiExplain" Content="AI 설명…" Style="{StaticResource BtnDark}" DockPanel.Dock="Right" FontSize="12"
                         Padding="10,4" Margin="10,0,0,0" VerticalAlignment="Center" Click="OnAiExplain"

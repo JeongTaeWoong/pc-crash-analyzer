@@ -98,5 +98,16 @@ public sealed class CollectorHost : IDisposable
         _proc = null;
     }
 
+    /// <summary>수동 마킹(2026-11-18 추가, 시연용): 수집기 표준 입력에 "m 증상 대상" 을 보낸다 — Ctrl+Shift+F12 와 같다.
+    /// 수집기는 입력을 ASCII 로 받아야 깨지지 않으므로 증상·대상은 영문으로만 넘긴다.</summary>
+    public bool Mark(string symptomAndTarget)
+    {
+        var p = _proc;
+        if (p is null || p.HasExited) return false;
+        p.StandardInput.WriteLine(("m " + symptomAndTarget).Trim());
+        p.StandardInput.Flush();
+        return true;
+    }
+
     public void Dispose() => Stop();
 }

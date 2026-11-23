@@ -67,6 +67,9 @@ public sealed class ActionExecutor
             case "av_realtime":
                 return IsDefender(Part(automation, 1)) ? null
                     : "Microsoft Defender 가 아닌 백신은 제품마다 설정 방법이 달라 자동 실행하지 않아요";
+            case "update":   // 2026-11-18 추가: 시연용 Godot 만 (실제 프로그램 업데이트는 제품마다 달라 하지 않는다)
+                return DemoFaults.IsDemoUpdate(automation) ? null
+                    : "프로그램 업데이트는 제품마다 방법이 달라 자동 실행하지 않아요. 제조사 안내대로 직접 업데이트해 주세요";
             case "toggle_overlay":
                 return "오버레이 설정은 프로그램마다 달라 아직 자동 실행하지 않아요";
             default:
@@ -138,18 +141,22 @@ public sealed class ActionExecutor
 
             if (level >= 3)
                 return Refuse(e, "Lv3 이상(되돌리기 어려운 조치)은 이번 버전에서 자동 실행하지 않아요. 단계를 보고 직접 해 주세요.");
-            if (!Ops(e).IsElevated)
-                return Refuse(e, "관리자 권한이 필요해요. UI 를 '관리자 권한으로 실행'한 뒤 다시 해 주세요.");
-
             var supported = new List<ActionRequest>();
+            bool needAdmin = false;
             for (int i = 0; i < actions.Count; i++)
             {
                 string? why = WhyNotSupported(actions[i].Automation);
-                if (why == null) supported.Add(actions[i]);
+                if (why == null)
+                {
+                    supported.Add(actions[i]);
+                    if (!DemoFaults.IsDemoUpdate(actions[i].Automation)) needAdmin = true;   // 시연용 업데이트는 관리자 권한이 필요 없다 (2026-11-18)
+                }
                 else Note(e, "info", "건너뜀 — " + actions[i].Label + ": " + why);
             }
             if (supported.Count == 0)
                 return Refuse(e, "자동으로 실행할 수 있는 조치가 없어요. 안내된 단계를 직접 해 주세요.");
+            if (needAdmin && !Ops(e).IsElevated)
+                return Refuse(e, "관리자 권한이 필요해요. UI 를 '관리자 권한으로 실행'한 뒤 다시 해 주세요.");
 
             try
             {
@@ -305,6 +312,23 @@ public sealed class ActionExecutor
             return;
         }
 
+        if (op == "update" && DemoFaults.IsDemoUpdate(a.Automation))   // 2026-11-18 추가: 시연용 Godot 업데이트
+        {
+            string root = DemoFaults.DemoRoot!;
+            string before = DemoFaults.InstalledVersion(root);
+            if (before == DemoFaults.FixedVersion)
+            {
+                Note(e, "info", "Godot 는 이미 " + DemoFaults.FixedVersion + " 이라 바꿀 것이 없어요.");
+                return;
+            }
+            Note(e, "info", "시연용 조치예요: PC 에 설치된 프로그램은 건드리지 않고, demo-godot 폴더의 '설치된 버전' 표시만 바꿔요.");
+            Step(e, new ExecStep { Kind = "demo_app_version", Target = root, Before = before, After = DemoFaults.FixedVersion, Detail = "Godot" },
+                "Godot " + before + " 사용 중",
+                () => { if (!ops.IsDryRun) DemoFaults.SetInstalledVersion(root, DemoFaults.FixedVersion); },
+                "Godot " + before + " → " + DemoFaults.FixedVersion + " 업데이트 (버그가 고쳐진 버전)");
+            return;
+        }
+
         throw new ExecException("지원하지 않는 조치: " + a.Automation);
     }
 
@@ -352,6 +376,10 @@ public sealed class ActionExecutor
                     case "defender_realtime":
                         ops.DefenderSetRealtime(true);
                         text = "Defender 실시간 보호 다시 켬";
+                        break;
+                    case "demo_app_version":   // 2026-11-18 추가
+                        if (!ops.IsDryRun) DemoFaults.SetInstalledVersion(s.Target, s.Before);
+                        text = s.Detail + " 버전을 원래대로(" + s.Before + ") 되돌림";
                         break;
                     default:
                         throw new ExecException("알 수 없는 기록 종류: " + s.Kind);

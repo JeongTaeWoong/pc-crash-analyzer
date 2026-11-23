@@ -87,6 +87,7 @@ public partial class MainWindow : Window
         }
 
         _repoRoot = RepoPaths.FindRepoRoot();
+        DemoFaults.DemoRoot = _repoRoot is null ? null : DemoFaults.GodotRoot(_repoRoot);   // 시연용 Godot 업데이트 (2026-11-18)
         if (_repoRoot is null)
         {
             SetStatus("저장소 루트(engine+collector 폴더)를 찾지 못했습니다 — 저장소 안에서 실행하세요");
@@ -236,6 +237,363 @@ public partial class MainWindow : Window
 
         if (chkAutoDiagnose.IsChecked == true)
             LoadSnapshot(path);
+    }
+
+    // ═══════════════════════ 시연: 문제 일으키기 (2026-11-18 추가) ═══════════════════════
+
+    private bool _demoRunning;
+
+    /// <summary>버튼을 누르면 고를 수 있는 문제 목록을 띄운다</summary>
+    private void OnDemoFault(object sender, RoutedEventArgs e)
+    {
+        var menu = new ContextMenu { PlacementTarget = btnDemoFault, Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom };
+        for (int i = 0; i < DemoFaults.All.Length; i++)
+        {
+            DemoFault f = DemoFaults.All[i];
+            var item = new MenuItem { Header = f.Label, ToolTip = f.Description, IsEnabled = !_demoRunning };
+            item.Click += (_, _) => RunDemoFault(f);
+            menu.Items.Add(item);
+        }
+        // 실제 프로그램 버그 (2026-11-18 추가): demo-godot 폴더가 있을 때만 쓸 수 있다
+        menu.Items.Add(new Separator());
+        string? godotRoot = _repoRoot is null ? null : DemoFaults.GodotRoot(_repoRoot);
+        DemoFaults.DemoRoot = godotRoot;
+        if (godotRoot is null)
+        {
+            menu.Items.Add(new MenuItem { Header = DemoFaults.Real[0].Label, ToolTip = "demo-godot 폴더가 없어요(저장소 옆에 두세요)", IsEnabled = false });
+        }
+        else
+        {
+            // 지금 '설치된' 버전으로 실행한다. 검진 → 점검 "업데이트 후 재현" 실행 → 다시 실행하면 4.5 로 바뀌어 정상으로 끝난다
+            // 보여 주는 방식 3가지 (2026-11-18 추가): 편집기 화면 2가지 + 창 없이
+            string ver = DemoFaults.InstalledVersion(godotRoot);
+            string[] modes = { "editor-drop", "editor", "headless" };
+            for (int m = 0; m < modes.Length; m++)
+            {
+                DemoFault f = DemoFaults.InstalledFault(godotRoot, modes[m]);
+                var run = new MenuItem
+                {
+                    Header = "실제 프로그램: Godot " + ver + " 실행 — " + DemoFaults.ModeKo(modes[m]),
+                    ToolTip = f.Description,
+                    IsEnabled = !_demoRunning,
+                };
+                run.Click += (_, _) => RunDemoFault(f);
+                menu.Items.Add(run);
+            }
+
+            var reset = new MenuItem
+            {
+                Header = "Godot 를 " + DemoFaults.BuggyVersion + " 으로 되돌리기 (시연 처음 상태)",
+                ToolTip = "시연을 다시 하려고 '설치된 버전' 표시를 버그가 있는 " + DemoFaults.BuggyVersion + " 으로 돌려요.",
+                IsEnabled = !_demoRunning && ver != DemoFaults.BuggyVersion,
+            };
+            reset.Click += (_, _) =>
+            {
+                try
+                {
+                    DemoFaults.SetInstalledVersion(godotRoot, DemoFaults.BuggyVersion);
+                    chkDryRun.IsChecked = true;   // 시연 동안 꺼 둔 시험 실행을 다시 켠다
+                    _godotDemo = false;
+                    FillExec();
+                    Activity("시연: Godot 를 " + DemoFaults.BuggyVersion + " 으로 되돌림");
+                    SetStatus("Godot 를 " + DemoFaults.BuggyVersion + " 으로 되돌렸어요. 다시 시연할 수 있어요.");
+                }
+                catch (Exception ex) { SetStatus("되돌리지 못했어요: " + ex.Message); }
+            };
+            menu.Items.Add(reset);
+        }
+        menu.IsOpen = true;
+    }
+
+    /// <summary>
+    /// Godot 시연 준비 (2026-11-18 추가): 검진이 뜨기 전에 '자동으로 해 주세요'를 켜고 '시험 실행'을 꺼 둔다.
+    /// 검진 뒤에 방식을 바꾸면 처음부터 다시 검진하므로 미리 바꿔 둔다. 시험 실행을 끄는 것은 이 시연에서만이며,
+    /// 이때 실행기가 바꾸는 것은 demo-godot\installed.txt (시연용 '설치된 버전' 표시) 뿐이다. 'Godot 를 4.3 으로 되돌리기'를 누르면 시험 실행을 다시 켠다.
+    /// </summary>
+    private void PrepareGodotDemoMode()
+    {
+        // 클릭 이벤트만 연결돼 있어서 코드에서 값을 바꿔도 확인 창이 뜨지 않는다
+        _godotDemo = true;
+        _mode = "auto";
+        rbModeGuide.IsChecked = false;
+        rbModeAuto.IsChecked = true;
+        chkDryRun.IsChecked = false;
+        UpdateStatusBar();
+        FillExec();
+        AppendLog("[시연] 자동으로 해 주세요 + 시험 실행 끔 (Godot 업데이트는 demo-godot 폴더의 '설치된 버전' 표시만 바꿔요)");
+    }
+
+    // ═══════════════════════ Godot 자동 시연 — 2026-11-18 추가 ═══════════════════════
+    // Godot 4.3 이 꺼지면: 수집기 기록 → 자동 검진 → 점검을 차례로 자동 처리 → 업데이트(4.3→4.5) 실행 → Godot 를 다시 실행해 실제로 확인
+    // → 결과 알리기 → 원인 확인 → 해결책 적용 기록. 사람이 버튼을 누르지 않아도 되게 한다.
+    //   * 점검 결과는 정답 파일이 아니라 'Godot 를 다시 실행했을 때 꺼지는지'로 정한다(업데이트 점검).
+    //   * 백신·드라이버·다른 프로그램 점검은 이 시연에서 실제 설정을 바꾸지 않으므로 '할 수 없어요(건너뜀)'로 알린다.
+    //   * 해결 확인(재발 없음)은 엔진 규칙상 60분 이상 써 본 뒤라 여기서 멈춘다.
+
+    private bool _godotDemo;   // Godot 시연 중 (시연용 업데이트 말고는 자동 실행하지 않는다)
+
+    private async Task GodotAutoAfterCrashAsync(string? sourceBefore, DemoFault fault)
+    {
+        // 기다리는 동안에도 멈춘 것처럼 보이지 않게, 자동 진행 띠에 무엇을 기다리는지와 남은 시간을 보여 준다 (2026-11-18)
+        _autoStepNo = 0;
+        _autoLogNo = 0;
+        _autoLog.Clear();
+        icAutoLog.ItemsSource = _autoLog;
+        bdAutoPlay.Background = (Brush)FindResource("Accent");
+        btnAutoClose.Visibility = Visibility.Collapsed;
+        pbAutoWait.Visibility = Visibility.Visible;
+        AddAutoLog("Godot 4.3 이 꺼짐 (0xC0000005)");
+        const int collectSec = 32;   // 수집기는 문제 뒤 30초 동안의 변화까지 모아서 저장한다 (+ 쓰기 시간)
+        DateTime crashedAt = DateTime.Now;
+
+        // 수집기가 기록을 저장하고 자동 검진이 끝날 때까지 기다린다 (최대 120초). 기록이 2개 생길 수 있어 6초 동안 바뀌지 않을 때까지 본다.
+        string? seen = null;
+        int stable = 0;
+        for (int i = 0; i < 240 && stable < 12; i++)
+        {
+            await Task.Delay(500);
+            bool ready = _sourcePath != null && _sourcePath != sourceBefore && _view != null && !_autoStarting &&
+                         Str(_view["target_process"]).Contains("Godot", StringComparison.OrdinalIgnoreCase);
+
+            int passed = (int)(DateTime.Now - crashedAt).TotalSeconds;
+            SetAutoBanner(true);   // 검진 화면이 열리면서 띠를 숨겨도 다시 보이게
+            txtAutoHead.Text = "▶ 자동 진행 중 · " + (ready ? "검진 결과 정리" : "블랙박스 기록 저장");
+            if (!ready)
+            {
+                int left = Math.Max(0, collectSec - passed);
+                txtAutoStep.Text = left > 0 ? "블랙박스가 꺼진 순간 앞뒤 기록을 모으는 중… " + left + "초"
+                                            : "기록을 저장하고 검진하는 중…";
+                txtAutoWhy.Text = "수집기는 프로그램이 꺼지기 전 몇 분과, 꺼진 뒤 30초 동안 무슨 일이 뒤따랐는지까지 함께 저장해요.";
+                pbAutoWait.Value = Math.Max(0, 1.0 - (double)passed / collectSec);
+            }
+            else
+            {
+                txtAutoStep.Text = "검진 완료 — 원인 후보 순위를 정리하는 중…";
+                txtAutoWhy.Text = "같은 순간의 기록이 더 들어오는지 잠깐 확인한 뒤 점검을 시작해요.";
+                pbAutoWait.Value = 0;
+            }
+
+            if (!ready) { stable = 0; continue; }
+            if (_sourcePath == seen) stable++;
+            else { seen = _sourcePath; stable = 0; }
+        }
+        if (stable < 12)
+        {
+            StopGodotAuto("Godot 검진 결과를 기다리다 멈췄어요. [최근 기록 열기]로 열고 직접 진행해 주세요.");
+            return;
+        }
+        if (_autoPlay) return;
+
+        BringToFront();
+        chkAutoDiagnose.IsChecked = false;   // 진행 중에 늦게 저장된 기록이 화면을 바꾸지 않게
+        AddAutoLog("블랙박스 기록 저장 · 자동 검진 (" + (int)(DateTime.Now - crashedAt).TotalSeconds + "초)");
+        SetAutoBanner(true);
+        OnNavMain(this, new RoutedEventArgs());
+        _autoPlay = true;
+        btnAutoPlay.Content = "■ 자동 진행 멈추기";
+        try
+        {
+            await GodotAutoLoop(fault);
+        }
+        finally
+        {
+            chkAutoDiagnose.IsChecked = true;
+        }
+    }
+
+    private async Task GodotAutoLoop(DemoFault crashed)
+    {
+        string? root = DemoFaults.DemoRoot;
+        ShowAutoBanner("자동 진행 시작", "Godot 4.3 이 그림을 가져오다 꺼졌어요. 블랙박스 기록으로 원인을 찾고, 고칠 때까지 자동으로 진행해요.");
+        if (!await AutoWait(AutoStepMs)) { StopGodotAuto("자동 진행을 멈췄어요."); return; }
+
+        int guard = 0;
+        while (_autoPlay && guard++ < 20)
+        {
+            string status = Str(_view?["status"]);
+            if (status == "checking" && _view?["next_check"] is JsonNode nc)
+            {
+                string label = Str(nc["label"]);
+                string target = Str(nc["target"]);
+                if (target.Length > 0) label += " → " + target;
+                string automation = Str(nc["action"]?["automation"]);
+
+                if (!DemoFaults.IsDemoUpdate(automation) || root is null)
+                {
+                    ShowAutoBanner("점검: " + label + " → 건너뜀",
+                                   "이 시연에서는 백신·드라이버·다른 프로그램 설정을 실제로 바꾸지 않아요. '할 수 없어요'로 알리고 다음 점검으로 가요.");
+                    if (!await AutoWait(AutoStepMs)) break;
+                    await AutoPress(btnSkipped);
+                    if (!_autoPlay) break;
+                    await Report("skipped");
+                    AddAutoLog("점검 " + label + " → 건너뜀");
+                    if (!await AutoWait(1500)) break;
+                    continue;
+                }
+
+                // 프로그램 업데이트 후 재현: 실행기가 4.3 → 4.5 로 바꾸고, Godot 를 다시 실행해 실제로 확인한다
+                ShowAutoBanner("점검: " + label, "오류가 Godot 자체 코드에서 났어요. 버그가 고쳐진 버전으로 바꾸고 같은 작업을 다시 해 봐요.");
+                if (!await AutoWait(AutoStepMs)) break;
+                await AutoPress(btnExecRun);
+                if (!_autoPlay) break;
+                await RunCurrentActionAsync();
+                AddAutoLog("조치 실행: Godot " + DemoFaults.BuggyVersion + " → " + DemoFaults.InstalledVersion(root) + " 업데이트");
+                if (!await AutoWait(AutoStepMs)) break;
+
+                DemoFault recheck = DemoFaults.InstalledFault(root, crashed.Mode == "headless" ? "headless" : "editor");
+                ShowAutoBanner("같은 작업 다시 해 보기 — Godot " + DemoFaults.InstalledVersion(root),
+                               "같은 프로젝트를 다시 열어요. 20초 동안 꺼지지 않으면 그림을 문제없이 가져온 거예요.");
+                Action<string> progress = msg => Dispatcher.BeginInvoke(new Action(() => SetStatus(msg)));
+                int code;
+                try
+                {
+                    code = await Task.Run(() => DemoFaults.RunGodotAsync(root, recheck, progress, default, 20));
+                }
+                catch (Exception ex)
+                {
+                    StopGodotAuto("Godot 를 다시 실행하지 못했어요: " + ex.Message);
+                    return;
+                }
+                BringToFront();   // 다시 띄운 Godot 창을 닫은 뒤 앱을 앞으로
+                bool ok = code == 0;
+                AddAutoLog("다시 실행: " + (ok ? "꺼지지 않음" : $"또 꺼짐 (0x{code:X8})"));
+                string answer = ok ? "증상이 사라졌어요" : "그대로예요";
+                ShowAutoBanner("결과 알리기 → '" + answer + "'",
+                               ok ? "고친 버전에서는 같은 그림을 문제없이 가져왔어요. 원인은 Godot 4.3 자체의 버그예요."
+                                  : "고친 버전에서도 꺼졌어요. 업데이트는 해결책이 아니에요(실행기가 원래대로 되돌려요).");
+                if (!await AutoWait(AutoStepMs)) break;
+                await AutoPress(ok ? btnSolved : btnNotSolved);
+                if (!_autoPlay) break;
+                await Report(ok ? "solved" : "not_solved");
+                AddAutoLog("점검 " + label + " → " + answer);
+                if (!await AutoWait(AutoStepMs)) break;
+            }
+            else if (status == "confirmed")
+            {
+                ShowAutoBanner("원인 확인 → 해결책 적용", "원인이 확인됐어요: Godot 4.3 자체의 버그. 해결책은 고쳐진 버전으로 업데이트예요(이미 바꿔 두었어요).");
+                if (!await AutoWait(AutoStepMs)) break;
+                string remedyId = lvRemedies.SelectedItem is RemedyRow r ? r.RemedyId : "";
+                string appliedAt = txtAppliedAt.Text.Trim();
+                await AutoPress(btnApply);
+                if (!_autoPlay) break;
+                await RunSession(s => s.ApplyFix(remedyId, appliedAt));
+                AddAutoLog("해결책 적용 기록" + (remedyId.Length > 0 ? " (" + remedyId + ")" : ""));
+                if (!await AutoWait(AutoStepMs)) break;
+            }
+            else if (status == "fixing")
+            {
+                StopGodotAuto("자동 진행 끝 — 원인(Godot 4.3 버그)을 찾아 업데이트로 고쳤어요. 실제로는 한동안(60분 이상) 써 본 뒤 '재발 없음'으로 확인하면 해결로 끝나요.");
+                return;
+            }
+            else
+            {
+                StopGodotAuto(status == "exhausted" ? "자동 진행 끝 — 점검을 다 했지만 원인을 못 찾았어요." : "자동 진행 끝");
+                return;
+            }
+        }
+        StopGodotAuto(_autoPlay ? "자동 진행 끝 (단계가 너무 많아 멈췄어요)" : "자동 진행을 멈췄어요.");
+    }
+
+    /// <summary>앱 창을 맨 앞으로 가져온다 (최소화돼 있으면 되살린다). 2026-11-18 추가</summary>
+    private void BringToFront()
+    {
+        if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+        if (!IsVisible) Show();
+        Activate();
+        Topmost = true;    // Windows 는 다른 프로그램이 앞에 있으면 Activate 만으로 앞으로 안 올 때가 있다
+        Topmost = false;
+        Focus();
+    }
+
+    private void StopGodotAuto(string message)
+    {
+        StopAutoPlay(message);
+        if (message.Contains("업데이트로 고쳤어요")) bdAutoPlay.Background = (Brush)FindResource("Accent");
+    }
+
+    private async void RunDemoFault(DemoFault fault)
+    {
+        if (_demoRunning) return;
+        if (_repoRoot is null || _collector is null) { SetStatus("저장소 루트를 찾지 못해 시연을 시작할 수 없어요"); return; }
+        string? godotRoot = DemoFaults.GodotRoot(_repoRoot);
+        string? exe = fault.Kind == "godot" ? godotRoot : DemoFaults.ExePath(_repoRoot);
+        if (exe is null && fault.Kind == "godot")
+        {
+            MessageBox.Show(this, "demo-godot 폴더를 찾지 못했어요. 저장소(pc-crash-analyzer) 옆에 demo-godot 폴더를 두세요.",
+                            "시연: 문제 일으키기", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+        if (exe is null)
+        {
+            MessageBox.Show(this, "시험 프로그램(FaultLab)이 아직 빌드돼 있지 않아요.\n앱을 닫고 ui\\wpf\\run_ui.bat 을 다시 실행하면 함께 빌드돼요.",
+                            "시연: 문제 일으키기", MessageBoxButton.OK, MessageBoxImage.Information);
+            return;
+        }
+
+        _demoRunning = true;
+        btnDemoFault.IsEnabled = false;
+        try
+        {
+            if (!_collector.IsRunning)
+            {
+                OnCollectorStart(this, new RoutedEventArgs());
+                if (!_collector.IsRunning) return;
+                SetStatus("수집기 준비 중… (5초)");
+                await Task.Delay(5000);   // 수집기가 최근 상태를 모으기 시작할 시간
+            }
+            chkAutoDiagnose.IsChecked = true;   // 새 기록이 생기면 바로 검진 결과로 넘어가게
+            if (fault.Kind == "godot") PrepareGodotDemoMode();
+            else _godotDemo = false;
+            string? sourceBefore = _sourcePath;
+            Activity("시연 시작: " + fault.Label);
+            SetStatus($"시연: {fault.Label} — 약 {fault.ExpectSec}초 뒤 검진 결과가 나와요");
+
+            Action<string> progress = msg => Dispatcher.BeginInvoke(new Action(() => SetStatus(msg)));
+            int code = fault.Kind == "godot"
+                ? await Task.Run(() => DemoFaults.RunGodotAsync(exe, fault, progress))
+                : await Task.Run(() => DemoFaults.RunAsync(exe, fault,
+                    args => Dispatcher.Invoke(() =>
+                    {
+                        bool ok = _collector.Mark(args);
+                        AppendLog($"[시연] 수동 마킹: m {args} ({(ok ? "보냄" : "수집기가 꺼져 있음")})");
+                    }),
+                    progress));
+
+            AppendLog($"[시연] {fault.Label}: 종료 코드 {code} (0x{code:X8})");
+            if (fault.ExpectOk)
+            {
+                bool ok = code == 0;
+                Activity(ok ? "고친 버전: 정상으로 끝남" : $"고친 버전: 종료 코드 {code}");
+                SetStatus(ok
+                    ? $"시연: {fault.Label} — 정상으로 끝났어요(종료 코드 0). 점검 화면에서 '증상이 사라졌어요'를 누르면 업데이트가 해결책으로 확정돼요."
+                    : $"시연: {fault.Label} — 종료 코드 {code}. 고친 버전에서도 문제가 있어요. 수집기 기록을 확인해 주세요.");
+            }
+            else if (fault.Kind == "godot" && code == 0)
+            {
+                SetStatus($"시연: {fault.Label} — 이번에는 꺼지지 않고 끝났어요(종료 코드 0). " +
+                          (fault.Mode == "editor-drop" ? "그림을 넣기 전에 편집기를 닫았거나, " : "") + "이 PC 에서는 이 그림으로 버그가 나지 않았어요.");
+            }
+            else if (fault.Kind == "godot")
+            {
+                // Godot 가 꺼짐 → 검진이 뜨면 업데이트로 해결하는 데까지 자동으로 진행한다 (2026-11-18 추가)
+                SetStatus($"시연: Godot 가 꺼졌어요(종료 코드 0x{code:X8}). 기록이 저장되면 검진하고, 해결까지 자동으로 진행해요(30초쯤).");
+                BringToFront();   // Godot 창이 사라진 뒤 앱이 다른 창 뒤에 숨어 있지 않게 (2026-11-18)
+                _ = GodotAutoAfterCrashAsync(sourceBefore, fault);
+            }
+            else
+            {
+                SetStatus($"시연: {fault.Label} — 프로그램이 끝났어요. 기록이 저장되면 자동으로 검진해요(최대 30초쯤).");
+            }
+        }
+        catch (Exception ex)
+        {
+            SetStatus("시연을 진행하지 못했어요: " + ex.Message);
+        }
+        finally
+        {
+            _demoRunning = false;
+            btnDemoFault.IsEnabled = true;
+        }
     }
 
     private void Activity(string text)
@@ -1539,7 +1897,7 @@ public partial class MainWindow : Window
         int level = 0;
         for (int i = 0; i < actions.Count; i++)
         {
-            bool reversible = actions[i]["reversible"] is JsonValue rv && rv.TryGetValue<bool>(out bool b) && b;
+            bool reversible = IsReversible(actions[i]);
             int lv = RiskLevel.FromAction(Str(actions[i]["execution"]), reversible);
             if (lv > level) level = lv;
         }
@@ -1555,9 +1913,16 @@ public partial class MainWindow : Window
                 Label = Str(actions[i]["label"]),
                 Automation = Str(actions[i]["automation"]),
                 Execution = Str(actions[i]["execution"]),
-                Reversible = actions[i]["reversible"] is JsonValue rv && rv.TryGetValue<bool>(out bool b) && b,
+                Reversible = IsReversible(actions[i]),
             });
         return list;
+    }
+
+    /// <summary>엔진이 '되돌릴 수 있음'이라고 한 조치. 시연용 Godot 업데이트는 실행기가 이전 버전으로 되돌릴 수 있어 Lv2 로 본다 (2026-11-18)</summary>
+    private static bool IsReversible(JsonNode action)
+    {
+        if (action["reversible"] is JsonValue rv && rv.TryGetValue<bool>(out bool b) && b) return true;
+        return DemoFaults.IsDemoUpdate(Str(action["automation"]));
     }
 
     private void OnExecChanged()
@@ -1685,7 +2050,8 @@ public partial class MainWindow : Window
         chkDryRun.IsEnabled = !active;
 
         // Lv1 은 자동 실행 (같은 대상은 한 번만)
-        if (canRun && auto && level == 1 && entry is null && !_execBusy && _autoRanContexts.Add(session + "|" + context))
+        // Godot 시연 중에는 시연용 업데이트(자동 진행이 실행)만 실행하고, 다른 Lv1 조치는 자동 실행하지 않는다 (2026-11-18)
+        if (canRun && auto && level == 1 && entry is null && !_execBusy && !_godotDemo && _autoRanContexts.Add(session + "|" + context))
             Dispatcher.BeginInvoke(new Action(() => OnExecRun(this, new RoutedEventArgs())));
     }
 
